@@ -2,15 +2,15 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "NftInfoResponse",
   "type": "object",
-  "required": [
-    "extension"
-  ],
   "properties": {
     "extension": {
       "description": "You can add any custom metadata here when you extend cw721-base",
-      "allOf": [
+      "anyOf": [
         {
           "$ref": "#/definitions/Metadata"
+        },
+        {
+          "type": "null"
         }
       ]
     },
@@ -51,6 +51,12 @@
           ]
         },
         "keybase_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "route": {
           "type": [
             "string",
             "null"
