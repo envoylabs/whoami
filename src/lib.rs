@@ -32,7 +32,7 @@ pub struct Metadata {
     pub route: Option<Route>, // routes can be followed up the tree. if empty, then can assume it is ROOT
 }
 
-pub type Extension = Metadata;
+pub type Extension = Option<Metadata>;
 
 pub type Cw721MetadataContract<'a> = cw721_base::Cw721Contract<'a, Extension, Empty>;
 pub type ExecuteMsg = cw721_base::ExecuteMsg<Extension>;
@@ -191,7 +191,7 @@ mod tests {
             token_id: token_id.clone(),
             owner: String::from("jeff-vader"),
             token_uri: Some(token_uri.clone()),
-            extension: meta.clone(),
+            extension: Some(meta.clone()),
         });
 
         // random cannot mint
@@ -222,7 +222,7 @@ mod tests {
             info,
             NftInfoResponse::<Extension> {
                 token_uri: Some(token_uri),
-                extension: meta.clone(),
+                extension: Some(meta.clone()),
             }
         );
 
@@ -248,7 +248,7 @@ mod tests {
             token_id: token_id.clone(),
             owner: String::from("hercules"),
             token_uri: None,
-            extension: meta2.clone(),
+            extension: Some(meta2.clone()),
         });
 
         let allowed = mock_info(MINTER, &[]);
@@ -268,7 +268,7 @@ mod tests {
             token_id: token_id_2.clone(),
             owner: String::from("jeff alt"),
             token_uri: None,
-            extension: meta2.clone(),
+            extension: Some(meta2.clone()),
         });
 
         let allowed = mock_info(MINTER, &[]);
@@ -287,7 +287,7 @@ mod tests {
             token_id: token_id_nested.clone(),
             owner: String::from("jeff-vader"),
             token_uri: None,
-            extension: meta2.clone(),
+            extension: Some(meta2.clone()),
         });
 
         let allowed = mock_info(MINTER, &[]);
@@ -313,7 +313,7 @@ mod tests {
             token_id: token_id_nested.clone(),
             owner: String::from("some-random-guy"),
             token_uri: None,
-            extension: meta2.clone(),
+            extension: Some(meta2.clone()),
         });
 
         let allowed = mock_info(MINTER, &[]);
@@ -355,10 +355,10 @@ mod tests {
             token_id: token_id.to_string(),
             owner: "jeff-addr".to_string(),
             token_uri: Some("https://starships.example.com/Starship/Enterprise.json".into()),
-            extension: Metadata {
+            extension: Some(Metadata {
                 twitter_id: Some(String::from("@jeff-vader")),
                 ..Metadata::default()
-            },
+            }),
         };
         let exec_msg = ExecuteMsg::Mint(mint_msg.clone());
         contract
