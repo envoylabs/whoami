@@ -17,6 +17,8 @@ pub struct Trait {
     pub value: String,
 }
 
+pub type Route = String;
+
 // see: https://docs.opensea.io/docs/metadata-standards
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug, Default)]
 pub struct Metadata {
@@ -27,6 +29,7 @@ pub struct Metadata {
     pub discord_id: Option<String>,
     pub telegram_id: Option<String>,
     pub keybase_id: Option<String>,
+    pub route: Option<Route>, // routes can be followed up the tree. if empty, then can assume it is ROOT
 }
 
 pub type Extension = Metadata;
