@@ -310,7 +310,7 @@ mod tests {
         // CHECK: cannot mint nested NFT if not the original root owner
         let token_id_nested_bad = "jeff/vader/secret-plans".to_string();
         let mint_msg_nested_2 = ExecuteMsg::Mint(MintMsg::<Extension> {
-            token_id: token_id_nested.clone(),
+            token_id: token_id_nested_bad.clone(),
             owner: String::from("some-random-guy"),
             token_uri: None,
             extension: Some(meta2.clone()),
