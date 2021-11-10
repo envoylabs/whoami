@@ -308,25 +308,24 @@ mod tests {
         );
 
         // CHECK: cannot mint nested NFT if not the original root owner
-        let token_id_nested = "jeff/vader/secret-plans".to_string();
+        let token_id_nested_bad = "jeff/vader/secret-plans".to_string();
         let mint_msg_nested_2 = ExecuteMsg::Mint(MintMsg::<Extension> {
-            token_id: token_id_nested.clone(),
+            token_id: token_id_nested_bad.clone(),
             owner: String::from("some-random-guy"),
             token_uri: None,
             extension: Some(meta2.clone()),
         });
 
-        let allowed = mock_info(MINTER, &[]);
+        let not_allowed = mock_info("someone-else", &[]);
         let nested_err = contract
-            .execute(deps.as_mut(), mock_env(), allowed, mint_msg_nested_2)
+            .execute(deps.as_mut(), mock_env(), not_allowed, mint_msg_nested_2)
             .unwrap_err();
         assert_eq!(nested_err, ContractError::Unauthorized {});
 
-        // list the token_ids
+        // list the token_ids - should still be the same as it was before, as we didn't mint the last token.
         let tokens = contract.all_tokens(deps.as_ref(), None, None).unwrap();
         assert_eq!(3, tokens.tokens.len());
-        assert_eq!(
-            vec![
+        assert_eq!(vec![
                 token_id.clone(),
                 token_id_2.clone(),
                 token_id_nested.clone()
