@@ -80,6 +80,11 @@ pub mod entry {
     }
 }
 
+pub fn get_path_parts(path: &str) -> Vec<&str> {
+    let split = path.split("/");
+    split.collect()
+}
+
 pub fn mint(
     contract: Cw721MetadataContract,
     deps: DepsMut,
@@ -88,8 +93,9 @@ pub fn mint(
     msg: MintMsg<Extension>,
 ) -> Result<Response, ContractError> {
     let minter = contract.minter.load(deps.storage)?;
+    let address_trying_to_mint = info.sender.clone();
 
-    if info.sender != minter {
+    if address_trying_to_mint != minter {
         return Err(ContractError::Unauthorized {});
     }
 
@@ -101,6 +107,18 @@ pub fn mint(
     let username = &msg.token_id;
     if username.chars().count() > 20 {
         return Err(ContractError::Unauthorized {});
+    }
+
+    // if we are trying to mint a subdomain,
+    // check that the root is owned by the same address
+    let path_parts = get_path_parts(&username);
+    if path_parts.len() > 1 {
+        let root_username = path_parts.clone().into_iter().nth(0).unwrap();
+        // look up owner of root id
+        let root_id_owner_addr = USERNAMES.load(deps.storage, &root_username)?;
+        if address_trying_to_mint != root_id_owner_addr {
+            return Err(ContractError::Unauthorized {});
+        }
     }
 
     // create the token
@@ -161,7 +179,7 @@ mod tests {
         let mut deps = mock_dependencies();
         let contract = setup_contract(deps.as_mut());
 
-        let token_id = "jeff-vader".to_string();
+        let token_id = "jeff".to_string();
         let token_uri = "https://www.merriam-webster.com/dictionary/petrify".to_string();
 
         let meta = Metadata {
@@ -171,7 +189,7 @@ mod tests {
 
         let mint_msg = ExecuteMsg::Mint(MintMsg::<Extension> {
             token_id: token_id.clone(),
-            owner: String::from("medusa"),
+            owner: String::from("jeff-vader"),
             token_uri: Some(token_uri.clone()),
             extension: meta.clone(),
         });
@@ -215,7 +233,7 @@ mod tests {
         assert_eq!(
             owner,
             OwnerOfResponse {
-                owner: String::from("medusa"),
+                owner: String::from("jeff-vader"),
                 approvals: vec![],
             }
         );
@@ -255,13 +273,66 @@ mod tests {
 
         let allowed = mock_info(MINTER, &[]);
         let _ = contract
-            .execute(deps.as_mut(), mock_env(), allowed, mint_msg3)
+            .execute(deps.as_mut(), mock_env(), allowed, mint_msg3.clone())
             .unwrap();
 
         // list the token_ids
         let tokens = contract.all_tokens(deps.as_ref(), None, None).unwrap();
         assert_eq!(2, tokens.tokens.len());
         assert_eq!(vec![token_id.clone(), token_id_2.clone()], tokens.tokens);
+
+        // CHECK: can mint nested NFT
+        let token_id_nested = "jeff/vader".to_string();
+        let mint_msg_nested = ExecuteMsg::Mint(MintMsg::<Extension> {
+            token_id: token_id_nested.clone(),
+            owner: String::from("jeff-vader"),
+            token_uri: None,
+            extension: meta2.clone(),
+        });
+
+        let allowed = mock_info(MINTER, &[]);
+        let _ = contract
+            .execute(deps.as_mut(), mock_env(), allowed, mint_msg_nested)
+            .unwrap();
+
+        // list the token_ids
+        let tokens = contract.all_tokens(deps.as_ref(), None, None).unwrap();
+        assert_eq!(3, tokens.tokens.len());
+        assert_eq!(
+            vec![
+                token_id.clone(),
+                token_id_2.clone(),
+                token_id_nested.clone()
+            ],
+            tokens.tokens
+        );
+
+        // CHECK: cannot mint nested NFT if not the original root owner
+        let token_id_nested = "jeff/vader/secret-plans".to_string();
+        let mint_msg_nested_2 = ExecuteMsg::Mint(MintMsg::<Extension> {
+            token_id: token_id_nested.clone(),
+            owner: String::from("some-random-guy"),
+            token_uri: None,
+            extension: meta2.clone(),
+        });
+
+        let allowed = mock_info(MINTER, &[]);
+        let nested_err = contract
+            .execute(deps.as_mut(), mock_env(), allowed, mint_msg_nested_2)
+            .unwrap_err();
+        assert_eq!(nested_err, ContractError::Unauthorized {});
+
+        // list the token_ids
+        let tokens = contract.all_tokens(deps.as_ref(), None, None).unwrap();
+        assert_eq!(3, tokens.tokens.len());
+        assert_eq!(
+            vec![
+                token_id.clone(),
+                token_id_2.clone(),
+                token_id_nested.clone()
+            ],
+            tokens.tokens
+        );
     }
 
     #[test]
