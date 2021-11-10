@@ -19,7 +19,7 @@
       "description": "Data on the token itself,",
       "allOf": [
         {
-          "$ref": "#/definitions/NftInfoResponse_for_Nullable_Metadata"
+          "$ref": "#/definitions/NftInfoResponse_for_Metadata"
         }
       ]
     }
@@ -94,9 +94,6 @@
     },
     "Metadata": {
       "type": "object",
-      "required": [
-        "username"
-      ],
       "properties": {
         "discord_id": {
           "type": [
@@ -122,6 +119,12 @@
             "null"
           ]
         },
+        "keybase_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "telegram_id": {
           "type": [
             "string",
@@ -133,23 +136,20 @@
             "string",
             "null"
           ]
-        },
-        "username": {
-          "type": "string"
         }
       }
     },
-    "NftInfoResponse_for_Nullable_Metadata": {
+    "NftInfoResponse_for_Metadata": {
       "type": "object",
+      "required": [
+        "extension"
+      ],
       "properties": {
         "extension": {
           "description": "You can add any custom metadata here when you extend cw721-base",
-          "anyOf": [
+          "allOf": [
             {
               "$ref": "#/definitions/Metadata"
-            },
-            {
-              "type": "null"
             }
           ]
         },

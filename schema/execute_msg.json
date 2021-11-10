@@ -177,7 +177,7 @@
       ],
       "properties": {
         "mint": {
-          "$ref": "#/definitions/MintMsg_for_Nullable_Metadata"
+          "$ref": "#/definitions/MintMsg_for_Metadata"
         }
       },
       "additionalProperties": false
@@ -257,9 +257,6 @@
     },
     "Metadata": {
       "type": "object",
-      "required": [
-        "username"
-      ],
       "properties": {
         "discord_id": {
           "type": [
@@ -285,6 +282,12 @@
             "null"
           ]
         },
+        "keybase_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "telegram_id": {
           "type": [
             "string",
@@ -296,27 +299,22 @@
             "string",
             "null"
           ]
-        },
-        "username": {
-          "type": "string"
         }
       }
     },
-    "MintMsg_for_Nullable_Metadata": {
+    "MintMsg_for_Metadata": {
       "type": "object",
       "required": [
+        "extension",
         "owner",
         "token_id"
       ],
       "properties": {
         "extension": {
           "description": "Any custom extension used by this contract",
-          "anyOf": [
+          "allOf": [
             {
               "$ref": "#/definitions/Metadata"
-            },
-            {
-              "type": "null"
             }
           ]
         },
