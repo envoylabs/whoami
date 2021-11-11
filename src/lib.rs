@@ -1,6 +1,7 @@
 pub mod state;
 
 use cosmwasm_std::{DepsMut, Empty, Env, MessageInfo, Response};
+use cw721::Cw721Query;
 
 use cw721_base::state::TokenInfo;
 use schemars::JsonSchema;
@@ -93,7 +94,7 @@ pub fn get_root_token_id(path: &str) -> String {
 pub fn mint(
     contract: Cw721MetadataContract,
     deps: DepsMut,
-    _env: Env,
+    env: Env,
     info: MessageInfo,
     msg: MintMsg<Extension>,
 ) -> Result<Response, ContractError> {
@@ -122,9 +123,23 @@ pub fn mint(
 
     if path_parts.len() > 1 {
         let root_token_id = get_root_token_id(&username);
-        let root_part_owner_addr = USERNAMES.load(deps.storage, &root_token_id)?;
+        // let root_owner = contract
+        //     .query(
+        //         deps.as_ref(),
+        //         env,
+        //         QueryMsg::OwnerOf {
+        //             token_id: root_token_id.clone(),
+        //             include_expired: Some(false),
+        //         },
+        //     )
+        //     .unwrap();
 
-        if address_trying_to_mint.ne(&root_part_owner_addr) {
+        let root_owner = contract
+            .owner_of(deps.as_ref(), env, root_token_id.clone(), false)
+            .unwrap()
+            .owner;
+
+        if address_trying_to_mint.ne(&root_owner) {
             return Err(ContractError::Unauthorized {});
         }
     }
