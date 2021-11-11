@@ -44,9 +44,6 @@ pub mod entry {
     use cosmwasm_std::entry_point;
     use cosmwasm_std::{Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult};
 
-    // This is a simple type to let us handle empty extensions
-
-    // This makes a conscious choice on the various generics used by the contract
     #[entry_point]
     pub fn instantiate(
         deps: DepsMut,
@@ -68,9 +65,7 @@ pub mod entry {
         match msg {
             ExecuteMsg::Mint(msg) => mint(tract, deps, env, info, msg),
 
-            _ => tract
-                .execute(deps, env, info, msg.into())
-                .map_err(|err| err),
+            _ => tract.execute(deps, env, info, msg).map_err(|err| err),
         }
     }
 
@@ -81,10 +76,20 @@ pub mod entry {
 }
 
 pub fn get_path_parts(path: &str) -> Vec<&str> {
-    let split = path.split("/");
+    let split = path.split('/');
     split.collect()
 }
 
+pub fn get_root_token_id(path: &str) -> String {
+    let path_parts = get_path_parts(&path);
+    let root_token_id = path_parts.clone().into_iter().next().unwrap();
+    // look up owner of root id
+    root_token_id.to_string()
+}
+
+// username = path = token_id
+// i.e. could be the-frey
+// could be products/garden/1
 pub fn mint(
     contract: Cw721MetadataContract,
     deps: DepsMut,
@@ -93,6 +98,7 @@ pub fn mint(
     msg: MintMsg<Extension>,
 ) -> Result<Response, ContractError> {
     let minter = contract.minter.load(deps.storage)?;
+    // sender of the execute
     let address_trying_to_mint = info.sender.clone();
 
     if address_trying_to_mint != minter {
@@ -103,20 +109,22 @@ pub fn mint(
     let owner_address = deps.api.addr_validate(&msg.owner)?;
 
     // username == token_id
-    // validate username length. this, or to 128 bytes?
+    // validate username length. this, or to some number of bytes?
     let username = &msg.token_id;
-    if username.chars().count() > 20 {
+    if username.chars().count() > 64 {
         return Err(ContractError::Unauthorized {});
     }
 
     // if we are trying to mint a subdomain,
     // check that the root is owned by the same address
+    // look up owner Addr of root id by username (i.e. path)
     let path_parts = get_path_parts(&username);
+
     if path_parts.len() > 1 {
-        let root_username = path_parts.clone().into_iter().nth(0).unwrap();
-        // look up owner of root id
-        let root_id_owner_addr = USERNAMES.load(deps.storage, &root_username)?;
-        if address_trying_to_mint != root_id_owner_addr {
+        let root_token_id = get_root_token_id(&username);
+        let root_part_owner_addr = USERNAMES.load(deps.storage, &root_token_id)?;
+
+        if address_trying_to_mint.ne(&root_part_owner_addr) {
             return Err(ContractError::Unauthorized {});
         }
     }
@@ -132,7 +140,7 @@ pub fn mint(
     };
     contract
         .tokens
-        .update(deps.storage, &msg.token_id, |old| match old {
+        .update(deps.storage, &username, |old| match old {
             Some(_) => Err(ContractError::Claimed {}),
             None => Ok(token),
         })?;
@@ -158,8 +166,8 @@ mod tests {
 
     const CREATOR: &str = "creator";
     const MINTER: &str = "jeff-vader";
-    const CONTRACT_NAME: &str = "Magic Power";
-    const SYMBOL: &str = "MGK";
+    const CONTRACT_NAME: &str = "whoami";
+    const SYMBOL: &str = "WHO";
 
     fn setup_contract(deps: DepsMut<'_>) -> Cw721MetadataContract<'static> {
         let contract = Cw721MetadataContract::default();
@@ -175,7 +183,22 @@ mod tests {
     }
 
     #[test]
-    fn minting() {
+    fn path_parts() {
+        let not_nested = "jeff";
+        let path = get_path_parts(not_nested);
+
+        assert_eq!(path, vec!["jeff"]);
+        assert_eq!(path.len(), 1);
+
+        let nested = "jeff/vader/secret-plans";
+        let path_parts = get_path_parts(nested);
+
+        assert_eq!(path_parts, vec!["jeff", "vader", "secret-plans"]);
+        assert_eq!(path_parts.len(), 3);
+    }
+
+    #[test]
+    fn base_minting() {
         let mut deps = mock_dependencies();
         let contract = setup_contract(deps.as_mut());
 
@@ -222,7 +245,7 @@ mod tests {
             info,
             NftInfoResponse::<Extension> {
                 token_uri: Some(token_uri),
-                extension: Some(meta.clone()),
+                extension: Some(meta),
             }
         );
 
@@ -248,7 +271,7 @@ mod tests {
             token_id: token_id.clone(),
             owner: String::from("hercules"),
             token_uri: None,
-            extension: Some(meta2.clone()),
+            extension: Some(meta2),
         });
 
         let allowed = mock_info(MINTER, &[]);
@@ -260,7 +283,59 @@ mod tests {
         // list the token_ids
         let tokens = contract.all_tokens(deps.as_ref(), None, None).unwrap();
         assert_eq!(1, tokens.tokens.len());
-        assert_eq!(vec![token_id.clone()], tokens.tokens);
+        assert_eq!(vec![token_id], tokens.tokens);
+    }
+
+    #[test]
+    fn namespace_minting() {
+        let jeff_address = String::from("jeff-vader");
+        let mut deps = mock_dependencies();
+        let contract = setup_contract(deps.as_mut());
+
+        let token_id = "jeff".to_string();
+        let token_uri = "https://www.merriam-webster.com/dictionary/petrify".to_string();
+
+        let meta = Metadata {
+            twitter_id: Some(String::from("@jeff-vader")),
+            ..Metadata::default()
+        };
+
+        let mint_msg = ExecuteMsg::Mint(MintMsg::<Extension> {
+            token_id: token_id.clone(),
+            owner: jeff_address.clone(),
+            token_uri: Some(token_uri.clone()),
+            extension: Some(meta.clone()),
+        });
+
+        // minter can mint
+        let allowed = mock_info(MINTER, &[]);
+        let _ = contract
+            .execute(deps.as_mut(), mock_env(), allowed, mint_msg)
+            .unwrap();
+
+        // ensure num tokens increases
+        let count = contract.num_tokens(deps.as_ref()).unwrap();
+        assert_eq!(1, count.count);
+
+        // unknown nft returns error
+        let _ = contract
+            .nft_info(deps.as_ref(), "unknown".to_string())
+            .unwrap_err();
+
+        // this nft info is correct
+        let info = contract.nft_info(deps.as_ref(), token_id.clone()).unwrap();
+        assert_eq!(
+            info,
+            NftInfoResponse::<Extension> {
+                token_uri: Some(token_uri),
+                extension: Some(meta),
+            }
+        );
+
+        let meta2 = Metadata {
+            twitter_id: Some(String::from("@jeff-vader-alt")),
+            ..Metadata::default()
+        };
 
         // CHECK: can mint second NFT
         let token_id_2 = "jeff-vader-2".to_string();
@@ -273,7 +348,7 @@ mod tests {
 
         let allowed = mock_info(MINTER, &[]);
         let _ = contract
-            .execute(deps.as_mut(), mock_env(), allowed, mint_msg3.clone())
+            .execute(deps.as_mut(), mock_env(), allowed, mint_msg3)
             .unwrap();
 
         // list the token_ids
@@ -285,7 +360,7 @@ mod tests {
         let token_id_nested = "jeff/vader".to_string();
         let mint_msg_nested = ExecuteMsg::Mint(MintMsg::<Extension> {
             token_id: token_id_nested.clone(),
-            owner: String::from("jeff-vader"),
+            owner: jeff_address.clone(),
             token_uri: None,
             extension: Some(meta2.clone()),
         });
@@ -308,30 +383,28 @@ mod tests {
         );
 
         // CHECK: cannot mint nested NFT if not the original root owner
+        let not_allowed_to_mint_nested = String::from("some-random-guy"); // i.e. not jeff_address
         let token_id_nested_bad = "jeff/vader/secret-plans".to_string();
         let mint_msg_nested_2 = ExecuteMsg::Mint(MintMsg::<Extension> {
-            token_id: token_id_nested_bad.clone(),
-            owner: String::from("some-random-guy"),
+            token_id: token_id_nested_bad,
+            owner: not_allowed_to_mint_nested.clone(),
             token_uri: None,
-            extension: Some(meta2.clone()),
+            extension: Some(meta2),
         });
 
-        let not_allowed = mock_info("someone-else", &[]);
+        let allowed = mock_info(MINTER, &[]);
+
+        assert_ne!(not_allowed_to_mint_nested, jeff_address);
+
         let nested_err = contract
-            .execute(deps.as_mut(), mock_env(), not_allowed, mint_msg_nested_2)
+            .execute(deps.as_mut(), mock_env(), allowed, mint_msg_nested_2)
             .unwrap_err();
         assert_eq!(nested_err, ContractError::Unauthorized {});
 
         // list the token_ids - should still be the same as it was before, as we didn't mint the last token.
         let tokens = contract.all_tokens(deps.as_ref(), None, None).unwrap();
         assert_eq!(3, tokens.tokens.len());
-        assert_eq!(vec![
-                token_id.clone(),
-                token_id_2.clone(),
-                token_id_nested.clone()
-            ],
-            tokens.tokens
-        );
+        assert_eq!(vec![token_id, token_id_2, token_id_nested], tokens.tokens);
     }
 
     #[test]
