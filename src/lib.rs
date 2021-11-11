@@ -17,9 +17,6 @@ pub struct Trait {
     pub value: String,
 }
 
-pub type Route = String;
-
-// see: https://docs.opensea.io/docs/metadata-standards
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug, Default)]
 pub struct Metadata {
     pub image: Option<String>,
@@ -29,6 +26,7 @@ pub struct Metadata {
     pub discord_id: Option<String>,
     pub telegram_id: Option<String>,
     pub keybase_id: Option<String>,
+    pub validator_operator_address: Option<String>,
 }
 
 pub type Extension = Metadata;
