@@ -1,5 +1,3 @@
-pub mod state;
-
 use cosmwasm_std::{DepsMut, Empty, Env, MessageInfo, Response};
 
 use cw721_base::state::TokenInfo;
@@ -7,8 +5,6 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 pub use cw721_base::{ContractError, InstantiateMsg, MintMsg, MinterResponse, QueryMsg};
-
-use crate::state::USERNAMES;
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug, Default)]
 pub struct Trait {
@@ -115,10 +111,6 @@ pub fn mint(
         })?;
 
     contract.increment_tokens(deps.storage)?;
-
-    // set up secondary index for future use
-    // owner_of is a good ext interface for this mapping via the NFT
-    USERNAMES.save(deps.storage, &username, &owner_address)?;
 
     Ok(Response::new()
         .add_attribute("action", "mint")

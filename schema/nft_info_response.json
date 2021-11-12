@@ -2,15 +2,15 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "NftInfoResponse",
   "type": "object",
+  "required": [
+    "extension"
+  ],
   "properties": {
     "extension": {
       "description": "You can add any custom metadata here when you extend cw721-base",
-      "anyOf": [
+      "allOf": [
         {
           "$ref": "#/definitions/Metadata"
-        },
-        {
-          "type": "null"
         }
       ]
     },
@@ -56,12 +56,6 @@
             "null"
           ]
         },
-        "route": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "telegram_id": {
           "type": [
             "string",
@@ -69,6 +63,12 @@
           ]
         },
         "twitter_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "validator_operator_address": {
           "type": [
             "string",
             "null"

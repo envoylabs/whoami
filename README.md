@@ -17,4 +17,4 @@ pub struct Metadata {
 }
 ```
 
-There is also a mapping of `username -> Address` given that `username` is implemented as the value of the `token_id` field on the NFT.
+The mapping of `username -> address` is in practice simply the link between `token_id` (the string username) and the `owner`. As/when the username is transferred or sold, this is updated with no additional computation required.
