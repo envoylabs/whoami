@@ -18,6 +18,7 @@ pub struct Metadata {
     pub image: Option<String>,
     pub image_data: Option<String>,
     pub external_url: Option<String>,
+    pub public_name: Option<String>,
     pub twitter_id: Option<String>,
     pub discord_id: Option<String>,
     pub telegram_id: Option<String>,
@@ -98,7 +99,7 @@ pub fn mint(
     // this will fail if token_id (i.e. username)
     // is already claimed
     let token = TokenInfo {
-        owner: owner_address.clone(),
+        owner: owner_address,
         approvals: vec![],
         token_uri: msg.token_uri,
         extension: msg.extension,

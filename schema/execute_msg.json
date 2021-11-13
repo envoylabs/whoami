@@ -288,6 +288,12 @@
             "null"
           ]
         },
+        "public_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "telegram_id": {
           "type": [
             "string",
