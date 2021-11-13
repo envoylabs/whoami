@@ -125,6 +125,12 @@
             "null"
           ]
         },
+        "public_bio": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "public_name": {
           "type": [
             "string",

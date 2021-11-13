@@ -19,6 +19,7 @@ pub struct Metadata {
     pub image_data: Option<String>,
     pub external_url: Option<String>,
     pub public_name: Option<String>,
+    pub public_bio: Option<String>,
     pub twitter_id: Option<String>,
     pub discord_id: Option<String>,
     pub telegram_id: Option<String>,
