@@ -166,7 +166,7 @@ mod tests {
             extension: meta.clone(),
         });
 
-        // random cannot mint with jeff as owner
+        // CHECK: random cannot mint with jeff as owner
         let random = mock_info("random", &[]);
         let err = contract
             .execute(deps.as_mut(), mock_env(), random, mint_msg.clone())
@@ -193,7 +193,7 @@ mod tests {
         assert_eq!(
             info,
             NftInfoResponse::<Extension> {
-                token_uri: Some(token_uri),
+                token_uri: Some(token_uri.clone()),
                 extension: meta,
             }
         );
@@ -206,6 +206,59 @@ mod tests {
             owner,
             OwnerOfResponse {
                 owner: String::from("jeff-vader"),
+                approvals: vec![],
+            }
+        );
+
+        // CHECK: random can mint if sender && owner the same
+        // jeff can mint
+        let john_q_rando = "random-guy";
+        let john_token_id = "john-token-id".to_string();
+
+        let john_q_rando_meta = Metadata {
+            twitter_id: Some(String::from("@jeff-vader")),
+            ..Metadata::default()
+        };
+
+        let john_q_rando_mint_msg = ExecuteMsg::Mint(MintMsg::<Extension> {
+            token_id: john_token_id.clone(),
+            owner: String::from(john_q_rando),
+            token_uri: Some(token_uri.clone()),
+            extension: john_q_rando_meta.clone(),
+        });
+
+        let not_jeff_minter = mock_info(john_q_rando, &[]);
+        let _ = contract
+            .execute(
+                deps.as_mut(),
+                mock_env(),
+                not_jeff_minter,
+                john_q_rando_mint_msg,
+            )
+            .unwrap();
+
+        // ensure num tokens increases
+        let count = contract.num_tokens(deps.as_ref()).unwrap();
+        assert_eq!(2, count.count);
+
+        // this nft info is correct
+        let info = contract.nft_info(deps.as_ref(), john_token_id).unwrap();
+        assert_eq!(
+            info,
+            NftInfoResponse::<Extension> {
+                token_uri: Some(token_uri),
+                extension: john_q_rando_meta,
+            }
+        );
+
+        // owner info is correct
+        let owner = contract
+            .owner_of(deps.as_ref(), mock_env(), token_id.clone(), true)
+            .unwrap();
+        assert_eq!(
+            owner,
+            OwnerOfResponse {
+                owner: String::from(john_q_rando),
                 approvals: vec![],
             }
         );
