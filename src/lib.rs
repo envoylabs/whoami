@@ -151,8 +151,9 @@ mod tests {
         let mut deps = mock_dependencies();
         let contract = setup_contract(deps.as_mut());
 
-        let token_id = "jeff".to_string();
-        let token_uri = "https://www.merriam-webster.com/dictionary/petrify".to_string();
+        // init a plausible username
+        let token_id = "jeffisthebest".to_string();
+        let token_uri = "https://example.com/jeff-vader".to_string();
 
         let meta = Metadata {
             twitter_id: Some(String::from("@jeff-vader")),
@@ -168,16 +169,12 @@ mod tests {
 
         // CHECK: random cannot mint with jeff as owner
         let random = mock_info("random", &[]);
-        let err = contract
-            .execute(deps.as_mut(), mock_env(), random, mint_msg.clone())
-            .unwrap_err();
+        let err = entry::execute(deps.as_mut(), mock_env(), random, mint_msg.clone()).unwrap_err();
         assert_eq!(err, ContractError::Unauthorized {});
 
         // jeff can mint
         let allowed = mock_info(MINTER, &[]);
-        let _ = contract
-            .execute(deps.as_mut(), mock_env(), allowed, mint_msg)
-            .unwrap();
+        let _ = entry::execute(deps.as_mut(), mock_env(), allowed, mint_msg).unwrap();
 
         // ensure num tokens increases
         let count = contract.num_tokens(deps.as_ref()).unwrap();
@@ -211,9 +208,9 @@ mod tests {
         );
 
         // CHECK: random can mint if sender && owner the same
-        // jeff can mint
         let john_q_rando = "random-guy";
-        let john_token_id = "john-token-id".to_string();
+        // another very plausible username imo
+        let john_token_id = "johnisthebest".to_string();
 
         let john_q_rando_meta = Metadata {
             twitter_id: Some(String::from("@jeff-vader")),
@@ -228,21 +225,22 @@ mod tests {
         });
 
         let not_jeff_minter = mock_info(john_q_rando, &[]);
-        let _ = contract
-            .execute(
-                deps.as_mut(),
-                mock_env(),
-                not_jeff_minter,
-                john_q_rando_mint_msg,
-            )
-            .unwrap();
+        let _ = entry::execute(
+            deps.as_mut(),
+            mock_env(),
+            not_jeff_minter,
+            john_q_rando_mint_msg,
+        )
+        .unwrap();
 
         // ensure num tokens increases
         let count = contract.num_tokens(deps.as_ref()).unwrap();
         assert_eq!(2, count.count);
 
         // this nft info is correct
-        let info = contract.nft_info(deps.as_ref(), john_token_id).unwrap();
+        let info = contract
+            .nft_info(deps.as_ref(), john_token_id.clone())
+            .unwrap();
         assert_eq!(
             info,
             NftInfoResponse::<Extension> {
@@ -253,7 +251,7 @@ mod tests {
 
         // owner info is correct
         let owner = contract
-            .owner_of(deps.as_ref(), mock_env(), token_id.clone(), true)
+            .owner_of(deps.as_ref(), mock_env(), john_token_id.clone(), true)
             .unwrap();
         assert_eq!(
             owner,
@@ -277,35 +275,33 @@ mod tests {
             extension: meta2.clone(),
         });
 
-        let allowed = mock_info(MINTER, &[]);
-        let err = contract
-            .execute(deps.as_mut(), mock_env(), allowed, mint_msg2)
-            .unwrap_err();
+        let allowed = mock_info("jeff-vader", &[]);
+        let err = entry::execute(deps.as_mut(), mock_env(), allowed, mint_msg2).unwrap_err();
         assert_eq!(err, ContractError::Claimed {});
 
         // list the token_ids
         let tokens = contract.all_tokens(deps.as_ref(), None, None).unwrap();
-        assert_eq!(1, tokens.tokens.len());
-        assert_eq!(vec![token_id.clone()], tokens.tokens);
+        assert_eq!(2, tokens.tokens.len());
+        assert_eq!(vec![token_id.clone(), john_token_id.clone()], tokens.tokens);
 
         // CHECK: can mint second NFT
-        let token_id_2 = "jeff-vader-2".to_string();
+        // clearly there is an arms race by username proxy here
+        let token_id_2 = "jeffisbetterthanjohn".to_string();
         let mint_msg3 = ExecuteMsg::Mint(MintMsg::<Extension> {
             token_id: token_id_2.clone(),
-            owner: String::from("jeff alt"),
+            owner: String::from("jeff-vader"),
             token_uri: None,
             extension: meta2,
         });
 
         let allowed = mock_info(MINTER, &[]);
-        let _ = contract
-            .execute(deps.as_mut(), mock_env(), allowed, mint_msg3)
-            .unwrap();
+        let _ = entry::execute(deps.as_mut(), mock_env(), allowed, mint_msg3).unwrap();
 
         // list the token_ids
+        // four calls to mint, 3 tokens minted
         let tokens = contract.all_tokens(deps.as_ref(), None, None).unwrap();
-        assert_eq!(2, tokens.tokens.len());
-        assert_eq!(vec![token_id, token_id_2], tokens.tokens);
+        assert_eq!(3, tokens.tokens.len());
+        assert_eq!(vec![token_id_2, token_id, john_token_id], tokens.tokens);
     }
 
     #[test]
@@ -317,16 +313,20 @@ mod tests {
         let init_msg = InstantiateMsg {
             name: "SpaceShips".to_string(),
             symbol: "SPACE".to_string(),
-            minter: CREATOR.to_string(),
+            minter: "jeff-addr".to_string(),
         };
         contract
             .instantiate(deps.as_mut(), mock_env(), info.clone(), init_msg)
             .unwrap();
 
+        // mock info contains sender &&
+        // info.sender and owner need to be the same
+        // that & MINTER do not need to be
+        // as MINTER is the admin addr on the contract
         let token_id = "Enterprise";
         let mint_msg = MintMsg {
             token_id: token_id.to_string(),
-            owner: "jeff-addr".to_string(),
+            owner: CREATOR.to_string(),
             token_uri: Some("https://starships.example.com/Starship/Enterprise.json".into()),
             extension: Metadata {
                 twitter_id: Some(String::from("@jeff-vader")),
@@ -334,9 +334,7 @@ mod tests {
             },
         };
         let exec_msg = ExecuteMsg::Mint(mint_msg.clone());
-        contract
-            .execute(deps.as_mut(), mock_env(), info, exec_msg)
-            .unwrap();
+        entry::execute(deps.as_mut(), mock_env(), info, exec_msg).unwrap();
 
         let res = contract.nft_info(deps.as_ref(), token_id.into()).unwrap();
         assert_eq!(res.token_uri, mint_msg.token_uri);
