@@ -6,14 +6,16 @@ The main id is of course the minter, but a human-readable username is also requi
 
 ```rust
 pub struct Metadata {
-    pub username: String, // checked for uniqueness before write
     pub image: Option<String>,
     pub image_data: Option<String>,
     pub external_url: Option<String>,
+    pub public_name: Option<String>,
+    pub public_bio: Option<String>,
     pub twitter_id: Option<String>,
     pub discord_id: Option<String>,
     pub telegram_id: Option<String>,
     pub keybase_id: Option<String>,
+    pub validator_operator_address: Option<String>,
 }
 ```
 
