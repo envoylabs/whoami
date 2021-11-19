@@ -1,8 +1,6 @@
 # Whoami
 
-This is an adaptation of the cw-plus onchain metadata contract to allow for listing of usernames on multiple services via NFT metadata.
-
-The main id is of course the minter, but a human-readable username is also required in the meta. This is checked for uniqueness as part of the creation flow.
+This is an adaptation of the cw-nfts onchain metadata contract to allow for listing of usernames on multiple services via NFT metadata.
 
 ```rust
 pub struct Metadata {
