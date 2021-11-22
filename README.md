@@ -6,6 +6,7 @@ This is an adaptation of the cw-nfts onchain metadata contract to allow for list
 pub struct Metadata {
     pub image: Option<String>,
     pub image_data: Option<String>,
+    pub email: Option<String>,
     pub external_url: Option<String>,
     pub public_name: Option<String>,
     pub public_bio: Option<String>,

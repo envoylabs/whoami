@@ -264,6 +264,12 @@
             "null"
           ]
         },
+        "email": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "external_url": {
           "type": [
             "string",
