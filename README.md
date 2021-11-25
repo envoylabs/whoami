@@ -18,6 +18,14 @@ pub struct Metadata {
 }
 ```
 
+## Dev quickstart
+
+Run a juno node in docker, using the default docker compose file. Its node name should be `juno_node_1`.
+
+It will log an address as it starts, copy this: `juno1zxn...` so that it can be used to init the contract:
+
+    ./deploy_local.sh juno1zxn...
+
 ## Mapping username -> address
 
 TL;DR - use `owner_of`.
