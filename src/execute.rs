@@ -76,7 +76,7 @@ pub fn update_preferred_alias(
     info: MessageInfo,
     token_id: String,
 ) -> Result<Response, ContractError> {
-    let address_trying_to_update = info.sender.clone();
+    let address_trying_to_update = info.sender;
     let username_nft = contract.tokens.load(deps.storage, &token_id)?;
 
     let username_owner = username_nft.owner;

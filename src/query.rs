@@ -57,7 +57,5 @@ pub fn preferred_alias(
         Some(alias) => alias,
         None => get_first_token_for_owner(contract, deps, owner)?,
     };
-    Ok(PreferredAliasResponse {
-        username: username.to_string(),
-    })
+    Ok(PreferredAliasResponse { username })
 }
