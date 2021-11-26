@@ -1,7 +1,8 @@
 use crate::msg::MintMsg;
 use crate::state::PREFERRED_ALIASES;
 use crate::Cw721MetadataContract;
-use cosmwasm_std::{DepsMut, Env, MessageInfo, Response};
+use cosmwasm_std::{Binary, DepsMut, Env, MessageInfo, Response};
+use cw721::Cw721ReceiveMsg;
 use cw721_base::state::TokenInfo;
 use cw721_base::ContractError;
 
@@ -95,4 +96,80 @@ pub fn update_preferred_alias(
     Ok(res)
 }
 
+//
 // --- we override these purely so we can clear any preferred aliases on transfer or burn
+//
+
+pub fn transfer_nft(
+    contract: Cw721MetadataContract,
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    recipient: String,
+    token_id: String,
+) -> Result<Response, ContractError> {
+    // clear aliases before transfer
+    let username_nft = contract.tokens.load(deps.storage, &token_id)?;
+    PREFERRED_ALIASES.remove(deps.storage, &username_nft.owner);
+
+    contract._transfer_nft(deps, &env, &info, &recipient, &token_id)?;
+
+    Ok(Response::new()
+        .add_attribute("action", "transfer_nft")
+        .add_attribute("sender", info.sender)
+        .add_attribute("recipient", recipient)
+        .add_attribute("token_id", token_id))
+}
+
+pub fn send_nft(
+    contract: Cw721MetadataContract,
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    receiving_contract: String,
+    token_id: String,
+    msg: Binary,
+) -> Result<Response, ContractError> {
+    // clear aliases before send
+    let username_nft = contract.tokens.load(deps.storage, &token_id)?;
+    PREFERRED_ALIASES.remove(deps.storage, &username_nft.owner);
+
+    // Transfer token
+    contract._transfer_nft(deps, &env, &info, &receiving_contract, &token_id)?;
+
+    let send = Cw721ReceiveMsg {
+        sender: info.sender.to_string(),
+        token_id: token_id.clone(),
+        msg,
+    };
+
+    // Send message
+    Ok(Response::new()
+        .add_message(send.into_cosmos_msg(receiving_contract.clone())?)
+        .add_attribute("action", "send_nft")
+        .add_attribute("sender", info.sender)
+        .add_attribute("recipient", receiving_contract)
+        .add_attribute("token_id", token_id))
+}
+
+pub fn burn(
+    contract: Cw721MetadataContract,
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    token_id: String,
+) -> Result<Response, ContractError> {
+    let token = contract.tokens.load(deps.storage, &token_id)?;
+    contract.check_can_send(deps.as_ref(), &env, &info, &token)?;
+
+    // clear aliases before delete
+    PREFERRED_ALIASES.remove(deps.storage, &token.owner);
+
+    contract.tokens.remove(deps.storage, &token_id)?;
+    contract.decrement_tokens(deps.storage)?;
+
+    Ok(Response::new()
+        .add_attribute("action", "burn")
+        .add_attribute("sender", info.sender)
+        .add_attribute("token_id", token_id))
+}
