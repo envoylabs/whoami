@@ -3,7 +3,7 @@
   "title": "ExecuteMsg",
   "oneOf": [
     {
-      "description": "If the sender is",
+      "description": "If the sender has multiple NFTs or aliases, they will want to set a default. This allows them to do this.",
       "type": "object",
       "required": [
         "update_preferred_alias"
@@ -24,6 +24,7 @@
       "additionalProperties": false
     },
     {
+      "description": "Destroys the NFT permanently.",
       "type": "object",
       "required": [
         "burn"
@@ -44,6 +45,7 @@
       "additionalProperties": false
     },
     {
+      "description": "Set minter (admin)",
       "type": "object",
       "required": [
         "set_minter"

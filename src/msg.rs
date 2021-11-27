@@ -36,29 +36,20 @@ pub type MintMsg = CW721MintMsg<Extension>;
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum ExecuteMsg {
-    /// If the sender is
-    UpdatePreferredAlias {
-        token_id: String,
-    },
-    // Destroys the NFT permanently.
-    Burn {
-        token_id: String,
-    },
+    /// If the sender has multiple NFTs or aliases, they will want to set a default. This allows them to do this.
+    UpdatePreferredAlias { token_id: String },
+    /// Destroys the NFT permanently.
+    Burn { token_id: String },
 
-    // Set minter (admin)
-    SetMinter {
-        minter: String,
-    },
+    /// Set minter (admin)
+    SetMinter { minter: String },
 
     /// Mint a new NFT, can only be called by the contract minter
     Mint(MintMsg),
 
     // Standard CW721 ExecuteMsg
     /// Transfer is a base message to move a token to another account without triggering actions
-    TransferNft {
-        recipient: String,
-        token_id: String,
-    },
+    TransferNft { recipient: String, token_id: String },
     /// Send is a base message to transfer a token to a contract and trigger an action
     /// on the receiving contract.
     SendNft {
@@ -74,10 +65,7 @@ pub enum ExecuteMsg {
         expires: Option<Expiration>,
     },
     /// Remove previously granted Approval
-    Revoke {
-        spender: String,
-        token_id: String,
-    },
+    Revoke { spender: String, token_id: String },
     /// Allows operator to transfer / send any token from the owner's account.
     /// If expiration is set, then this allowance has a time/height limit
     ApproveAll {
@@ -85,9 +73,7 @@ pub enum ExecuteMsg {
         expires: Option<Expiration>,
     },
     /// Remove previously granted ApproveAll permission
-    RevokeAll {
-        operator: String,
-    },
+    RevokeAll { operator: String },
 }
 
 impl From<ExecuteMsg> for CW721ExecuteMsg<Extension> {

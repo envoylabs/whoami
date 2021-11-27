@@ -26,6 +26,50 @@ It will log an address as it starts, copy this: `juno1zxn...` so that it can be 
 
     ./deploy_local.sh juno1zxn...
 
+## Mapping address -> username
+
+There is an additional query message that allows for an owner set alias to be returned.
+
+```rust
+PreferredAlias { address: String }
+```
+
+This returns:
+
+```rust
+// returns a token_id (i.e. a username)
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+pub struct PreferredAliasResponse {
+    pub username: String,
+}
+```
+
+Its default behaviour is to return the last NFT in the list owned by the address (LILO). Alternatively, the user can set a preferred alias.
+
+### Setting a preferred alias
+
+An owner might have multiple NFTs.
+
+Setting a preferred alias is done via a new `ExecuteMsg` variant. On `burn`, `transfer_nft` or `send_nft`, this entry will be cleared from storage.
+
+```rust
+UpdatePreferredAlias {
+    token_id: String,
+},
+```
+
+### Other query strategies
+
+It is possible also to use `token_info` and pass in a limit of 1, to match the default behaviour of the `PreferredAlias` query message.
+
+```rust
+Tokens {
+    owner: String,
+    start_after: Option<String>,
+    limit: Option<u32>,
+}
+```
+
 ## Mapping username -> address
 
 TL;DR - use `owner_of`.
@@ -38,23 +82,3 @@ OwnerOf {
 ```
 
 The mapping of `username -> address` is in practice simply the link between `token_id` (the string username) and the `owner`. As/when the username is transferred or sold, this is updated with no additional computation required.
-
-## Mapping address -> username
-
-TL;DR - use `token_info`.
-
-```rust
-Tokens {
-    owner: String,
-    start_after: Option<String>,
-    limit: Option<u32>,
-}
-```
-
-If we pass `1` into `limit`, we get a mapping of address (`owner`) to username (NFT).
-
-In future we could do one of several things;
-
-1. Stop addresses having more than one NFT (suggest initially restricting this via the UI) by changing the multi-index type to a normal hashmap
-2. Maintain a secondary index of preferred mapping, and update this (however this involves a lot of extension)
-3. Encourage other applications to let a user store their preferred NFT alias after listing all Whoami NFTs owned by that address
