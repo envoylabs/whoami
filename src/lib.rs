@@ -299,38 +299,159 @@ mod tests {
     //     let other_contract_addr = "contract-address";
     // }
 
-    // #[test]
-    // fn alias_cleared_on_transfer() {
-    //     let mut deps = mock_dependencies();
-    //     let contract = setup_contract(deps.as_mut());
+    #[test]
+    fn alias_cleared_on_transfer() {
+        let mut deps = mock_dependencies();
+        let contract = setup_contract(deps.as_mut());
 
-    //     // init a plausible username
-    //     let token_id = "jeffisthebest".to_string();
-    //     let token_uri = "https://example.com/jeff-vader".to_string();
+        // init a plausible username
+        let token_id = "thebestguy".to_string();
+        let token_uri = "https://example.com/jeff-vader".to_string();
+        let jeff_address = String::from("jeff-vader");
 
-    //     let meta = Metadata {
-    //         twitter_id: Some(String::from("@jeff-vader")),
-    //         ..Metadata::default()
-    //     };
+        let meta = Metadata {
+            twitter_id: Some(String::from("@jeff-vader")),
+            ..Metadata::default()
+        };
 
-    //     let mint_msg = ExecuteMsg::Mint(MintMsg {
-    //         token_id: token_id.clone(),
-    //         owner: String::from("jeff-vader"),
-    //         token_uri: Some(token_uri.clone()),
-    //         extension: meta.clone(),
-    //     });
+        let mint_msg = ExecuteMsg::Mint(MintMsg {
+            token_id: token_id.clone(),
+            owner: jeff_address.clone(),
+            token_uri: Some(token_uri),
+            extension: meta.clone(),
+        });
 
-    //     // CHECK: jeff can mint
-    //     let allowed = mock_info(MINTER, &[]);
-    //     let _ = entry::execute(deps.as_mut(), mock_env(), allowed, mint_msg).unwrap();
+        // CHECK: jeff can mint
+        let allowed = mock_info(&jeff_address, &[]);
+        let _ = entry::execute(deps.as_mut(), mock_env(), allowed.clone(), mint_msg).unwrap();
 
-    //     // CHECK: ensure num tokens increases
-    //     let count = contract.num_tokens(deps.as_ref()).unwrap();
-    //     assert_eq!(1, count.count);
+        // CHECK: ensure num tokens increases
+        let count = contract.num_tokens(deps.as_ref()).unwrap();
+        assert_eq!(1, count.count);
 
-    //     // okay time to move the NFT
-    //     let john_q_rando = "random-guy";
-    // }
+        // check alias returns something
+        let alias_query_res: PreferredAliasResponse = from_binary(
+            &entry::query(
+                deps.as_ref(),
+                mock_env(),
+                QueryMsg::PreferredAlias {
+                    address: jeff_address.clone(),
+                },
+            )
+            .unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(alias_query_res.username, token_id);
+
+        // CHECK: can mint second NFT
+        let token_id_2 = "jeffisbetterthanjohn".to_string();
+        let mint_msg2 = ExecuteMsg::Mint(MintMsg {
+            token_id: token_id_2.clone(),
+            owner: jeff_address.clone(),
+            token_uri: None,
+            extension: meta,
+        });
+
+        let _ = entry::execute(deps.as_mut(), mock_env(), allowed.clone(), mint_msg2).unwrap();
+
+        // CHECK: ensure num tokens increases to 2
+        let count_2 = contract.num_tokens(deps.as_ref()).unwrap();
+        assert_eq!(2, count_2.count);
+
+        // default will be that last in is returned
+        let alias_query_res_2: PreferredAliasResponse = from_binary(
+            &entry::query(
+                deps.as_ref(),
+                mock_env(),
+                QueryMsg::PreferredAlias {
+                    address: jeff_address.clone(),
+                },
+            )
+            .unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(alias_query_res_2.username, token_id_2);
+
+        // set alias to NFT 1
+        let _update_alias_res = entry::execute(
+            deps.as_mut(),
+            mock_env(),
+            allowed.clone(),
+            ExecuteMsg::UpdatePreferredAlias {
+                token_id: token_id.clone(),
+            },
+        );
+
+        // check alias updated
+        let alias_query_res_3: PreferredAliasResponse = from_binary(
+            &entry::query(
+                deps.as_ref(),
+                mock_env(),
+                QueryMsg::PreferredAlias {
+                    address: jeff_address.clone(),
+                },
+            )
+            .unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(alias_query_res_3.username, token_id);
+
+        // okay time to move NFT 1
+        let john_q_rando_address = "random-guy";
+
+        let transfer_msg = ExecuteMsg::TransferNft {
+            recipient: john_q_rando_address.to_string(),
+            token_id: token_id.clone(),
+        };
+
+        let _ = entry::execute(deps.as_mut(), mock_env(), allowed, transfer_msg);
+
+        // owner info is correct
+        let owner = contract
+            .owner_of(deps.as_ref(), mock_env(), token_id.clone(), true)
+            .unwrap();
+        assert_eq!(
+            owner,
+            OwnerOfResponse {
+                owner: john_q_rando_address.to_string(),
+                approvals: vec![],
+            }
+        );
+
+        // now jeff-address should be default alias NFT 2 and john_q_rando_address
+        // should be alias NFT 1
+        // making him thebestguy
+        let alias_query_res_4: PreferredAliasResponse = from_binary(
+            &entry::query(
+                deps.as_ref(),
+                mock_env(),
+                QueryMsg::PreferredAlias {
+                    address: jeff_address,
+                },
+            )
+            .unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(alias_query_res_4.username, token_id_2);
+
+        let alias_query_res_5: PreferredAliasResponse = from_binary(
+            &entry::query(
+                deps.as_ref(),
+                mock_env(),
+                QueryMsg::PreferredAlias {
+                    address: john_q_rando_address.to_string(),
+                },
+            )
+            .unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(alias_query_res_5.username, token_id);
+    }
 
     #[test]
     fn alias_cleared_on_burn() {
