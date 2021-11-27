@@ -266,38 +266,134 @@ mod tests {
         assert_eq!(vec![token_id_2, token_id, john_token_id], tokens.tokens);
     }
 
-    // #[test]
-    // fn alias_cleared_on_send() {
-    //     let mut deps = mock_dependencies();
-    //     let contract = setup_contract(deps.as_mut());
+    #[test]
+    fn alias_cleared_on_send() {
+        let mut deps = mock_dependencies();
+        let contract = setup_contract(deps.as_mut());
 
-    //     // init a plausible username
-    //     let token_id = "jeffisthebest".to_string();
-    //     let token_uri = "https://example.com/jeff-vader".to_string();
+        // init a plausible username
+        let token_id = "thebestguy".to_string();
+        let token_uri = "https://example.com/jeff-vader".to_string();
+        let jeff_address = String::from("jeff-vader");
 
-    //     let meta = Metadata {
-    //         twitter_id: Some(String::from("@jeff-vader")),
-    //         ..Metadata::default()
-    //     };
+        let meta = Metadata {
+            twitter_id: Some(String::from("@jeff-vader")),
+            ..Metadata::default()
+        };
 
-    //     let mint_msg = ExecuteMsg::Mint(MintMsg {
-    //         token_id: token_id.clone(),
-    //         owner: String::from("jeff-vader"),
-    //         token_uri: Some(token_uri.clone()),
-    //         extension: meta.clone(),
-    //     });
+        let mint_msg = ExecuteMsg::Mint(MintMsg {
+            token_id: token_id.clone(),
+            owner: jeff_address.clone(),
+            token_uri: Some(token_uri),
+            extension: meta.clone(),
+        });
 
-    //     // CHECK: jeff can mint
-    //     let allowed = mock_info(MINTER, &[]);
-    //     let _ = entry::execute(deps.as_mut(), mock_env(), allowed, mint_msg).unwrap();
+        // CHECK: jeff can mint
+        let allowed = mock_info(&jeff_address, &[]);
+        let _ = entry::execute(deps.as_mut(), mock_env(), allowed.clone(), mint_msg).unwrap();
 
-    //     // CHECK: ensure num tokens increases
-    //     let count = contract.num_tokens(deps.as_ref()).unwrap();
-    //     assert_eq!(1, count.count);
+        // CHECK: ensure num tokens increases
+        let count = contract.num_tokens(deps.as_ref()).unwrap();
+        assert_eq!(1, count.count);
 
-    //     // okay time to send the NFT to another contract
-    //     let other_contract_addr = "contract-address";
-    // }
+        // check alias returns something
+        let alias_query_res: PreferredAliasResponse = from_binary(
+            &entry::query(
+                deps.as_ref(),
+                mock_env(),
+                QueryMsg::PreferredAlias {
+                    address: jeff_address.clone(),
+                },
+            )
+            .unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(alias_query_res.username, token_id);
+
+        // CHECK: can mint second NFT
+        let token_id_2 = "jeffisbetterthanjohn".to_string();
+        let mint_msg2 = ExecuteMsg::Mint(MintMsg {
+            token_id: token_id_2.clone(),
+            owner: jeff_address.clone(),
+            token_uri: None,
+            extension: meta,
+        });
+
+        let _ = entry::execute(deps.as_mut(), mock_env(), allowed.clone(), mint_msg2).unwrap();
+
+        // CHECK: ensure num tokens increases to 2
+        let count_2 = contract.num_tokens(deps.as_ref()).unwrap();
+        assert_eq!(2, count_2.count);
+
+        // default will be that last in is returned
+        // so jeff alias will default to token_id_2
+        let alias_query_res_2: PreferredAliasResponse = from_binary(
+            &entry::query(
+                deps.as_ref(),
+                mock_env(),
+                QueryMsg::PreferredAlias {
+                    address: jeff_address.clone(),
+                },
+            )
+            .unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(alias_query_res_2.username, token_id_2);
+
+        // set alias to NFT 1
+        let _update_alias_res = entry::execute(
+            deps.as_mut(),
+            mock_env(),
+            allowed.clone(),
+            ExecuteMsg::UpdatePreferredAlias {
+                token_id: token_id.clone(),
+            },
+        );
+
+        // check alias updated to token_id
+        let alias_query_res_3: PreferredAliasResponse = from_binary(
+            &entry::query(
+                deps.as_ref(),
+                mock_env(),
+                QueryMsg::PreferredAlias {
+                    address: jeff_address.clone(),
+                },
+            )
+            .unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(alias_query_res_3.username, token_id);
+
+        // okay time to send NFT 1
+        let other_contract_address = "other-contract-address";
+
+        // jeff sends the token to another contract cos YOLO
+        let send_msg = ExecuteMsg::SendNft {
+            contract: other_contract_address.to_string(),
+            token_id,
+            msg: to_binary("yolo").unwrap(),
+        };
+
+        let _ = entry::execute(deps.as_mut(), mock_env(), allowed, send_msg);
+
+        // now jeff-address should be default alias NFT 2
+        let alias_query_res_4: PreferredAliasResponse = from_binary(
+            &entry::query(
+                deps.as_ref(),
+                mock_env(),
+                QueryMsg::PreferredAlias {
+                    address: jeff_address,
+                },
+            )
+            .unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(alias_query_res_4.username, token_id_2);
+    }
 
     #[test]
     fn alias_cleared_on_transfer() {
@@ -360,6 +456,7 @@ mod tests {
         assert_eq!(2, count_2.count);
 
         // default will be that last in is returned
+        // so jeff alias will default to token_id_2
         let alias_query_res_2: PreferredAliasResponse = from_binary(
             &entry::query(
                 deps.as_ref(),
@@ -384,7 +481,7 @@ mod tests {
             },
         );
 
-        // check alias updated
+        // check alias updated to token_id
         let alias_query_res_3: PreferredAliasResponse = from_binary(
             &entry::query(
                 deps.as_ref(),
@@ -402,6 +499,8 @@ mod tests {
         // okay time to move NFT 1
         let john_q_rando_address = "random-guy";
 
+        // he wants to be thebestguy so he buys the NFT off of jeff
+        // and then jeff transfers the token
         let transfer_msg = ExecuteMsg::TransferNft {
             recipient: john_q_rando_address.to_string(),
             token_id: token_id.clone(),
