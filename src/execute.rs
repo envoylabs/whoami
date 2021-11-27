@@ -100,6 +100,16 @@ pub fn update_preferred_alias(
 // --- we override these purely so we can clear any preferred aliases on transfer or burn
 //
 
+// fn clear_aliases(
+//     contract: Cw721MetadataContract,
+//     deps: DepsMut,
+//     token_id: String,
+// ) -> Result<(), ContractError> {
+//     let username_nft = contract.tokens.load(deps.storage, &token_id)?;
+//     let res = PREFERRED_ALIASES.remove(deps.storage, &username_nft.owner);
+//     Ok(res)
+// }
+
 pub fn transfer_nft(
     contract: Cw721MetadataContract,
     deps: DepsMut,
