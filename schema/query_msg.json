@@ -3,6 +3,27 @@
   "title": "QueryMsg",
   "oneOf": [
     {
+      "description": "Query preferred alias. Takes an address and returns the token id, if set. default behaviour is to return the first result, if unset.",
+      "type": "object",
+      "required": [
+        "preferred_alias"
+      ],
+      "properties": {
+        "preferred_alias": {
+          "type": "object",
+          "required": [
+            "address"
+          ],
+          "properties": {
+            "address": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    {
       "description": "Return the owner of the given token, error if token does not exist Return type: OwnerOfResponse",
       "type": "object",
       "required": [
@@ -31,7 +52,7 @@
       "additionalProperties": false
     },
     {
-      "description": "List all operators that can access all of the owner's tokens Return type: `ApprovedForAllResponse`",
+      "description": "List all operators that can access all of the owner's tokens. Return type: `ApprovedForAllResponse`",
       "type": "object",
       "required": [
         "approved_for_all"
@@ -44,7 +65,7 @@
           ],
           "properties": {
             "include_expired": {
-              "description": "unset or false will filter out expired items, you must set to true to see them",
+              "description": "unset or false will filter out expired approvals, you must set to true to see them",
               "type": [
                 "boolean",
                 "null"
@@ -207,18 +228,6 @@
               ]
             }
           }
-        }
-      },
-      "additionalProperties": false
-    },
-    {
-      "type": "object",
-      "required": [
-        "minter"
-      ],
-      "properties": {
-        "minter": {
-          "type": "object"
         }
       },
       "additionalProperties": false

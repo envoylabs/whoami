@@ -1,8 +1,81 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "ExecuteMsg",
-  "description": "This is like Cw721ExecuteMsg but we add a Mint command for an owner to make this stand-alone. You will likely want to remove mint and use other control logic in any contract that inherits this.",
   "oneOf": [
+    {
+      "description": "If the sender is",
+      "type": "object",
+      "required": [
+        "update_preferred_alias"
+      ],
+      "properties": {
+        "update_preferred_alias": {
+          "type": "object",
+          "required": [
+            "token_id"
+          ],
+          "properties": {
+            "token_id": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "burn"
+      ],
+      "properties": {
+        "burn": {
+          "type": "object",
+          "required": [
+            "token_id"
+          ],
+          "properties": {
+            "token_id": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "set_minter"
+      ],
+      "properties": {
+        "set_minter": {
+          "type": "object",
+          "required": [
+            "minter"
+          ],
+          "properties": {
+            "minter": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Mint a new NFT, can only be called by the contract minter",
+      "type": "object",
+      "required": [
+        "mint"
+      ],
+      "properties": {
+        "mint": {
+          "$ref": "#/definitions/MintMsg_for_Metadata"
+        }
+      },
+      "additionalProperties": false
+    },
     {
       "description": "Transfer is a base message to move a token to another account without triggering actions",
       "type": "object",
@@ -162,40 +235,6 @@
           ],
           "properties": {
             "operator": {
-              "type": "string"
-            }
-          }
-        }
-      },
-      "additionalProperties": false
-    },
-    {
-      "description": "Mint a new NFT, can only be called by the contract minter",
-      "type": "object",
-      "required": [
-        "mint"
-      ],
-      "properties": {
-        "mint": {
-          "$ref": "#/definitions/MintMsg_for_Metadata"
-        }
-      },
-      "additionalProperties": false
-    },
-    {
-      "description": "Burn an NFT the sender has access to",
-      "type": "object",
-      "required": [
-        "burn"
-      ],
-      "properties": {
-        "burn": {
-          "type": "object",
-          "required": [
-            "token_id"
-          ],
-          "properties": {
-            "token_id": {
               "type": "string"
             }
           }
