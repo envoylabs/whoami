@@ -392,17 +392,7 @@ mod tests {
         let count_2 = contract.num_tokens(deps.as_ref()).unwrap();
         assert_eq!(2, count_2.count);
 
-        // set alias to NFT 2
-        let _update_alias_res = entry::execute(
-            deps.as_mut(),
-            mock_env(),
-            allowed.clone(),
-            ExecuteMsg::UpdatePreferredAlias {
-                token_id: token_id_2.clone(),
-            },
-        );
-
-        // check alias updated
+        // default will be that last in is returned
         let alias_query_res_2: PreferredAliasResponse = from_binary(
             &entry::query(
                 deps.as_ref(),
@@ -417,10 +407,33 @@ mod tests {
 
         assert_eq!(alias_query_res_2.username, token_id_2);
 
+        // set alias to NFT 1
+        let _update_alias_res = entry::execute(
+            deps.as_mut(),
+            mock_env(),
+            allowed.clone(),
+            ExecuteMsg::UpdatePreferredAlias {
+                token_id: token_id.clone(),
+            },
+        );
+
+        // check alias updated
+        let alias_query_res_3: PreferredAliasResponse = from_binary(
+            &entry::query(
+                deps.as_ref(),
+                mock_env(),
+                QueryMsg::PreferredAlias {
+                    address: jeff_address.clone(),
+                },
+            )
+            .unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(alias_query_res_3.username, token_id);
+
         // let's burn
-        let burn_msg = ExecuteMsg::Burn {
-            token_id: token_id_2,
-        };
+        let burn_msg = ExecuteMsg::Burn { token_id };
 
         // first check random cannot
         let john_q_rando = "random-guy";
@@ -444,7 +457,7 @@ mod tests {
         assert_eq!(1, count.count);
 
         // and now preferred should return default
-        let alias_query_res_3: PreferredAliasResponse = from_binary(
+        let alias_query_res_4: PreferredAliasResponse = from_binary(
             &entry::query(
                 deps.as_ref(),
                 mock_env(),
@@ -456,7 +469,7 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(alias_query_res_3.username, token_id);
+        assert_eq!(alias_query_res_4.username, token_id_2);
     }
 
     #[test]
