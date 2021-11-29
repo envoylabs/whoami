@@ -33,6 +33,76 @@ mod tests {
     }
 
     #[test]
+    fn base_minting_unhappy_path() {
+        let mut deps = mock_dependencies();
+        let contract = setup_contract(deps.as_mut());
+
+        // init a plausible username
+        let token_id = "jeffisthebest".to_string();
+        let token_uri = "https://example.com/jeff-vader".to_string();
+        let jeff_address = String::from("jeff-vader");
+
+        let meta = Metadata {
+            twitter_id: Some(String::from("@jeff-vader")),
+            ..Metadata::default()
+        };
+
+        let mint_msg = ExecuteMsg::Mint(MintMsg {
+            token_id: token_id.clone(),
+            owner: jeff_address.clone(),
+            token_uri: Some(token_uri.clone()),
+            extension: meta.clone(),
+        });
+
+        // jeff can mint
+        let allowed = mock_info(&jeff_address, &[]);
+        let _ = entry::execute(deps.as_mut(), mock_env(), allowed.clone(), mint_msg).unwrap();
+
+        // CHECK: ensure num tokens increases
+        let count = contract.num_tokens(deps.as_ref()).unwrap();
+        assert_eq!(1, count.count);
+
+        // CHECK: this nft info is correct
+        let info = contract.nft_info(deps.as_ref(), token_id.clone()).unwrap();
+        assert_eq!(
+            info,
+            NftInfoResponse::<Extension> {
+                token_uri: Some(token_uri),
+                extension: meta.clone(),
+            }
+        );
+
+        // CHECK: owner info is correct
+        let owner = contract
+            .owner_of(deps.as_ref(), mock_env(), token_id.clone(), true)
+            .unwrap();
+        assert_eq!(
+            owner,
+            OwnerOfResponse {
+                owner: String::from("jeff-vader"),
+                approvals: vec![],
+            }
+        );
+
+        // CHECK: everything different apart from token_id
+        // minting should fail
+        let mint_msg2 = ExecuteMsg::Mint(MintMsg {
+            token_id,
+            owner: jeff_address,
+            token_uri: Some("https://example.com/tie-fighter".to_string()),
+            extension: meta,
+        });
+
+        // CHECK: result is an err
+        let err = entry::execute(deps.as_mut(), mock_env(), allowed, mint_msg2).unwrap_err();
+        assert_eq!(err, ContractError::Claimed {});
+
+        // CHECK: ensure num tokens does not increase
+        let count = contract.num_tokens(deps.as_ref()).unwrap();
+        assert_eq!(1, count.count);
+    }
+
+    #[test]
     fn base_minting() {
         let mut deps = mock_dependencies();
         let contract = setup_contract(deps.as_mut());
@@ -62,7 +132,7 @@ mod tests {
         let allowed = mock_info(MINTER, &[]);
         let _ = entry::execute(deps.as_mut(), mock_env(), allowed, mint_msg).unwrap();
 
-        // ensure num tokens increases
+        // CHECK: ensure num tokens increases
         let count = contract.num_tokens(deps.as_ref()).unwrap();
         assert_eq!(1, count.count);
 
@@ -71,7 +141,7 @@ mod tests {
             .nft_info(deps.as_ref(), "unknown".to_string())
             .unwrap_err();
 
-        // this nft info is correct
+        // CHECK: this nft info is correct
         let info = contract.nft_info(deps.as_ref(), token_id.clone()).unwrap();
         assert_eq!(
             info,
@@ -81,7 +151,7 @@ mod tests {
             }
         );
 
-        // owner info is correct
+        // CHECK: owner info is correct
         let owner = contract
             .owner_of(deps.as_ref(), mock_env(), token_id.clone(), true)
             .unwrap();
@@ -119,11 +189,11 @@ mod tests {
         )
         .unwrap();
 
-        // ensure num tokens increases
+        // CHECK: ensure num tokens increases
         let count = contract.num_tokens(deps.as_ref()).unwrap();
         assert_eq!(2, count.count);
 
-        // this nft info is correct
+        // CHECK: this nft info is correct
         let info = contract
             .nft_info(deps.as_ref(), john_token_id.clone())
             .unwrap();
@@ -135,7 +205,7 @@ mod tests {
             }
         );
 
-        // owner info is correct
+        // CHECK: owner info is correct
         let owner = contract
             .owner_of(deps.as_ref(), mock_env(), john_token_id.clone(), true)
             .unwrap();
@@ -184,7 +254,7 @@ mod tests {
         let _ = entry::execute(deps.as_mut(), mock_env(), allowed, mint_msg3).unwrap();
 
         // list the token_ids
-        // four calls to mint, 3 tokens minted
+        // CHECK: four calls to mint, 3 tokens minted
         let tokens = contract.all_tokens(deps.as_ref(), None, None).unwrap();
         assert_eq!(3, tokens.tokens.len());
         assert_eq!(vec![token_id_2, token_id, john_token_id], tokens.tokens);
@@ -220,7 +290,7 @@ mod tests {
         let count = contract.num_tokens(deps.as_ref()).unwrap();
         assert_eq!(1, count.count);
 
-        // check alias returns something
+        // CHECK: check alias returns something
         let alias_query_res: PreferredAliasResponse = from_binary(
             &entry::query(
                 deps.as_ref(),
@@ -251,7 +321,7 @@ mod tests {
         assert_eq!(2, count_2.count);
 
         // default will be that last in is returned
-        // so jeff alias will default to token_id_2
+        // CHECK: jeff alias will default to token_id_2
         let alias_query_res_2: PreferredAliasResponse = from_binary(
             &entry::query(
                 deps.as_ref(),
@@ -276,7 +346,7 @@ mod tests {
             },
         );
 
-        // check alias updated to token_id
+        // CHECK: alias updated to token_id
         let alias_query_res_3: PreferredAliasResponse = from_binary(
             &entry::query(
                 deps.as_ref(),
@@ -303,7 +373,7 @@ mod tests {
 
         let _ = entry::execute(deps.as_mut(), mock_env(), allowed, send_msg);
 
-        // now jeff-address should be default alias NFT 2
+        // CHECK: jeff-address should be default alias NFT 2
         let alias_query_res_4: PreferredAliasResponse = from_binary(
             &entry::query(
                 deps.as_ref(),
@@ -349,7 +419,7 @@ mod tests {
         let count = contract.num_tokens(deps.as_ref()).unwrap();
         assert_eq!(1, count.count);
 
-        // check alias returns something
+        // CHECK: alias returns something
         let alias_query_res: PreferredAliasResponse = from_binary(
             &entry::query(
                 deps.as_ref(),
@@ -380,7 +450,7 @@ mod tests {
         assert_eq!(2, count_2.count);
 
         // default will be that last in is returned
-        // so jeff alias will default to token_id_2
+        // CHECK: jeff alias will default to token_id_2
         let alias_query_res_2: PreferredAliasResponse = from_binary(
             &entry::query(
                 deps.as_ref(),
@@ -405,7 +475,7 @@ mod tests {
             },
         );
 
-        // check alias updated to token_id
+        // CHECK: alias updated to token_id
         let alias_query_res_3: PreferredAliasResponse = from_binary(
             &entry::query(
                 deps.as_ref(),
@@ -432,7 +502,7 @@ mod tests {
 
         let _ = entry::execute(deps.as_mut(), mock_env(), allowed, transfer_msg);
 
-        // owner info is correct
+        // CHECK: owner info is correct
         let owner = contract
             .owner_of(deps.as_ref(), mock_env(), token_id.clone(), true)
             .unwrap();
@@ -444,7 +514,7 @@ mod tests {
             }
         );
 
-        // now jeff-address should be default alias NFT 2 and john_q_rando_address
+        // CHECK: jeff-address should be default alias NFT 2 and john_q_rando_address
         // should be alias NFT 1
         // making him thebestguy
         let alias_query_res_4: PreferredAliasResponse = from_binary(
@@ -506,7 +576,7 @@ mod tests {
         let count = contract.num_tokens(deps.as_ref()).unwrap();
         assert_eq!(1, count.count);
 
-        // check alias returns something
+        // CHECK: alias returns something
         let alias_query_res: PreferredAliasResponse = from_binary(
             &entry::query(
                 deps.as_ref(),
@@ -536,7 +606,7 @@ mod tests {
         let count_2 = contract.num_tokens(deps.as_ref()).unwrap();
         assert_eq!(2, count_2.count);
 
-        // default will be that last in is returned
+        // CHECK: default will be that last in is returned
         let alias_query_res_2: PreferredAliasResponse = from_binary(
             &entry::query(
                 deps.as_ref(),
@@ -561,7 +631,7 @@ mod tests {
             },
         );
 
-        // check alias updated
+        // CHECK: alias updated
         let alias_query_res_3: PreferredAliasResponse = from_binary(
             &entry::query(
                 deps.as_ref(),
@@ -579,7 +649,7 @@ mod tests {
         // let's burn
         let burn_msg = ExecuteMsg::Burn { token_id };
 
-        // first check random cannot
+        // CHECK: random cannot burn
         let john_q_rando = "random-guy";
 
         let not_allowed_to_burn = mock_info(john_q_rando, &[]);
@@ -600,7 +670,7 @@ mod tests {
         let count = contract.num_tokens(deps.as_ref()).unwrap();
         assert_eq!(1, count.count);
 
-        // and now preferred should return default
+        // CHECK: now preferred should return default
         let alias_query_res_4: PreferredAliasResponse = from_binary(
             &entry::query(
                 deps.as_ref(),
