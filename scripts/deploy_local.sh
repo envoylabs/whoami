@@ -4,11 +4,16 @@
 # this rather assumes you're using juno bootstrap script
 # this script takes an address to use inside the container
 # you get this address when running the juno bootstrap - it will be logged
-BINARY='docker exec -i juno_node_1 junod'
+CONTAINER_NAME="juno_whoami"
+BINARY="docker exec -i $CONTAINER_NAME junod"
 DENOM='ustake'
 CHAIN_ID='testing'
 RPC='http://localhost:26657/'
 TXFLAG="--gas-prices 0.01$DENOM --gas auto --gas-adjustment 1.3 -y -b block --chain-id $CHAIN_ID --node $RPC"
+
+# run container
+docker kill $CONTAINER_NAME
+docker run --rm -d --name $CONTAINER_NAME -p 1317:1317 -p 26656:26656 -p 26657:26657 ghcr.io/cosmoscontracts/juno:pr-105 ./setup_and_run.sh $1
 
 # compile
 docker run --rm -v "$(pwd)":/code \
@@ -17,7 +22,7 @@ docker run --rm -v "$(pwd)":/code \
   cosmwasm/rust-optimizer:0.12.3
 
 # copy wasm to docker container
-docker cp artifacts/whoami.wasm juno_node_1:/whoami.wasm
+docker cp artifacts/whoami.wasm $CONTAINER_NAME:/whoami.wasm
 
 # you ideally want to run locally, get a user and then
 # pass that addr in here
