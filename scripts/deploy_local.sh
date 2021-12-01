@@ -1,5 +1,11 @@
 #!/bin/bash
 
+if [ "$1" = "" ]
+then
+  echo "Usage: $0 1 arg required - juno address"
+  exit
+fi
+
 # pinched and adapted from DA0DA0
 # this rather assumes you're using juno bootstrap script
 # this script takes an address to use inside the container
@@ -11,9 +17,27 @@ CHAIN_ID='testing'
 RPC='http://localhost:26657/'
 TXFLAG="--gas-prices 0.01$DENOM --gas auto --gas-adjustment 1.3 -y -b block --chain-id $CHAIN_ID --node $RPC"
 
-# run container
+# kill any orphans
 docker kill $CONTAINER_NAME
-docker run --rm -d --name $CONTAINER_NAME -p 1317:1317 -p 26656:26656 -p 26657:26657 ghcr.io/cosmoscontracts/juno:pr-105 ./setup_and_run.sh $1
+docker volume rm -f junod_data
+
+# run junod setup script
+docker run --rm -it \
+    -e PASSWORD=xxxxxxxxx \
+    --mount type=volume,source=junod_data,target=/root \
+    ghcr.io/cosmoscontracts/juno:pr-105 /opt/setup_junod.sh $1
+
+# we need app.toml and config.toml to enable CORS
+# this means some wrangling required
+docker run -v junod_data:/root --name helper busybox true
+docker cp docker/app.toml helper:/root/.juno/config/app.toml
+docker cp docker/config.toml helper:/root/.juno/config/config.toml
+docker rm helper
+
+docker run --rm -d --name $CONTAINER_NAME \
+    -p 1317:1317 -p 26656:26656 -p 26657:26657 \
+    --mount type=volume,source=junod_data,target=/root \
+    ghcr.io/cosmoscontracts/juno:pr-105 ./run_junod.sh
 
 # compile
 docker run --rm -v "$(pwd)":/code \
