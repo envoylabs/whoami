@@ -2,7 +2,7 @@
 mod tests {
     use crate::entry;
 
-    use crate::msg::{ExecuteMsg, Extension, QueryMsg};
+    use crate::msg::{ExecuteMsg, Extension, QueryMsg, UpdateMetadataMsg};
     use crate::msg::{Metadata, MintMsg, PreferredAliasResponse};
     use crate::Cw721MetadataContract;
     use cosmwasm_std::to_binary;
@@ -258,6 +258,89 @@ mod tests {
         let tokens = contract.all_tokens(deps.as_ref(), None, None).unwrap();
         assert_eq!(3, tokens.tokens.len());
         assert_eq!(vec![token_id_2, token_id, john_token_id], tokens.tokens);
+    }
+
+    #[test]
+    fn update_metadata() {
+        let mut deps = mock_dependencies();
+        let contract = setup_contract(deps.as_mut());
+
+        // init a plausible username
+        let token_id = "thebestguy".to_string();
+        let token_uri = "https://example.com/jeff-vader".to_string();
+        let jeff_address = String::from("jeff-vader");
+
+        let meta = Metadata {
+            twitter_id: Some(String::from("@jeff-vader")),
+            ..Metadata::default()
+        };
+
+        let mint_msg = ExecuteMsg::Mint(MintMsg {
+            token_id: token_id.clone(),
+            owner: jeff_address.clone(),
+            token_uri: Some(token_uri.clone()),
+            extension: meta.clone(),
+        });
+
+        // CHECK: jeff can mint
+        let allowed = mock_info(&jeff_address, &[]);
+        let _ = entry::execute(deps.as_mut(), mock_env(), allowed.clone(), mint_msg).unwrap();
+
+        // CHECK: ensure num tokens increases
+        let count = contract.num_tokens(deps.as_ref()).unwrap();
+        assert_eq!(1, count.count);
+
+        let bad_update_msg = ExecuteMsg::UpdateMetadata(UpdateMetadataMsg {
+            token_id: token_id.clone(),
+            metadata: Metadata {
+                twitter_id: Some(String::from("@john_q_rando")),
+                ..Metadata::default()
+            },
+        });
+
+        // CHECK: random cannot update
+        let john_q_rando = "random-guy";
+        let not_allowed_to_update = mock_info(john_q_rando, &[]);
+        let err = entry::execute(
+            deps.as_mut(),
+            mock_env(),
+            not_allowed_to_update,
+            bad_update_msg,
+        )
+        .unwrap_err();
+
+        assert_eq!(err, ContractError::Unauthorized {});
+
+        // CHECK: this nft info is correct
+        let info = contract.nft_info(deps.as_ref(), token_id.clone()).unwrap();
+        assert_eq!(
+            info,
+            NftInfoResponse::<Extension> {
+                token_uri: Some(token_uri.clone()),
+                extension: meta,
+            }
+        );
+
+        // CHECK jeff can update
+        let new_meta = Metadata {
+            twitter_id: Some(String::from("@jeff-vader-2")),
+            ..Metadata::default()
+        };
+        let update_msg = ExecuteMsg::UpdateMetadata(UpdateMetadataMsg {
+            token_id: token_id.clone(),
+            metadata: new_meta.clone(),
+        });
+
+        let _ = entry::execute(deps.as_mut(), mock_env(), allowed, update_msg).unwrap();
+
+        let info = contract.nft_info(deps.as_ref(), token_id).unwrap();
+        assert_eq!(
+            info,
+            NftInfoResponse::<Extension> {
+                token_uri: Some(token_uri),
+                extension: new_meta,
+            }
+        );
     }
 
     #[test]

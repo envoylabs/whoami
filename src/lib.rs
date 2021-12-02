@@ -8,7 +8,7 @@ use cosmwasm_std::{to_binary, Empty};
 
 pub use cw721_base::{ContractError, InstantiateMsg};
 
-use execute::{burn, mint, send_nft, transfer_nft, update_preferred_alias};
+use execute::{burn, mint, send_nft, transfer_nft, update_metadata, update_preferred_alias};
 use query::preferred_alias;
 
 pub use crate::msg::{ExecuteMsg, Extension, QueryMsg};
@@ -44,7 +44,7 @@ pub mod entry {
             ExecuteMsg::Mint(msg) => mint(tract, deps, env, info, msg),
             // todo - but details still to be worked out
             // will take a mint msg but _only_ update meta
-            // ExecuteMsg::UpdateMetadata(msg) => update_metadata(tract, deps, env, info, msg),
+            ExecuteMsg::UpdateMetadata(msg) => update_metadata(tract, deps, env, info, msg),
             ExecuteMsg::UpdatePreferredAlias { token_id } => {
                 update_preferred_alias(tract, deps, env, info, token_id)
             }

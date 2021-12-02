@@ -32,12 +32,22 @@ pub type Extension = Metadata;
 
 pub type MintMsg = CW721MintMsg<Extension>;
 
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug, Default)]
+pub struct UpdateMetadataMsg {
+    pub token_id: String,
+    pub metadata: Metadata,
+}
+
 // Extended CW721 ExecuteMsg, added the ability to update, burn, and finalize nft
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum ExecuteMsg {
     /// If the sender has multiple NFTs or aliases, they will want to set a default. This allows them to do this.
     UpdatePreferredAlias { token_id: String },
+
+    /// Updates the metadata of the NFT
+    UpdateMetadata(UpdateMetadataMsg),
+
     /// Destroys the NFT permanently.
     Burn { token_id: String },
 

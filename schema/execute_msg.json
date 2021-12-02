@@ -24,6 +24,19 @@
       "additionalProperties": false
     },
     {
+      "description": "Updates the metadata of the NFT",
+      "type": "object",
+      "required": [
+        "update_metadata"
+      ],
+      "properties": {
+        "update_metadata": {
+          "$ref": "#/definitions/UpdateMetadataMsg"
+        }
+      },
+      "additionalProperties": false
+    },
+    {
       "description": "Destroys the NFT permanently.",
       "type": "object",
       "required": [
@@ -411,6 +424,21 @@
     "Uint64": {
       "description": "A thin wrapper around u64 that is using strings for JSON encoding/decoding, such that the full u64 range can be used for clients that convert JSON numbers to floats, like JavaScript and jq.\n\n# Examples\n\nUse `from` to create instances of this and `u64` to get the value out:\n\n``` # use cosmwasm_std::Uint64; let a = Uint64::from(42u64); assert_eq!(a.u64(), 42);\n\nlet b = Uint64::from(70u32); assert_eq!(b.u64(), 70); ```",
       "type": "string"
+    },
+    "UpdateMetadataMsg": {
+      "type": "object",
+      "required": [
+        "metadata",
+        "token_id"
+      ],
+      "properties": {
+        "metadata": {
+          "$ref": "#/definitions/Metadata"
+        },
+        "token_id": {
+          "type": "string"
+        }
+      }
     }
   }
 }

@@ -1,10 +1,11 @@
-use crate::msg::MintMsg;
-use crate::state::PREFERRED_ALIASES;
-use crate::Cw721MetadataContract;
-use cosmwasm_std::{Binary, DepsMut, Env, MessageInfo, Response};
+use cosmwasm_std::{Binary, DepsMut, Env, MessageInfo, Response, StdResult};
 use cw721::Cw721ReceiveMsg;
 use cw721_base::state::TokenInfo;
 use cw721_base::ContractError;
+
+use crate::msg::{MintMsg, UpdateMetadataMsg};
+use crate::state::PREFERRED_ALIASES;
+use crate::Cw721MetadataContract;
 
 pub fn mint(
     contract: Cw721MetadataContract,
@@ -56,15 +57,45 @@ pub fn mint(
         .add_attribute("token_id", msg.token_id))
 }
 
-// takes a mintmsg and uses the data therein to update the corresponding NFT metadata, if allowed.
-// pub fn update_metadata(
-//     contract: Cw721MetadataContract,
-//     deps: DepsMut,
-//     _env: Env,
-//     info: MessageInfo,
-//     msg: MintMsg<Extension>,
-// ) -> Result<Response, ContractError> {
-// }
+// updates the metadata on an NFT
+// only accessible to the NFT owner
+pub fn update_metadata(
+    contract: Cw721MetadataContract,
+    deps: DepsMut,
+    _env: Env,
+    info: MessageInfo,
+    msg: UpdateMetadataMsg,
+) -> Result<Response, ContractError> {
+    let address_trying_to_update = info.sender.clone();
+    let token_id = msg.token_id.clone();
+    let username_nft = contract.tokens.load(deps.storage, &token_id)?;
+
+    let username_owner = username_nft.owner.clone();
+
+    // check it's the owner of the NFT updating meta
+    if username_owner != address_trying_to_update {
+        return Err(ContractError::Unauthorized {});
+    }
+
+    // arrrrre you ready to rrrrrumb-
+    // rrredefine some metadata?
+    contract
+        .tokens
+        .update(deps.storage, &token_id, |token| -> StdResult<_> {
+            match token {
+                Some(mut nft) => {
+                    nft.extension = msg.metadata;
+                    Ok(nft)
+                }
+                None => Ok(username_nft),
+            }
+        })?;
+
+    Ok(Response::new()
+        .add_attribute("action", "update_metadata")
+        .add_attribute("owner", info.sender)
+        .add_attribute("token_id", token_id))
+}
 
 // look up token_id
 // if it is owned by sender,
