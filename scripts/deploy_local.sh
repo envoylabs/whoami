@@ -10,6 +10,7 @@ fi
 # this rather assumes you're using juno bootstrap script
 # this script takes an address to use inside the container
 # you get this address when running the juno bootstrap - it will be logged
+IMAGE_TAG="v2.0.3"
 CONTAINER_NAME="juno_whoami"
 BINARY="docker exec -i $CONTAINER_NAME junod"
 DENOM='ustake'
@@ -25,7 +26,7 @@ docker volume rm -f junod_data
 docker run --rm -it \
     -e PASSWORD=xxxxxxxxx \
     --mount type=volume,source=junod_data,target=/root \
-    ghcr.io/cosmoscontracts/juno:pr-105 /opt/setup_junod.sh $1
+    ghcr.io/cosmoscontracts/juno:$IMAGE_TAG /opt/setup_junod.sh $1
 
 # we need app.toml and config.toml to enable CORS
 # this means some wrangling required
@@ -37,7 +38,7 @@ docker rm helper
 docker run --rm -d --name $CONTAINER_NAME \
     -p 1317:1317 -p 26656:26656 -p 26657:26657 \
     --mount type=volume,source=junod_data,target=/root \
-    ghcr.io/cosmoscontracts/juno:pr-105 ./run_junod.sh
+    ghcr.io/cosmoscontracts/juno:$IMAGE_TAG ./run_junod.sh
 
 # compile
 docker run --rm -v "$(pwd)":/code \
