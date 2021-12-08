@@ -13,7 +13,7 @@ fi
 IMAGE_TAG="v2.0.3"
 CONTAINER_NAME="juno_whoami"
 BINARY="docker exec -i $CONTAINER_NAME junod"
-DENOM='ustake'
+DENOM='ujunox'
 CHAIN_ID='testing'
 RPC='http://localhost:26657/'
 TXFLAG="--gas-prices 0.01$DENOM --gas auto --gas-adjustment 1.3 -y -b block --chain-id $CHAIN_ID --node $RPC"
@@ -25,6 +25,7 @@ docker volume rm -f junod_data
 # run junod setup script
 docker run --rm -it \
     -e PASSWORD=xxxxxxxxx \
+    -e STAKE_TOKEN=$DENOM \
     --mount type=volume,source=junod_data,target=/root \
     ghcr.io/cosmoscontracts/juno:$IMAGE_TAG /opt/setup_junod.sh $1
 
