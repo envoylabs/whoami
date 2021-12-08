@@ -31,8 +31,29 @@ it can be used to init the contract:
 bash scripts/deploy_local.sh juno10j9gpw9t4jsz47qgnkvl5n3zlm2fz72k67rxsg
 ```
 
+This should output two environment variables which are needed for
+running the frontend:
+
+```
+NEXT_PUBLIC_WHOAMI_CODE_ID=
+NEXT_PUBLIC_WHOAMI_ADDRESS=
+```
+
+### Running the frontend
+
 To use the account configured by the deploy script import the account
-in `default-account.txt` into your keplr wallet.
+in `default-account.txt` into your keplr wallet. Then copy
+`whoami-dapp/.env.example` to `whoami-dapp/.env.local` and add the
+configuration variables output by `deploy-local.sh` to the bottom of
+the file.
+
+To run the frontend:
+
+```
+yarn dev
+```
+
+Then, visit `localhost:3000` in your browser.
 
 ## Mapping address -> username
 
