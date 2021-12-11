@@ -10,7 +10,7 @@ fi
 # this rather assumes you're using juno bootstrap script
 # this script takes an address to use inside the container
 # you get this address when running the juno bootstrap - it will be logged
-IMAGE_TAG="v2.0.3"
+IMAGE_TAG="v2.0.4"
 CONTAINER_NAME="juno_whoami"
 BINARY="docker exec -i $CONTAINER_NAME junod"
 DENOM='ujunox'
