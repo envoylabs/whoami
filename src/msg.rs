@@ -1,10 +1,54 @@
-use cosmwasm_std::Binary;
+use cosmwasm_std::{Binary, Uint128};
 use cw721::Expiration;
 use cw721_base::{
     msg::ExecuteMsg as CW721ExecuteMsg, MintMsg as CW721MintMsg, QueryMsg as CW721QueryMsg,
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct SurchargeInfo {
+    /// Max characters that are affected by the surcharge
+    /// e.g. 5
+    pub surcharge_max_characters: u32,
+    /// The surcharge fee. This plus any base mint fee
+    /// add up to the total fixed cost of minting an NFT username
+    pub surcharge_fee: Uint128,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct InstantiateMsg {
+    /// Name of the NFT contract
+    pub name: String,
+    /// Symbol of the NFT contract
+    pub symbol: String,
+
+    /// The token name of the native denom, e.g. ujuno uatom
+    pub native_denom: String,
+    /// The decimals of the token
+    /// Same format as decimals above, eg. if it is uatom, where 1 unit is 10^-6 ATOM, use 6 here
+    pub native_decimals: u8,
+
+    /// Is there a token cap for this contract?
+    /// i.e. a cap for number of tokens an address can manage
+    /// it's a blunt tool against hoarding.
+    pub token_cap: Option<u32>,
+
+    /// An optional fee, paid to the admin_address
+    /// half is burned by default, you have to override this
+    /// in mint if that's not ok with you
+    pub base_mint_fee: Option<Uint128>,
+
+    /// An optional surcharge for short names
+    /// e.g. anything below 5 gets an additional charge
+    /// this plus base_mint_fee are combined to come up
+    /// with a total mint fee
+    pub short_name_surcharge: Option<SurchargeInfo>,
+
+    /// The admin address for the contract
+    /// replaces the minter field as minting is permissionless
+    pub admin_address: String,
+}
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug, Default)]
 pub struct Trait {
@@ -51,10 +95,10 @@ pub enum ExecuteMsg {
     /// Destroys the NFT permanently.
     Burn { token_id: String },
 
-    /// Set minter (admin)
-    SetMinter { minter: String },
+    /// Set admin
+    SetAdminAddress { admin_address: String },
 
-    /// Mint a new NFT, can only be called by the contract minter
+    /// Mint a new NFT
     Mint(MintMsg),
 
     // Standard CW721 ExecuteMsg
@@ -89,6 +133,9 @@ pub enum ExecuteMsg {
 impl From<ExecuteMsg> for CW721ExecuteMsg<Extension> {
     fn from(msg: ExecuteMsg) -> CW721ExecuteMsg<Extension> {
         match msg {
+            // ExecuteMsg::SetAdminAddress {
+            //     admin_address,
+            // } => CW721ExecuteMsg::SetMinter { minter: admin_address },
             ExecuteMsg::TransferNft {
                 recipient,
                 token_id,
@@ -182,11 +229,15 @@ pub enum QueryMsg {
         start_after: Option<String>,
         limit: Option<u32>,
     },
+
+    /// Return the admin address
+    AdminAddress {},
 }
 
 impl From<QueryMsg> for CW721QueryMsg {
     fn from(msg: QueryMsg) -> CW721QueryMsg {
         match msg {
+            QueryMsg::AdminAddress {} => CW721QueryMsg::Minter {},
             QueryMsg::OwnerOf {
                 token_id,
                 include_expired,
@@ -206,7 +257,6 @@ impl From<QueryMsg> for CW721QueryMsg {
                 limit,
             },
             QueryMsg::NumTokens {} => CW721QueryMsg::NumTokens {},
-            QueryMsg::ContractInfo {} => CW721QueryMsg::ContractInfo {},
             QueryMsg::NftInfo { token_id } => CW721QueryMsg::NftInfo { token_id },
             QueryMsg::AllNftInfo {
                 token_id,
@@ -236,4 +286,15 @@ impl From<QueryMsg> for CW721QueryMsg {
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub struct PreferredAliasResponse {
     pub username: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+pub struct ContractInfoResponse {
+    pub name: String,
+    pub symbol: String,
+    pub native_denom: String,
+    pub native_decimals: u8,
+    pub token_cap: Option<u32>,
+    pub base_mint_fee: Option<Uint128>,
+    pub short_name_surcharge: Option<SurchargeInfo>,
 }

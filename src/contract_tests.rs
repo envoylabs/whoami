@@ -2,17 +2,17 @@
 mod tests {
     use crate::entry;
 
-    use crate::msg::{ExecuteMsg, Extension, QueryMsg, UpdateMetadataMsg};
-    use crate::msg::{Metadata, MintMsg, PreferredAliasResponse};
+    use crate::msg::{
+        ExecuteMsg, Extension, InstantiateMsg, Metadata, MintMsg, PreferredAliasResponse, QueryMsg,
+        UpdateMetadataMsg,
+    };
     use crate::Cw721MetadataContract;
-    use cosmwasm_std::to_binary;
-    use cosmwasm_std::{from_binary, DepsMut};
-    use cw721_base::{ContractError, InstantiateMsg};
+    use cosmwasm_std::{from_binary, to_binary, DepsMut};
+    use cw721_base::ContractError;
 
-    use cw721::{NftInfoResponse, OwnerOfResponse};
+    use cw721::{Cw721Query, NftInfoResponse, OwnerOfResponse};
 
     use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
-    use cw721::Cw721Query;
 
     const CREATOR: &str = "creator";
     const MINTER: &str = "jeff-vader";
@@ -24,10 +24,15 @@ mod tests {
         let msg = InstantiateMsg {
             name: CONTRACT_NAME.to_string(),
             symbol: SYMBOL.to_string(),
-            minter: String::from(MINTER),
+            native_denom: "uatom".to_string(),
+            native_decimals: 6,
+            token_cap: None,
+            base_mint_fee: None,
+            short_name_surcharge: None,
+            admin_address: String::from(MINTER),
         };
         let info = mock_info("creator", &[]);
-        let res = contract.instantiate(deps, mock_env(), info, msg).unwrap();
+        let res = entry::instantiate(deps, mock_env(), info, msg).unwrap();
         assert_eq!(0, res.messages.len());
         contract
     }
@@ -778,11 +783,14 @@ mod tests {
         let init_msg = InstantiateMsg {
             name: "SpaceShips".to_string(),
             symbol: "SPACE".to_string(),
-            minter: "jeff-addr".to_string(),
+            native_denom: "uatom".to_string(),
+            native_decimals: 6,
+            token_cap: None,
+            base_mint_fee: None,
+            short_name_surcharge: None,
+            admin_address: "jeff-addr".to_string(),
         };
-        contract
-            .instantiate(deps.as_mut(), mock_env(), info.clone(), init_msg)
-            .unwrap();
+        entry::instantiate(deps.as_mut(), mock_env(), info.clone(), init_msg).unwrap();
 
         // mock info contains sender &&
         // info.sender and owner need to be the same

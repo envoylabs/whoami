@@ -6,12 +6,15 @@ pub mod state;
 
 use cosmwasm_std::{to_binary, Empty};
 
-pub use cw721_base::{ContractError, InstantiateMsg};
+pub use cw721_base::ContractError;
 
-use execute::{burn, mint, send_nft, transfer_nft, update_metadata, update_preferred_alias};
-use query::preferred_alias;
+use execute::{
+    burn, execute_instantiate, mint, send_nft, set_admin_address, transfer_nft, update_metadata,
+    update_preferred_alias,
+};
+use query::{contract_info, preferred_alias};
 
-pub use crate::msg::{ExecuteMsg, Extension, QueryMsg};
+pub use crate::msg::{ExecuteMsg, Extension, InstantiateMsg, QueryMsg};
 
 pub type Cw721MetadataContract<'a> = cw721_base::Cw721Contract<'a, Extension, Empty>;
 
@@ -29,7 +32,8 @@ pub mod entry {
         info: MessageInfo,
         msg: InstantiateMsg,
     ) -> StdResult<Response> {
-        Cw721MetadataContract::default().instantiate(deps, env, info, msg)
+        let tract = Cw721MetadataContract::default();
+        execute_instantiate(tract, deps, env, info, msg)
     }
 
     #[entry_point]
@@ -42,11 +46,14 @@ pub mod entry {
         let tract = Cw721MetadataContract::default();
         match msg {
             ExecuteMsg::Mint(msg) => mint(tract, deps, env, info, msg),
-            // todo - but details still to be worked out
-            // will take a mint msg but _only_ update meta
             ExecuteMsg::UpdateMetadata(msg) => update_metadata(tract, deps, env, info, msg),
             ExecuteMsg::UpdatePreferredAlias { token_id } => {
                 update_preferred_alias(tract, deps, env, info, token_id)
+            }
+            // this actually sets the minter field,
+            // but the interface is that we call it an admin_address
+            ExecuteMsg::SetAdminAddress { admin_address } => {
+                set_admin_address(tract, deps, env, info, admin_address)
             }
             // we override these purely because in each one of these cases
             // we want to remove any preferred username entries
@@ -75,6 +82,7 @@ pub mod entry {
             QueryMsg::PreferredAlias { address } => {
                 to_binary(&preferred_alias(tract, deps, env, address)?)
             }
+            QueryMsg::ContractInfo {} => to_binary(&contract_info(deps)?),
             _ => tract.query(deps, env, msg.into()).map_err(|err| err),
         }
     }

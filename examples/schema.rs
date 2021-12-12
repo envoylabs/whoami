@@ -4,10 +4,11 @@ use std::fs::create_dir_all;
 use cosmwasm_schema::{export_schema, export_schema_with_title, remove_schemas, schema_for};
 
 use cw721::{
-    AllNftInfoResponse, ApprovedForAllResponse, ContractInfoResponse, NftInfoResponse,
-    NumTokensResponse, OwnerOfResponse, TokensResponse,
+    AllNftInfoResponse, ApprovedForAllResponse, NftInfoResponse, NumTokensResponse,
+    OwnerOfResponse, TokensResponse,
 };
 use cw721_base::MinterResponse;
+use whoami::msg::ContractInfoResponse;
 use whoami::{ExecuteMsg, Extension, InstantiateMsg, QueryMsg};
 
 fn main() {

@@ -62,8 +62,8 @@ echo "Stored: $CONTRACT_CODE"
 
 # instantiate the CW721
 WHOAMI_INIT='{
-  "minter": "'"$1"'",
-  "name": "Whoami Juno Name Service",
+  "admin_address": "'"$1"'",
+  "name": "Decentralized Name Service",
   "symbol": "WHO"
 }'
 echo "$WHOAMI_INIT"

@@ -1,11 +1,72 @@
-use cosmwasm_std::{Binary, DepsMut, Env, MessageInfo, Response, StdResult};
+use cosmwasm_std::{
+    coins, BankMsg, Binary, CosmosMsg, DepsMut, Env, MessageInfo, Response, StdResult,
+};
+use cw2::set_contract_version;
 use cw721::Cw721ReceiveMsg;
 use cw721_base::state::TokenInfo;
 use cw721_base::ContractError;
+use std::convert::TryFrom;
 
-use crate::msg::{MintMsg, UpdateMetadataMsg};
-use crate::state::PREFERRED_ALIASES;
+use crate::msg::{ContractInfoResponse, InstantiateMsg, MintMsg, UpdateMetadataMsg};
+use crate::state::{CONTRACT_INFO, PREFERRED_ALIASES};
 use crate::Cw721MetadataContract;
+
+const CONTRACT_NAME: &str = "whoami";
+const CONTRACT_VERSION: &str = "0.2.0";
+
+pub fn execute_instantiate(
+    contract: Cw721MetadataContract,
+    deps: DepsMut,
+    _env: Env,
+    _info: MessageInfo,
+    msg: InstantiateMsg,
+) -> StdResult<Response> {
+    set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
+
+    let info = ContractInfoResponse {
+        name: msg.name,
+        symbol: msg.symbol,
+        native_denom: msg.native_denom,
+        native_decimals: msg.native_decimals,
+        token_cap: msg.token_cap,
+        base_mint_fee: msg.base_mint_fee,
+        short_name_surcharge: msg.short_name_surcharge,
+    };
+    CONTRACT_INFO.save(deps.storage, &info)?;
+    let admin_address = deps.api.addr_validate(&msg.admin_address)?;
+    contract.minter.save(deps.storage, &admin_address)?;
+    Ok(Response::default())
+}
+
+// this actually updates the ADMIN address, but under the hood it is
+// called minter by the contract.
+// On the query side we actually just proxy to the existing Minter query
+pub fn set_admin_address(
+    contract: Cw721MetadataContract,
+    deps: DepsMut,
+    _env: Env,
+    info: MessageInfo,
+    admin_address: String,
+) -> Result<Response, ContractError> {
+    let address_trying_to_update = info.sender;
+    let current_admin_address = contract.minter(deps.as_ref())?.minter;
+
+    // check it's the owner of the contract updating
+    if current_admin_address != address_trying_to_update {
+        return Err(ContractError::Unauthorized {});
+    }
+
+    // validate
+    let validated_addr = deps.api.addr_validate(&admin_address)?;
+
+    // update
+    contract.minter.save(deps.storage, &validated_addr)?;
+
+    let res = Response::new()
+        .add_attribute("action", "update_contract_admin_address")
+        .add_attribute("new_admin_address", validated_addr);
+    Ok(res)
+}
 
 pub fn mint(
     contract: Cw721MetadataContract,
@@ -29,9 +90,46 @@ pub fn mint(
     // username == token_id
     // validate username length. this, or to some number of bytes?
     let username = &msg.token_id;
-    if username.chars().count() > 20 {
+    let username_length = u32::try_from(username.chars().count()).unwrap();
+    if username_length > 20 {
         return Err(ContractError::Unauthorized {});
     }
+
+    // get contract info and minter
+    let contract_info = CONTRACT_INFO.load(deps.storage)?;
+    let admin_address = contract.minter(deps.as_ref())?.minter;
+
+    // is token name short enough to trigger a surcharge?
+    let surcharge_is_owed = match contract_info.short_name_surcharge {
+        Some(ref sc) => username_length < sc.surcharge_max_characters,
+        None => false,
+    };
+
+    // work out what fees are owed
+    let fee = match contract_info.base_mint_fee {
+        Some(base_fee) => match contract_info.short_name_surcharge {
+            Some(sc) => {
+                if surcharge_is_owed {
+                    let summed = base_fee + sc.surcharge_fee; // if both, sum
+                    Some(summed)
+                } else {
+                    Some(base_fee) // username is long, no sc owed
+                }
+            }
+            None => Some(base_fee), // just fee, no sc is configured
+        },
+        None => match contract_info.short_name_surcharge {
+            // no base fee
+            Some(sc) => {
+                if surcharge_is_owed {
+                    Some(sc.surcharge_fee) // just surcharge
+                } else {
+                    None // neither owed
+                }
+            }
+            None => None, // neither owed
+        },
+    };
 
     // create the token
     // this will fail if token_id (i.e. username)
@@ -51,10 +149,27 @@ pub fn mint(
 
     contract.increment_tokens(deps.storage)?;
 
-    Ok(Response::new()
-        .add_attribute("action", "mint")
-        .add_attribute("minter", info.sender)
-        .add_attribute("token_id", msg.token_id))
+    // if there is a fee, add a bank msg to send to the admin_address
+    let res = match fee {
+        Some(fee) => {
+            let msgs: Vec<CosmosMsg> = vec![BankMsg::Send {
+                to_address: admin_address,
+                amount: coins(fee.u128(), contract_info.native_denom),
+            }
+            .into()];
+
+            Response::new()
+                .add_attribute("action", "mint")
+                .add_attribute("minter", info.sender)
+                .add_attribute("token_id", msg.token_id)
+                .add_messages(msgs)
+        }
+        None => Response::new()
+            .add_attribute("action", "mint")
+            .add_attribute("minter", info.sender)
+            .add_attribute("token_id", msg.token_id),
+    };
+    Ok(res)
 }
 
 // updates the metadata on an NFT
