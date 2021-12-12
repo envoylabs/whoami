@@ -184,6 +184,7 @@ pub fn mint(
     contract.increment_tokens(deps.storage)?;
 
     // if there is a fee, add a bank msg to send to the admin_address
+    // TODO - implement burn of 50%
     let res = match fee {
         Some(fee) => {
             let msgs: Vec<CosmosMsg> = vec![BankMsg::Send {

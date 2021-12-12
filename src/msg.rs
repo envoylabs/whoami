@@ -13,6 +13,9 @@ pub struct SurchargeInfo {
     pub surcharge_max_characters: u32,
     /// The surcharge fee. This plus any base mint fee
     /// add up to the total fixed cost of minting an NFT username
+    /// this is assumed to be in native_denom
+    /// for now, no other option is available, so if you e.g.
+    /// want 1 ATOM, use 1000000 as this value (i.e. it is uatom)
     pub surcharge_fee: Uint128,
 }
 
@@ -43,6 +46,9 @@ pub struct InstantiateMsg {
     /// e.g. anything below 5 gets an additional charge
     /// this plus base_mint_fee are combined to come up
     /// with a total mint fee
+    /// this is assumed to be in native_denom
+    /// for now, no other option is available, so if you e.g.
+    /// want 1 ATOM, use 1000000 as this value (i.e. it is uatom)
     pub short_name_surcharge: Option<SurchargeInfo>,
 
     /// The admin address for the contract
