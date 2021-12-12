@@ -88,6 +88,14 @@ pub struct UpdateMetadataMsg {
     pub metadata: Metadata,
 }
 
+/// This can only be done by the contract admin
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+pub struct UpdateMintingFees {
+    pub token_cap: Option<u32>,
+    pub base_mint_fee: Option<Uint128>,
+    pub short_name_surcharge: Option<SurchargeInfo>,
+}
+
 // Extended CW721 ExecuteMsg, added the ability to update, burn, and finalize nft
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
@@ -295,9 +303,24 @@ pub struct PreferredAliasResponse {
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+pub struct ContractInfo {
+    pub name: String,
+    pub symbol: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub struct ContractInfoResponse {
     pub name: String,
     pub symbol: String,
+    pub native_denom: String,
+    pub native_decimals: u8,
+    pub token_cap: Option<u32>,
+    pub base_mint_fee: Option<Uint128>,
+    pub short_name_surcharge: Option<SurchargeInfo>,
+}
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+pub struct MintingFeesResponse {
     pub native_denom: String,
     pub native_decimals: u8,
     pub token_cap: Option<u32>,

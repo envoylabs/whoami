@@ -9,8 +9,8 @@ use cw721_base::ContractError;
 use std::convert::TryFrom;
 use std::convert::TryInto;
 
-use crate::msg::{ContractInfoResponse, InstantiateMsg, MintMsg, UpdateMetadataMsg};
-use crate::state::{CONTRACT_INFO, PREFERRED_ALIASES};
+use crate::msg::{ContractInfo, InstantiateMsg, MintMsg, MintingFeesResponse, UpdateMetadataMsg};
+use crate::state::{CONTRACT_INFO, MINTING_FEES_INFO, PREFERRED_ALIASES};
 use crate::Cw721MetadataContract;
 
 const CONTRACT_NAME: &str = "whoami";
@@ -25,16 +25,20 @@ pub fn execute_instantiate(
 ) -> StdResult<Response> {
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
 
-    let info = ContractInfoResponse {
+    let info = ContractInfo {
         name: msg.name,
         symbol: msg.symbol,
+    };
+    CONTRACT_INFO.save(deps.storage, &info)?;
+
+    let minting_fees = MintingFeesResponse {
         native_denom: msg.native_denom,
         native_decimals: msg.native_decimals,
         token_cap: msg.token_cap,
         base_mint_fee: msg.base_mint_fee,
         short_name_surcharge: msg.short_name_surcharge,
     };
-    CONTRACT_INFO.save(deps.storage, &info)?;
+    MINTING_FEES_INFO.save(deps.storage, &minting_fees)?;
     let admin_address = deps.api.addr_validate(&msg.admin_address)?;
     contract.minter.save(deps.storage, &admin_address)?;
     Ok(Response::default())
@@ -87,8 +91,8 @@ pub fn mint(
         return Err(ContractError::Unauthorized {});
     }
 
-    // get contract info and minter
-    let contract_info = CONTRACT_INFO.load(deps.storage)?;
+    // get minting fees and minter (i.e. admin)
+    let minting_fees = MINTING_FEES_INFO.load(deps.storage)?;
     let admin_address = contract.minter(deps.as_ref())?.minter;
 
     // check if trying to mint too many
@@ -109,7 +113,7 @@ pub fn mint(
 
     // error out if we exceed configured cap or we already
     // have the default max
-    match contract_info.token_cap {
+    match minting_fees.token_cap {
         Some(tc) => {
             if number_of_tokens_owned > tc.try_into().unwrap() {
                 return Err(ContractError::Unauthorized {});
@@ -134,14 +138,14 @@ pub fn mint(
     }
 
     // is token name short enough to trigger a surcharge?
-    let surcharge_is_owed = match contract_info.short_name_surcharge {
+    let surcharge_is_owed = match minting_fees.short_name_surcharge {
         Some(ref sc) => username_length < sc.surcharge_max_characters,
         None => false,
     };
 
     // work out what fees are owed
-    let fee = match contract_info.base_mint_fee {
-        Some(base_fee) => match contract_info.short_name_surcharge {
+    let fee = match minting_fees.base_mint_fee {
+        Some(base_fee) => match minting_fees.short_name_surcharge {
             Some(sc) => {
                 if surcharge_is_owed {
                     let summed = base_fee + sc.surcharge_fee; // if both, sum
@@ -152,7 +156,7 @@ pub fn mint(
             }
             None => Some(base_fee), // just fee, no sc is configured
         },
-        None => match contract_info.short_name_surcharge {
+        None => match minting_fees.short_name_surcharge {
             // no base fee
             Some(sc) => {
                 if surcharge_is_owed {
@@ -189,7 +193,7 @@ pub fn mint(
         Some(fee) => {
             let msgs: Vec<CosmosMsg> = vec![BankMsg::Send {
                 to_address: admin_address,
-                amount: coins(fee.u128(), contract_info.native_denom),
+                amount: coins(fee.u128(), minting_fees.native_denom),
             }
             .into()];
 

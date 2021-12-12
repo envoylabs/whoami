@@ -1,5 +1,5 @@
 use crate::msg::{ContractInfoResponse, PreferredAliasResponse};
-use crate::state::{CONTRACT_INFO, PREFERRED_ALIASES};
+use crate::state::{CONTRACT_INFO, MINTING_FEES_INFO, PREFERRED_ALIASES};
 use crate::Cw721MetadataContract;
 use cosmwasm_std::{Deps, Env, Order, StdError, StdResult};
 use cw721::TokensResponse;
@@ -62,6 +62,17 @@ pub fn preferred_alias(
 }
 
 pub fn contract_info(deps: Deps) -> StdResult<ContractInfoResponse> {
-    let res = CONTRACT_INFO.load(deps.storage)?;
-    Ok(res)
+    let contract_info = CONTRACT_INFO.load(deps.storage)?;
+    let minting_fees = MINTING_FEES_INFO.load(deps.storage)?;
+
+    let contract_info_response = ContractInfoResponse {
+        name: contract_info.name,
+        symbol: contract_info.symbol,
+        native_denom: minting_fees.native_denom,
+        native_decimals: minting_fees.native_decimals,
+        token_cap: minting_fees.token_cap,
+        base_mint_fee: minting_fees.base_mint_fee,
+        short_name_surcharge: minting_fees.short_name_surcharge,
+    };
+    Ok(contract_info_response)
 }
