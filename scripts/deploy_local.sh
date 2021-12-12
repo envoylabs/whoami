@@ -64,7 +64,12 @@ echo "Stored: $CONTRACT_CODE"
 WHOAMI_INIT='{
   "admin_address": "'"$1"'",
   "name": "Decentralized Name Service",
-  "symbol": "WHO"
+  "symbol": "WHO",
+  "native_denom": "'"$DENOM"'",
+  "native_decimals": "6",
+  "token_cap": "None",
+  "base_mint_fee": "None",
+  "short_name_surcharge": "None"
 }'
 echo "$WHOAMI_INIT"
 $BINARY tx wasm instantiate $CONTRACT_CODE "$WHOAMI_INIT" --from "validator" --label "whoami NFT nameservice" $TXFLAG
