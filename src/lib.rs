@@ -10,7 +10,7 @@ pub use cw721_base::ContractError;
 
 use execute::{
     burn, execute_instantiate, mint, send_nft, set_admin_address, transfer_nft, update_metadata,
-    update_preferred_alias,
+    update_minting_fees, update_preferred_alias,
 };
 use query::{contract_info, preferred_alias};
 
@@ -45,6 +45,7 @@ pub mod entry {
     ) -> Result<Response, ContractError> {
         let tract = Cw721MetadataContract::default();
         match msg {
+            ExecuteMsg::UpdateMintingFees(msg) => update_minting_fees(tract, deps, env, info, msg),
             ExecuteMsg::Mint(msg) => mint(tract, deps, env, info, msg),
             ExecuteMsg::UpdateMetadata(msg) => update_metadata(tract, deps, env, info, msg),
             ExecuteMsg::UpdatePreferredAlias { token_id } => {

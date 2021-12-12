@@ -9,7 +9,10 @@ use cw721_base::ContractError;
 use std::convert::TryFrom;
 use std::convert::TryInto;
 
-use crate::msg::{ContractInfo, InstantiateMsg, MintMsg, MintingFeesResponse, UpdateMetadataMsg};
+use crate::msg::{
+    ContractInfo, InstantiateMsg, MintMsg, MintingFeesResponse, UpdateMetadataMsg,
+    UpdateMintingFeesMsg,
+};
 use crate::state::{CONTRACT_INFO, MINTING_FEES_INFO, PREFERRED_ALIASES};
 use crate::Cw721MetadataContract;
 
@@ -44,6 +47,44 @@ pub fn execute_instantiate(
     Ok(Response::default())
 }
 
+// update minting fees
+pub fn update_minting_fees(
+    contract: Cw721MetadataContract,
+    deps: DepsMut,
+    _env: Env,
+    info: MessageInfo,
+    msg: UpdateMintingFeesMsg,
+) -> Result<Response, ContractError> {
+    let address_trying_to_update = info.sender;
+
+    // look up contract admin
+    let current_admin_address = contract.minter(deps.as_ref())?.minter;
+
+    // check it's the admin of the contract updating
+    if current_admin_address != address_trying_to_update {
+        return Err(ContractError::Unauthorized {});
+    }
+
+    // get current fees
+    let minting_fees_info = MINTING_FEES_INFO.load(deps.storage)?;
+
+    let minting_fees = MintingFeesResponse {
+        // these two can't be updated
+        native_denom: minting_fees_info.native_denom,
+        native_decimals: minting_fees_info.native_decimals,
+        // these can
+        token_cap: msg.token_cap,
+        base_mint_fee: msg.base_mint_fee,
+        short_name_surcharge: msg.short_name_surcharge,
+    };
+
+    // update
+    MINTING_FEES_INFO.save(deps.storage, &minting_fees)?;
+
+    let res = Response::new().add_attribute("action", "update_contract_minting_fees");
+    Ok(res)
+}
+
 // this actually updates the ADMIN address, but under the hood it is
 // called minter by the contract.
 // On the query side we actually just proxy to the existing Minter query
@@ -57,7 +98,7 @@ pub fn set_admin_address(
     let address_trying_to_update = info.sender;
     let current_admin_address = contract.minter(deps.as_ref())?.minter;
 
-    // check it's the owner of the contract updating
+    // check it's the admin of the contract updating
     if current_admin_address != address_trying_to_update {
         return Err(ContractError::Unauthorized {});
     }

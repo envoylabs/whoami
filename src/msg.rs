@@ -90,7 +90,7 @@ pub struct UpdateMetadataMsg {
 
 /// This can only be done by the contract admin
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
-pub struct UpdateMintingFees {
+pub struct UpdateMintingFeesMsg {
     pub token_cap: Option<u32>,
     pub base_mint_fee: Option<Uint128>,
     pub short_name_surcharge: Option<SurchargeInfo>,
@@ -100,6 +100,9 @@ pub struct UpdateMintingFees {
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum ExecuteMsg {
+    /// Updates the minting fees configured at contract instantiation
+    UpdateMintingFees(UpdateMintingFeesMsg),
+
     /// If the sender has multiple NFTs or aliases, they will want to set a default. This allows them to do this.
     UpdatePreferredAlias { token_id: String },
 
