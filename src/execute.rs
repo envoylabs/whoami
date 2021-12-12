@@ -1,11 +1,13 @@
 use cosmwasm_std::{
-    coins, BankMsg, Binary, CosmosMsg, DepsMut, Env, MessageInfo, Response, StdResult,
+    coins, BankMsg, Binary, CosmosMsg, DepsMut, Env, MessageInfo, Order, Response, StdError,
+    StdResult,
 };
 use cw2::set_contract_version;
 use cw721::Cw721ReceiveMsg;
 use cw721_base::state::TokenInfo;
 use cw721_base::ContractError;
 use std::convert::TryFrom;
+use std::convert::TryInto;
 
 use crate::msg::{ContractInfoResponse, InstantiateMsg, MintMsg, UpdateMetadataMsg};
 use crate::state::{CONTRACT_INFO, PREFERRED_ALIASES};
@@ -68,6 +70,7 @@ pub fn set_admin_address(
     Ok(res)
 }
 
+// boy oh boy this needs a refactor
 pub fn mint(
     contract: Cw721MetadataContract,
     deps: DepsMut,
@@ -84,6 +87,41 @@ pub fn mint(
         return Err(ContractError::Unauthorized {});
     }
 
+    // get contract info and minter
+    let contract_info = CONTRACT_INFO.load(deps.storage)?;
+    let admin_address = contract.minter(deps.as_ref())?.minter;
+
+    // check if trying to mint too many
+    // who can need more than 20?
+    let default_limit = 20;
+    let pks: Vec<_> = contract
+        .tokens
+        .idx
+        .owner
+        .prefix(address_trying_to_mint)
+        .keys(deps.storage, None, None, Order::Ascending)
+        .take(default_limit) // set default big limit
+        .collect();
+
+    let res: Result<Vec<_>, _> = pks.iter().map(|v| String::from_utf8(v.to_vec())).collect();
+    let owned_tokens = res.map_err(StdError::invalid_utf8)?;
+    let number_of_tokens_owned = owned_tokens.len();
+
+    // error out if we exceed configured cap or we already
+    // have the default max
+    match contract_info.token_cap {
+        Some(tc) => {
+            if number_of_tokens_owned > tc.try_into().unwrap() {
+                return Err(ContractError::Unauthorized {});
+            }
+        }
+        None => {
+            if number_of_tokens_owned == default_limit {
+                return Err(ContractError::Unauthorized {});
+            }
+        }
+    }
+
     // validate owner addr
     let owner_address = deps.api.addr_validate(&msg.owner)?;
 
@@ -94,10 +132,6 @@ pub fn mint(
     if username_length > 20 {
         return Err(ContractError::Unauthorized {});
     }
-
-    // get contract info and minter
-    let contract_info = CONTRACT_INFO.load(deps.storage)?;
-    let admin_address = contract.minter(deps.as_ref())?.minter;
 
     // is token name short enough to trigger a surcharge?
     let surcharge_is_owed = match contract_info.short_name_surcharge {

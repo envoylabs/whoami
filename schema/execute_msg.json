@@ -58,19 +58,19 @@
       "additionalProperties": false
     },
     {
-      "description": "Set minter (admin)",
+      "description": "Set admin",
       "type": "object",
       "required": [
-        "set_minter"
+        "set_admin_address"
       ],
       "properties": {
-        "set_minter": {
+        "set_admin_address": {
           "type": "object",
           "required": [
-            "minter"
+            "admin_address"
           ],
           "properties": {
-            "minter": {
+            "admin_address": {
               "type": "string"
             }
           }
@@ -79,7 +79,7 @@
       "additionalProperties": false
     },
     {
-      "description": "Mint a new NFT, can only be called by the contract minter",
+      "description": "Mint a new NFT",
       "type": "object",
       "required": [
         "mint"
