@@ -16,8 +16,7 @@ BINARY="docker exec -i $CONTAINER_NAME junod"
 DENOM='ujunox'
 CHAIN_ID='testing'
 RPC='http://localhost:26657/'
-TXFLAG="--gas-prices 0.01$DENOM --gas auto --gas-adjustment 1.5 -y -b block --chain-id $CHAIN_ID --node $RPC"
-# --gas auto 
+TXFLAG="--gas-prices 0.1$DENOM --gas auto --gas-adjustment 1.5 -y -b block --chain-id $CHAIN_ID --node $RPC"
 
 # kill any orphans
 docker kill $CONTAINER_NAME
