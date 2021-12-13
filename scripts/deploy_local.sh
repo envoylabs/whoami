@@ -16,7 +16,8 @@ BINARY="docker exec -i $CONTAINER_NAME junod"
 DENOM='ujunox'
 CHAIN_ID='testing'
 RPC='http://localhost:26657/'
-TXFLAG="--gas-prices 0.01$DENOM --gas auto --gas-adjustment 1.3 -y -b block --chain-id $CHAIN_ID --node $RPC"
+TXFLAG="--gas-prices 0.01$DENOM --gas auto --gas-adjustment 1.5 -y -b block --chain-id $CHAIN_ID --node $RPC"
+# --gas auto 
 
 # kill any orphans
 docker kill $CONTAINER_NAME
@@ -30,7 +31,7 @@ docker run --rm -it \
     ghcr.io/cosmoscontracts/juno:$IMAGE_TAG /opt/setup_junod.sh $1
 
 # we need app.toml and config.toml to enable CORS
-# this means some wrangling required
+# this means config wrangling required
 docker run -v junod_data:/root --name helper busybox true
 docker cp docker/app.toml helper:/root/.juno/config/app.toml
 docker cp docker/config.toml helper:/root/.juno/config/config.toml
@@ -50,15 +51,29 @@ docker run --rm -v "$(pwd)":/code \
 # copy wasm to docker container
 docker cp artifacts/whoami.wasm $CONTAINER_NAME:/whoami.wasm
 
+# validator addr
+VALIDATOR_ADDR=$($BINARY keys show validator --address)
+echo "Validator address:"
+echo $VALIDATOR_ADDR
+
+BALANCE_1=$($BINARY q bank balances $VALIDATOR_ADDR)
+echo "Pre-store balance:"
+echo $BALANCE_1
+
 # you ideally want to run locally, get a user and then
 # pass that addr in here
 echo "Address to deploy contracts: $1"
 echo "TX Flags: $TXFLAG"
 
 # upload whoami wasm
+# CONTRACT_RES=$($BINARY tx wasm store "/whoami.wasm" --from validator $TXFLAG --output json)
+# echo $CONTRACT_RES
 CONTRACT_CODE=$($BINARY tx wasm store "/whoami.wasm" --from validator $TXFLAG --output json | jq -r '.logs[0].events[-1].attributes[0].value')
-
 echo "Stored: $CONTRACT_CODE"
+
+BALANCE_2=$($BINARY q bank balances $VALIDATOR_ADDR)
+echo "Post-store balance:"
+echo $BALANCE_2
 
 # instantiate the CW721
 WHOAMI_INIT='{
