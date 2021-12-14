@@ -16,8 +16,9 @@ use crate::msg::{
 use crate::state::{CONTRACT_INFO, MINTING_FEES_INFO, PREFERRED_ALIASES};
 use crate::Cw721MetadataContract;
 
-const CONTRACT_NAME: &str = "whoami";
-const CONTRACT_VERSION: &str = "0.2.0";
+// version info for migration info
+const CONTRACT_NAME: &str = "crates.io:whoami";
+const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub fn execute_instantiate(
     contract: Cw721MetadataContract,
