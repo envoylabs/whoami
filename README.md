@@ -21,18 +21,14 @@ pub struct Metadata {
 
 ## Dev quickstart
 
-Run a juno node in docker, using the default docker compose file. Its
-node name should be `juno_node_1`.
+Bootstrap the project like so:
 
-It will log an address as it starts, copy this: `juno10j9...` so that
-it can be used to init the contract:
-
-```
-bash scripts/deploy_local.sh juno10j9gpw9t4jsz47qgnkvl5n3zlm2fz72k67rxsg
+```bash
+./scripts/deploy_local.sh juno16g2rahf5846rxzp3fwlswy08fz8ccuwk03k57y
 ```
 
 To use the account configured by the deploy script import the account
-in `default-account.txt` into your keplr wallet.
+in `./scripts/test-user.env` into your keplr wallet.
 
 ## Mapping address -> username
 
