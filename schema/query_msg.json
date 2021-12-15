@@ -231,6 +231,19 @@
         }
       },
       "additionalProperties": false
+    },
+    {
+      "description": "Return the admin address",
+      "type": "object",
+      "required": [
+        "admin_address"
+      ],
+      "properties": {
+        "admin_address": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
     }
   ]
 }

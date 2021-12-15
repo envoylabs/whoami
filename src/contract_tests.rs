@@ -2,17 +2,19 @@
 mod tests {
     use crate::entry;
 
-    use crate::msg::{ExecuteMsg, Extension, QueryMsg, UpdateMetadataMsg};
-    use crate::msg::{Metadata, MintMsg, PreferredAliasResponse};
+    use crate::msg::{
+        ContractInfoResponse, ExecuteMsg, Extension, InstantiateMsg, Metadata, MintMsg,
+        PreferredAliasResponse, QueryMsg, SurchargeInfo, UpdateMetadataMsg, UpdateMintingFeesMsg,
+    };
     use crate::Cw721MetadataContract;
-    use cosmwasm_std::to_binary;
-    use cosmwasm_std::{from_binary, DepsMut};
-    use cw721_base::{ContractError, InstantiateMsg};
+    use cosmwasm_std::{
+        coins, from_binary, to_binary, BankMsg, CosmosMsg, DepsMut, Response, Uint128,
+    };
+    use cw721_base::{ContractError, MinterResponse};
 
-    use cw721::{NftInfoResponse, OwnerOfResponse};
+    use cw721::{Cw721Query, NftInfoResponse, OwnerOfResponse};
 
     use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
-    use cw721::Cw721Query;
 
     const CREATOR: &str = "creator";
     const MINTER: &str = "jeff-vader";
@@ -24,12 +26,214 @@ mod tests {
         let msg = InstantiateMsg {
             name: CONTRACT_NAME.to_string(),
             symbol: SYMBOL.to_string(),
-            minter: String::from(MINTER),
+            native_denom: "uatom".to_string(),
+            native_decimals: 6,
+            token_cap: Some(2),
+            base_mint_fee: None,
+            short_name_surcharge: None,
+            admin_address: String::from(MINTER),
         };
         let info = mock_info("creator", &[]);
-        let res = contract.instantiate(deps, mock_env(), info, msg).unwrap();
+        let res = entry::instantiate(deps, mock_env(), info, msg).unwrap();
         assert_eq!(0, res.messages.len());
         contract
+    }
+
+    #[test]
+    fn update_minting_fees_with_base_fee() {
+        let mut deps = mock_dependencies();
+
+        let jeff_address = "jeff-addr".to_string();
+
+        let info = mock_info(&jeff_address, &[]);
+        let init_msg = InstantiateMsg {
+            name: CONTRACT_NAME.to_string(),
+            symbol: SYMBOL.to_string(),
+            native_denom: "uatom".to_string(),
+            native_decimals: 6,
+            token_cap: Some(2),
+            base_mint_fee: None,
+            short_name_surcharge: None,
+            admin_address: jeff_address,
+        };
+        entry::instantiate(deps.as_mut(), mock_env(), info.clone(), init_msg).unwrap();
+
+        // Note that this is a forced upsert, so fields should be declared as exactly
+        // the desired values, they are not merged
+        // this means fields that are a Some can actually be updated to be None later
+        let mint_msg = UpdateMintingFeesMsg {
+            base_mint_fee: Some(Uint128::new(1000000)),
+            token_cap: None,
+            short_name_surcharge: None,
+        };
+        let exec_msg = ExecuteMsg::UpdateMintingFees(mint_msg);
+        entry::execute(deps.as_mut(), mock_env(), info, exec_msg).unwrap();
+
+        let contract_query_res: ContractInfoResponse = from_binary(
+            &entry::query(deps.as_ref(), mock_env(), QueryMsg::ContractInfo {}).unwrap(),
+        )
+        .unwrap();
+
+        let expected_res = ContractInfoResponse {
+            name: CONTRACT_NAME.to_string(),
+            symbol: SYMBOL.to_string(),
+            native_denom: "uatom".to_string(),
+            native_decimals: 6,
+            token_cap: None, // THIS IS IMPORTANT
+            base_mint_fee: Some(Uint128::new(1000000)),
+            short_name_surcharge: None,
+        };
+
+        assert_eq!(contract_query_res, expected_res);
+    }
+
+    #[test]
+    fn update_minting_fees_with_base_fee_and_surcharge() {
+        let mut deps = mock_dependencies();
+
+        let jeff_address = "jeff-addr".to_string();
+
+        let info = mock_info(&jeff_address, &[]);
+        let init_msg = InstantiateMsg {
+            name: CONTRACT_NAME.to_string(),
+            symbol: SYMBOL.to_string(),
+            native_denom: "uatom".to_string(),
+            native_decimals: 6,
+            token_cap: Some(2),
+            base_mint_fee: None,
+            short_name_surcharge: None,
+            admin_address: jeff_address,
+        };
+        entry::instantiate(deps.as_mut(), mock_env(), info.clone(), init_msg).unwrap();
+
+        // Note that this is a forced upsert, so fields should be declared as exactly
+        // the desired values, they are not merged
+        // this means fields that are a Some can actually be updated to be None later
+        let mint_msg = UpdateMintingFeesMsg {
+            base_mint_fee: Some(Uint128::new(1000000)),
+            token_cap: Some(3),
+            short_name_surcharge: Some(SurchargeInfo {
+                surcharge_max_characters: 5,
+                surcharge_fee: Uint128::new(2000000),
+            }),
+        };
+        let exec_msg = ExecuteMsg::UpdateMintingFees(mint_msg);
+        entry::execute(deps.as_mut(), mock_env(), info, exec_msg).unwrap();
+
+        let contract_query_res: ContractInfoResponse = from_binary(
+            &entry::query(deps.as_ref(), mock_env(), QueryMsg::ContractInfo {}).unwrap(),
+        )
+        .unwrap();
+
+        let expected_res = ContractInfoResponse {
+            name: CONTRACT_NAME.to_string(),
+            symbol: SYMBOL.to_string(),
+            native_denom: "uatom".to_string(),
+            native_decimals: 6,
+            token_cap: Some(3),
+            base_mint_fee: Some(Uint128::new(1000000)),
+            short_name_surcharge: Some(SurchargeInfo {
+                surcharge_max_characters: 5,
+                surcharge_fee: Uint128::new(2000000),
+            }),
+        };
+
+        assert_eq!(contract_query_res, expected_res);
+    }
+
+    #[test]
+    fn update_admin_address() {
+        let mut deps = mock_dependencies();
+
+        let jeff_address = "jeff-addr".to_string();
+        let john_address = "john-q-rando-addr".to_string();
+
+        let jeff_sender_info = mock_info(&jeff_address, &[]);
+        let john_sender_info = mock_info(&john_address, &[]);
+
+        let init_msg = InstantiateMsg {
+            name: CONTRACT_NAME.to_string(),
+            symbol: SYMBOL.to_string(),
+            native_denom: "uatom".to_string(),
+            native_decimals: 6,
+            token_cap: Some(2),
+            base_mint_fee: None,
+            short_name_surcharge: None,
+            admin_address: jeff_address.clone(),
+        };
+        entry::instantiate(
+            deps.as_mut(),
+            mock_env(),
+            jeff_sender_info.clone(),
+            init_msg,
+        )
+        .unwrap();
+
+        // CHECK: john cannot update
+        let john_failed_attempt_1 = entry::execute(
+            deps.as_mut(),
+            mock_env(),
+            john_sender_info.clone(),
+            ExecuteMsg::SetAdminAddress {
+                admin_address: john_address.clone(),
+            },
+        )
+        .unwrap_err();
+        assert_eq!(john_failed_attempt_1, ContractError::Unauthorized {});
+
+        // CHECK: but jeff can
+        let _ = entry::execute(
+            deps.as_mut(),
+            mock_env(),
+            jeff_sender_info.clone(),
+            ExecuteMsg::SetAdminAddress {
+                admin_address: john_address.clone(),
+            },
+        );
+
+        let contract_query_res1: MinterResponse = from_binary(
+            &entry::query(deps.as_ref(), mock_env(), QueryMsg::AdminAddress {}).unwrap(),
+        )
+        .unwrap();
+
+        let expected_res1 = MinterResponse {
+            minter: john_address,
+        };
+
+        assert_eq!(contract_query_res1, expected_res1);
+
+        // CHECK: now jeff cannot
+        let jeff_failed_attempt_1 = entry::execute(
+            deps.as_mut(),
+            mock_env(),
+            jeff_sender_info,
+            ExecuteMsg::SetAdminAddress {
+                admin_address: jeff_address.clone(),
+            },
+        )
+        .unwrap_err();
+        assert_eq!(jeff_failed_attempt_1, ContractError::Unauthorized {});
+
+        // CHECK but john can
+        let _ = entry::execute(
+            deps.as_mut(),
+            mock_env(),
+            john_sender_info,
+            ExecuteMsg::SetAdminAddress {
+                admin_address: jeff_address.clone(),
+            },
+        );
+
+        let contract_query_res2: MinterResponse = from_binary(
+            &entry::query(deps.as_ref(), mock_env(), QueryMsg::AdminAddress {}).unwrap(),
+        )
+        .unwrap();
+
+        let expected_res2 = MinterResponse {
+            minter: jeff_address,
+        };
+
+        assert_eq!(contract_query_res2, expected_res2);
     }
 
     #[test]
@@ -146,7 +350,7 @@ mod tests {
         assert_eq!(
             info,
             NftInfoResponse::<Extension> {
-                token_uri: Some(token_uri.clone()),
+                token_uri: Some(token_uri),
                 extension: meta,
             }
         );
@@ -167,6 +371,7 @@ mod tests {
         let john_q_rando = "random-guy";
         // another very plausible username imo
         let john_token_id = "johnisthebest".to_string();
+        let john_token_uri = "https://example.com/jeff-vader".to_string();
 
         let john_q_rando_meta = Metadata {
             twitter_id: Some(String::from("@jeff-vader")),
@@ -176,7 +381,7 @@ mod tests {
         let john_q_rando_mint_msg = ExecuteMsg::Mint(MintMsg {
             token_id: john_token_id.clone(),
             owner: String::from(john_q_rando),
-            token_uri: Some(token_uri.clone()),
+            token_uri: Some(john_token_uri.clone()),
             extension: john_q_rando_meta.clone(),
         });
 
@@ -200,7 +405,7 @@ mod tests {
         assert_eq!(
             info,
             NftInfoResponse::<Extension> {
-                token_uri: Some(token_uri),
+                token_uri: Some(john_token_uri),
                 extension: john_q_rando_meta,
             }
         );
@@ -247,7 +452,7 @@ mod tests {
             token_id: token_id_2.clone(),
             owner: String::from("jeff-vader"),
             token_uri: None,
-            extension: meta2,
+            extension: meta2.clone(),
         });
 
         let allowed = mock_info(MINTER, &[]);
@@ -257,7 +462,300 @@ mod tests {
         // CHECK: four calls to mint, 3 tokens minted
         let tokens = contract.all_tokens(deps.as_ref(), None, None).unwrap();
         assert_eq!(3, tokens.tokens.len());
+        assert_eq!(
+            vec![token_id_2.clone(), token_id.clone(), john_token_id.clone()],
+            tokens.tokens
+        );
+
+        // CHECK: cannot mint third NFT
+        // as we set token cap at 2 earlier
+        // jeff wants to create another alias
+        let token_id_3 = "jeffisactuallybrian".to_string();
+        let mint_msg4 = ExecuteMsg::Mint(MintMsg {
+            token_id: token_id_3,
+            owner: String::from("jeff-vader"),
+            token_uri: None,
+            extension: meta2,
+        });
+
+        let allowed = mock_info(MINTER, &[]);
+        let token_cap_err =
+            entry::execute(deps.as_mut(), mock_env(), allowed, mint_msg4).unwrap_err();
+        assert_eq!(token_cap_err, ContractError::Unauthorized {}); // todo - better error
+
+        // list the token_ids
+        // CHECK: five calls to mint, 3 tokens minted
+        let tokens = contract.all_tokens(deps.as_ref(), None, None).unwrap();
+        assert_eq!(3, tokens.tokens.len());
         assert_eq!(vec![token_id_2, token_id, john_token_id], tokens.tokens);
+    }
+
+    #[test]
+    fn base_minting_with_base_mint_fees_owed() {
+        let mut deps = mock_dependencies();
+        let contract = Cw721MetadataContract::default();
+
+        let jeff_address = "jeff-addr".to_string();
+
+        let native_denom = "uatom".to_string();
+        let expected_mint_fee = Uint128::new(1_000_000);
+
+        let jeff_sender_info = mock_info(&jeff_address, &[]);
+        let init_msg = InstantiateMsg {
+            name: CONTRACT_NAME.to_string(),
+            symbol: SYMBOL.to_string(),
+            native_denom: native_denom.clone(),
+            native_decimals: 6,
+            token_cap: Some(2),
+            base_mint_fee: Some(Uint128::new(1_000_000)),
+            short_name_surcharge: None,
+            admin_address: jeff_address.clone(),
+        };
+        entry::instantiate(
+            deps.as_mut(),
+            mock_env(),
+            jeff_sender_info.clone(),
+            init_msg,
+        )
+        .unwrap();
+
+        // init a plausible username
+        let token_id = "jeffisthebest".to_string();
+
+        let meta = Metadata {
+            twitter_id: Some(String::from("@jeff-vader")),
+            ..Metadata::default()
+        };
+
+        let mint_msg = MintMsg {
+            token_id: token_id.clone(),
+            owner: jeff_address.clone(),
+            token_uri: None,
+            extension: meta,
+        };
+        let exec_msg = ExecuteMsg::Mint(mint_msg.clone());
+        let mint_res = entry::execute(
+            deps.as_mut(),
+            mock_env(),
+            jeff_sender_info.clone(),
+            exec_msg,
+        )
+        .unwrap();
+
+        let msgs: Vec<CosmosMsg> = vec![BankMsg::Send {
+            to_address: jeff_address,
+            amount: coins(expected_mint_fee.u128(), native_denom),
+        }
+        .into()];
+
+        // should get a response with submsgs
+        // todo - use multitest to simulate this better
+        assert_eq!(
+            mint_res,
+            Response::new()
+                .add_attribute("action", "mint")
+                .add_attribute("minter", jeff_sender_info.sender)
+                .add_attribute("token_id", token_id.clone())
+                .add_messages(msgs)
+        );
+
+        let res = contract.nft_info(deps.as_ref(), token_id).unwrap();
+        assert_eq!(res.token_uri, mint_msg.token_uri);
+        assert_eq!(res.extension, mint_msg.extension);
+    }
+
+    #[test]
+    fn base_minting_with_fees_and_surcharge_owed() {
+        let mut deps = mock_dependencies();
+        let contract = Cw721MetadataContract::default();
+
+        let jeff_address = "jeff-addr".to_string();
+
+        let native_denom = "uatom".to_string();
+        let base_mint_fee = Uint128::new(1_000_000);
+        let expected_mint_fee = Uint128::new(2_000_000);
+
+        let jeff_sender_info = mock_info(&jeff_address, &[]);
+        let init_msg = InstantiateMsg {
+            name: CONTRACT_NAME.to_string(),
+            symbol: SYMBOL.to_string(),
+            native_denom: native_denom.clone(),
+            native_decimals: 6,
+            token_cap: Some(2),
+            base_mint_fee: Some(base_mint_fee),
+            short_name_surcharge: Some(SurchargeInfo {
+                surcharge_max_characters: 5, // small enough that "jeff" will be caught
+                surcharge_fee: Uint128::new(1_000_000),
+            }),
+            admin_address: jeff_address.clone(),
+        };
+        entry::instantiate(
+            deps.as_mut(),
+            mock_env(),
+            jeff_sender_info.clone(),
+            init_msg,
+        )
+        .unwrap();
+
+        // init a plausible username
+        let token_id = "jeff".to_string();
+
+        // CHECK: short username is caught
+        let meta = Metadata {
+            twitter_id: Some(String::from("@jeff-vader")),
+            ..Metadata::default()
+        };
+
+        let mint_msg = MintMsg {
+            token_id: token_id.clone(),
+            owner: jeff_address.clone(),
+            token_uri: None,
+            extension: meta.clone(),
+        };
+        let exec_msg = ExecuteMsg::Mint(mint_msg.clone());
+        let mint_res = entry::execute(
+            deps.as_mut(),
+            mock_env(),
+            jeff_sender_info.clone(),
+            exec_msg,
+        )
+        .unwrap();
+
+        let msgs: Vec<CosmosMsg> = vec![BankMsg::Send {
+            to_address: jeff_address.to_string(),
+            amount: coins(expected_mint_fee.u128(), native_denom.clone()),
+        }
+        .into()];
+
+        // should get a response with submsgs
+        // should cost 2_000_000
+        // todo - use multitest to simulate this better
+        assert_eq!(
+            mint_res,
+            Response::new()
+                .add_attribute("action", "mint")
+                .add_attribute("minter", &jeff_sender_info.sender)
+                .add_attribute("token_id", token_id.clone())
+                .add_messages(msgs)
+        );
+
+        let res = contract.nft_info(deps.as_ref(), token_id).unwrap();
+        assert_eq!(res.token_uri, mint_msg.token_uri);
+        assert_eq!(res.extension, mint_msg.extension);
+
+        // CHECK: longer username is not caught
+        let longer_id = "123456";
+        let mint_msg2 = MintMsg {
+            token_id: longer_id.to_string(),
+            owner: jeff_address.clone(),
+            token_uri: None,
+            extension: meta,
+        };
+        let exec_msg2 = ExecuteMsg::Mint(mint_msg2);
+        let mint_res2 = entry::execute(
+            deps.as_mut(),
+            mock_env(),
+            jeff_sender_info.clone(),
+            exec_msg2,
+        )
+        .unwrap();
+
+        // we expect this to be the base_mint_fee
+        // i.e 1_000_000
+        let msgs2: Vec<CosmosMsg> = vec![BankMsg::Send {
+            to_address: jeff_address,
+            amount: coins(base_mint_fee.u128(), native_denom),
+        }
+        .into()];
+
+        // todo - use multitest to simulate this better
+        assert_eq!(
+            mint_res2,
+            Response::new()
+                .add_attribute("action", "mint")
+                .add_attribute("minter", jeff_sender_info.sender)
+                .add_attribute("token_id", longer_id)
+                .add_messages(msgs2)
+        );
+    }
+
+    #[test]
+    fn base_minting_with_only_surcharge_owed() {
+        let mut deps = mock_dependencies();
+        let contract = Cw721MetadataContract::default();
+
+        let jeff_address = "jeff-addr".to_string();
+
+        let native_denom = "uatom".to_string();
+        let expected_mint_fee = Uint128::new(1_500_000);
+
+        let jeff_sender_info = mock_info(&jeff_address, &[]);
+        let init_msg = InstantiateMsg {
+            name: CONTRACT_NAME.to_string(),
+            symbol: SYMBOL.to_string(),
+            native_denom: native_denom.clone(),
+            native_decimals: 6,
+            token_cap: Some(2),
+            base_mint_fee: None,
+            short_name_surcharge: Some(SurchargeInfo {
+                surcharge_max_characters: 5, // small enough that "jeff" will be caught
+                surcharge_fee: Uint128::new(1_500_000),
+            }),
+            admin_address: jeff_address.clone(),
+        };
+        entry::instantiate(
+            deps.as_mut(),
+            mock_env(),
+            jeff_sender_info.clone(),
+            init_msg,
+        )
+        .unwrap();
+
+        // init a plausible username
+        let token_id = "jeff".to_string();
+
+        // CHECK: short username is caught
+        let meta = Metadata {
+            twitter_id: Some(String::from("@jeff-vader")),
+            ..Metadata::default()
+        };
+
+        let mint_msg = MintMsg {
+            token_id: token_id.clone(),
+            owner: jeff_address.clone(),
+            token_uri: None,
+            extension: meta,
+        };
+        let exec_msg = ExecuteMsg::Mint(mint_msg.clone());
+        let mint_res = entry::execute(
+            deps.as_mut(),
+            mock_env(),
+            jeff_sender_info.clone(),
+            exec_msg,
+        )
+        .unwrap();
+
+        let msgs: Vec<CosmosMsg> = vec![BankMsg::Send {
+            to_address: jeff_address,
+            amount: coins(expected_mint_fee.u128(), native_denom),
+        }
+        .into()];
+
+        // should get a response with submsgs
+        // should cost 1_500_000
+        // todo - use multitest to simulate this better
+        assert_eq!(
+            mint_res,
+            Response::new()
+                .add_attribute("action", "mint")
+                .add_attribute("minter", &jeff_sender_info.sender)
+                .add_attribute("token_id", token_id.clone())
+                .add_messages(msgs)
+        );
+
+        let res = contract.nft_info(deps.as_ref(), token_id).unwrap();
+        assert_eq!(res.token_uri, mint_msg.token_uri);
+        assert_eq!(res.extension, mint_msg.extension);
     }
 
     #[test]
@@ -778,11 +1276,14 @@ mod tests {
         let init_msg = InstantiateMsg {
             name: "SpaceShips".to_string(),
             symbol: "SPACE".to_string(),
-            minter: "jeff-addr".to_string(),
+            native_denom: "uatom".to_string(),
+            native_decimals: 6,
+            token_cap: None,
+            base_mint_fee: None,
+            short_name_surcharge: None,
+            admin_address: "jeff-addr".to_string(),
         };
-        contract
-            .instantiate(deps.as_mut(), mock_env(), info.clone(), init_msg)
-            .unwrap();
+        entry::instantiate(deps.as_mut(), mock_env(), info.clone(), init_msg).unwrap();
 
         // mock info contains sender &&
         // info.sender and owner need to be the same

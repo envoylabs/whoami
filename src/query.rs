@@ -1,5 +1,5 @@
-use crate::msg::PreferredAliasResponse;
-use crate::state::PREFERRED_ALIASES;
+use crate::msg::{ContractInfoResponse, PreferredAliasResponse};
+use crate::state::{CONTRACT_INFO, MINTING_FEES_INFO, PREFERRED_ALIASES};
 use crate::Cw721MetadataContract;
 use cosmwasm_std::{Deps, Env, Order, StdError, StdResult};
 use cw721::TokensResponse;
@@ -43,6 +43,7 @@ fn get_first_token_for_owner(
     Ok(first_token)
 }
 
+// note we call this PRIMARY in the UI
 pub fn preferred_alias(
     contract: Cw721MetadataContract,
     deps: Deps,
@@ -58,4 +59,20 @@ pub fn preferred_alias(
         None => get_first_token_for_owner(contract, deps, owner)?,
     };
     Ok(PreferredAliasResponse { username })
+}
+
+pub fn contract_info(deps: Deps) -> StdResult<ContractInfoResponse> {
+    let contract_info = CONTRACT_INFO.load(deps.storage)?;
+    let minting_fees = MINTING_FEES_INFO.load(deps.storage)?;
+
+    let contract_info_response = ContractInfoResponse {
+        name: contract_info.name,
+        symbol: contract_info.symbol,
+        native_denom: minting_fees.native_denom,
+        native_decimals: minting_fees.native_decimals,
+        token_cap: minting_fees.token_cap,
+        base_mint_fee: minting_fees.base_mint_fee,
+        short_name_surcharge: minting_fees.short_name_surcharge,
+    };
+    Ok(contract_info_response)
 }
