@@ -89,6 +89,8 @@ pub struct UpdateMetadataMsg {
 }
 
 /// This can only be done by the contract admin
+/// Note that these fields will forcibly update what is already set
+/// You must be declarative and specify exactly the new desired behaviour
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub struct UpdateMintingFeesMsg {
     pub token_cap: Option<u32>,
@@ -150,9 +152,6 @@ pub enum ExecuteMsg {
 impl From<ExecuteMsg> for CW721ExecuteMsg<Extension> {
     fn from(msg: ExecuteMsg) -> CW721ExecuteMsg<Extension> {
         match msg {
-            // ExecuteMsg::SetAdminAddress {
-            //     admin_address,
-            // } => CW721ExecuteMsg::SetMinter { minter: admin_address },
             ExecuteMsg::TransferNft {
                 recipient,
                 token_id,

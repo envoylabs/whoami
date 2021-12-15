@@ -157,7 +157,7 @@ pub fn mint(
     // have the default max
     match minting_fees.token_cap {
         Some(tc) => {
-            if number_of_tokens_owned > tc.try_into().unwrap() {
+            if number_of_tokens_owned >= tc.try_into().unwrap() {
                 return Err(ContractError::Unauthorized {});
             }
         }
