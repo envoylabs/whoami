@@ -66,7 +66,7 @@ mod tests {
             token_cap: None,
             short_name_surcharge: None,
         };
-        let exec_msg = ExecuteMsg::UpdateMintingFees(mint_msg.clone());
+        let exec_msg = ExecuteMsg::UpdateMintingFees(mint_msg);
         entry::execute(deps.as_mut(), mock_env(), info, exec_msg).unwrap();
 
         let contract_query_res: ContractInfoResponse = from_binary(
@@ -117,7 +117,7 @@ mod tests {
                 surcharge_fee: Uint128::new(2000000),
             }),
         };
-        let exec_msg = ExecuteMsg::UpdateMintingFees(mint_msg.clone());
+        let exec_msg = ExecuteMsg::UpdateMintingFees(mint_msg);
         entry::execute(deps.as_mut(), mock_env(), info, exec_msg).unwrap();
 
         let contract_query_res: ContractInfoResponse = from_binary(
@@ -206,7 +206,7 @@ mod tests {
         let jeff_failed_attempt_1 = entry::execute(
             deps.as_mut(),
             mock_env(),
-            jeff_sender_info.clone(),
+            jeff_sender_info,
             ExecuteMsg::SetAdminAddress {
                 admin_address: jeff_address.clone(),
             },
@@ -218,7 +218,7 @@ mod tests {
         let _ = entry::execute(
             deps.as_mut(),
             mock_env(),
-            john_sender_info.clone(),
+            john_sender_info,
             ExecuteMsg::SetAdminAddress {
                 admin_address: jeff_address.clone(),
             },
@@ -350,7 +350,7 @@ mod tests {
         assert_eq!(
             info,
             NftInfoResponse::<Extension> {
-                token_uri: Some(token_uri.clone()),
+                token_uri: Some(token_uri),
                 extension: meta,
             }
         );
@@ -472,7 +472,7 @@ mod tests {
         // jeff wants to create another alias
         let token_id_3 = "jeffisactuallybrian".to_string();
         let mint_msg4 = ExecuteMsg::Mint(MintMsg {
-            token_id: token_id_3.clone(),
+            token_id: token_id_3,
             owner: String::from("jeff-vader"),
             token_uri: None,
             extension: meta2,
@@ -531,7 +531,7 @@ mod tests {
             token_id: token_id.clone(),
             owner: jeff_address.clone(),
             token_uri: None,
-            extension: meta.clone(),
+            extension: meta,
         };
         let exec_msg = ExecuteMsg::Mint(mint_msg.clone());
         let mint_res = entry::execute(
@@ -543,7 +543,7 @@ mod tests {
         .unwrap();
 
         let msgs: Vec<CosmosMsg> = vec![BankMsg::Send {
-            to_address: jeff_address.to_string(),
+            to_address: jeff_address,
             amount: coins(expected_mint_fee.u128(), native_denom),
         }
         .into()];
@@ -559,7 +559,7 @@ mod tests {
                 .add_messages(msgs)
         );
 
-        let res = contract.nft_info(deps.as_ref(), token_id.into()).unwrap();
+        let res = contract.nft_info(deps.as_ref(), token_id).unwrap();
         assert_eq!(res.token_uri, mint_msg.token_uri);
         assert_eq!(res.extension, mint_msg.extension);
     }
@@ -639,7 +639,7 @@ mod tests {
                 .add_messages(msgs)
         );
 
-        let res = contract.nft_info(deps.as_ref(), token_id.into()).unwrap();
+        let res = contract.nft_info(deps.as_ref(), token_id).unwrap();
         assert_eq!(res.token_uri, mint_msg.token_uri);
         assert_eq!(res.extension, mint_msg.extension);
 
@@ -649,9 +649,9 @@ mod tests {
             token_id: longer_id.to_string(),
             owner: jeff_address.clone(),
             token_uri: None,
-            extension: meta.clone(),
+            extension: meta,
         };
-        let exec_msg2 = ExecuteMsg::Mint(mint_msg2.clone());
+        let exec_msg2 = ExecuteMsg::Mint(mint_msg2);
         let mint_res2 = entry::execute(
             deps.as_mut(),
             mock_env(),
@@ -663,7 +663,7 @@ mod tests {
         // we expect this to be the base_mint_fee
         // i.e 1_000_000
         let msgs2: Vec<CosmosMsg> = vec![BankMsg::Send {
-            to_address: jeff_address.to_string(),
+            to_address: jeff_address,
             amount: coins(base_mint_fee.u128(), native_denom),
         }
         .into()];
@@ -674,7 +674,7 @@ mod tests {
             Response::new()
                 .add_attribute("action", "mint")
                 .add_attribute("minter", jeff_sender_info.sender)
-                .add_attribute("token_id", longer_id.clone())
+                .add_attribute("token_id", longer_id)
                 .add_messages(msgs2)
         );
     }
@@ -724,7 +724,7 @@ mod tests {
             token_id: token_id.clone(),
             owner: jeff_address.clone(),
             token_uri: None,
-            extension: meta.clone(),
+            extension: meta,
         };
         let exec_msg = ExecuteMsg::Mint(mint_msg.clone());
         let mint_res = entry::execute(
@@ -736,8 +736,8 @@ mod tests {
         .unwrap();
 
         let msgs: Vec<CosmosMsg> = vec![BankMsg::Send {
-            to_address: jeff_address.to_string(),
-            amount: coins(expected_mint_fee.u128(), native_denom.clone()),
+            to_address: jeff_address,
+            amount: coins(expected_mint_fee.u128(), native_denom),
         }
         .into()];
 
@@ -753,7 +753,7 @@ mod tests {
                 .add_messages(msgs)
         );
 
-        let res = contract.nft_info(deps.as_ref(), token_id.into()).unwrap();
+        let res = contract.nft_info(deps.as_ref(), token_id).unwrap();
         assert_eq!(res.token_uri, mint_msg.token_uri);
         assert_eq!(res.extension, mint_msg.extension);
     }

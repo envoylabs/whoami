@@ -481,7 +481,7 @@
       }
     },
     "UpdateMintingFeesMsg": {
-      "description": "This can only be done by the contract admin",
+      "description": "This can only be done by the contract admin Note that these fields will forcibly update what is already set You must be declarative and specify exactly the new desired behaviour",
       "type": "object",
       "properties": {
         "base_mint_fee": {
