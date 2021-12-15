@@ -12,7 +12,7 @@ use crate::msg::{
 };
 
 use crate::state::{CONTRACT_INFO, MINTING_FEES_INFO, PREFERRED_ALIASES};
-use crate::utils::{get_mint_fee, get_mint_response, get_number_of_owned_tokens};
+use crate::utils::{get_mint_fee, get_mint_response, get_number_of_owned_tokens, verify_logo};
 use crate::Cw721MetadataContract;
 
 // version info for migration info
@@ -132,6 +132,11 @@ pub fn mint(
         return Err(ContractError::Unauthorized {});
     }
 
+    // validate any embedded logo
+    if let Some(ref pfp_data) = msg.extension.image_data {
+        verify_logo(&pfp_data)?
+    }
+
     // get minting fees and minter (i.e. admin)
     let minting_fees = MINTING_FEES_INFO.load(deps.storage)?;
     let minter = contract.minter(deps.as_ref())?.minter;
@@ -224,6 +229,11 @@ pub fn update_metadata(
     // check it's the owner of the NFT updating meta
     if username_owner != address_trying_to_update {
         return Err(ContractError::Unauthorized {});
+    }
+
+    // validate any embedded logo
+    if let Some(ref pfp_data) = msg.metadata.image_data {
+        verify_logo(&pfp_data)?
     }
 
     // arrrrre you ready to rrrrrumb-
