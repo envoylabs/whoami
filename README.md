@@ -6,7 +6,7 @@ allow for listing of usernames on multiple services via NFT metadata.
 ```rust
 pub struct Metadata {
     pub image: Option<String>,
-    pub image_data: Option<String>,
+    pub image_data: Option<Logo>, // see cw-plus CW20
     pub email: Option<String>,
     pub external_url: Option<String>,
     pub public_name: Option<String>,
