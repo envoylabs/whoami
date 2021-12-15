@@ -1,13 +1,12 @@
-use cosmwasm_std::{Addr, DepsMut, Order, StdError, StdResult, Uint128};
+use cosmwasm_std::{
+    coins, Addr, BankMsg, CosmosMsg, DepsMut, Order, Response, StdError, StdResult, Uint128,
+};
 
 use crate::msg::MintingFeesResponse;
 
 use crate::Cw721MetadataContract;
 
-pub fn calculate_mint_fee(
-    minting_fees: MintingFeesResponse,
-    username_length: u32,
-) -> Option<Uint128> {
+pub fn get_mint_fee(minting_fees: MintingFeesResponse, username_length: u32) -> Option<Uint128> {
     // is token name short enough to trigger a surcharge?
     let surcharge_is_owed = match minting_fees.short_name_surcharge {
         Some(ref sc) => username_length < sc.surcharge_max_characters,
@@ -59,4 +58,32 @@ pub fn get_number_of_owned_tokens(
     let owned_tokens = res.map_err(StdError::invalid_utf8)?;
     let number_of_tokens_owned = owned_tokens.len();
     Ok(number_of_tokens_owned)
+}
+
+pub fn get_mint_response(
+    admin_address: Addr,
+    mint_message_sender: Addr,
+    native_denom: String,
+    fee: Option<Uint128>,
+    token_id: String,
+) -> Response {
+    match fee {
+        Some(fee) => {
+            let msgs: Vec<CosmosMsg> = vec![BankMsg::Send {
+                to_address: admin_address.to_string(),
+                amount: coins(fee.u128(), native_denom),
+            }
+            .into()];
+
+            Response::new()
+                .add_attribute("action", "mint")
+                .add_attribute("minter", mint_message_sender)
+                .add_attribute("token_id", token_id)
+                .add_messages(msgs)
+        }
+        None => Response::new()
+            .add_attribute("action", "mint")
+            .add_attribute("minter", mint_message_sender)
+            .add_attribute("token_id", token_id),
+    }
 }

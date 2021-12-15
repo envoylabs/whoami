@@ -1,6 +1,4 @@
-use cosmwasm_std::{
-    coins, BankMsg, Binary, CosmosMsg, DepsMut, Env, MessageInfo, Response, StdResult,
-};
+use cosmwasm_std::{Binary, DepsMut, Env, MessageInfo, Response, StdResult};
 use cw2::set_contract_version;
 use cw721::Cw721ReceiveMsg;
 use cw721_base::state::TokenInfo;
@@ -14,7 +12,7 @@ use crate::msg::{
 };
 
 use crate::state::{CONTRACT_INFO, MINTING_FEES_INFO, PREFERRED_ALIASES};
-use crate::utils::{calculate_mint_fee, get_number_of_owned_tokens};
+use crate::utils::{get_mint_fee, get_mint_response, get_number_of_owned_tokens};
 use crate::Cw721MetadataContract;
 
 // version info for migration info
@@ -127,7 +125,7 @@ pub fn mint(
 ) -> Result<Response, ContractError> {
     // any address can mint
     // sender of the execute
-    let address_trying_to_mint = info.sender.clone();
+    let address_trying_to_mint = info.sender;
 
     // can only mint NFTs belonging to yourself
     if address_trying_to_mint != msg.owner {
@@ -136,13 +134,18 @@ pub fn mint(
 
     // get minting fees and minter (i.e. admin)
     let minting_fees = MINTING_FEES_INFO.load(deps.storage)?;
-    let admin_address = contract.minter(deps.as_ref())?.minter;
+    let minter = contract.minter(deps.as_ref())?.minter;
+    let admin_address = deps.api.addr_validate(&minter)?;
 
     // check if trying to mint too many
     // who can need more than 20?
     let default_limit: usize = 20;
-    let number_of_tokens_owned =
-        get_number_of_owned_tokens(&contract, &deps, address_trying_to_mint, default_limit)?;
+    let number_of_tokens_owned = get_number_of_owned_tokens(
+        &contract,
+        &deps,
+        address_trying_to_mint.clone(),
+        default_limit,
+    )?;
 
     // error out if we exceed configured cap or we already
     // have the default max
@@ -171,7 +174,7 @@ pub fn mint(
     }
 
     // work out what fees are owed
-    let fee = calculate_mint_fee(minting_fees.clone(), username_length);
+    let fee = get_mint_fee(minting_fees.clone(), username_length);
 
     // create the token
     // this will fail if token_id (i.e. username)
@@ -193,25 +196,13 @@ pub fn mint(
 
     // if there is a fee, add a bank msg to send to the admin_address
     // TODO - implement burn of 50%
-    let res = match fee {
-        Some(fee) => {
-            let msgs: Vec<CosmosMsg> = vec![BankMsg::Send {
-                to_address: admin_address,
-                amount: coins(fee.u128(), minting_fees.native_denom),
-            }
-            .into()];
-
-            Response::new()
-                .add_attribute("action", "mint")
-                .add_attribute("minter", info.sender)
-                .add_attribute("token_id", msg.token_id)
-                .add_messages(msgs)
-        }
-        None => Response::new()
-            .add_attribute("action", "mint")
-            .add_attribute("minter", info.sender)
-            .add_attribute("token_id", msg.token_id),
-    };
+    let res = get_mint_response(
+        admin_address,
+        address_trying_to_mint,
+        minting_fees.native_denom,
+        fee,
+        msg.token_id,
+    );
     Ok(res)
 }
 
