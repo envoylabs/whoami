@@ -3,6 +3,7 @@ pub mod execute;
 pub mod msg;
 pub mod query;
 pub mod state;
+pub mod utils;
 
 use cosmwasm_std::{to_binary, Empty};
 

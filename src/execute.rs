@@ -1,6 +1,5 @@
 use cosmwasm_std::{
-    coins, BankMsg, Binary, CosmosMsg, DepsMut, Env, MessageInfo, Order, Response, StdError,
-    StdResult,
+    coins, BankMsg, Binary, CosmosMsg, DepsMut, Env, MessageInfo, Response, StdResult,
 };
 use cw2::set_contract_version;
 use cw721::Cw721ReceiveMsg;
@@ -13,7 +12,9 @@ use crate::msg::{
     ContractInfo, InstantiateMsg, MintMsg, MintingFeesResponse, UpdateMetadataMsg,
     UpdateMintingFeesMsg,
 };
+
 use crate::state::{CONTRACT_INFO, MINTING_FEES_INFO, PREFERRED_ALIASES};
+use crate::utils::{calculate_mint_fee, get_number_of_owned_tokens};
 use crate::Cw721MetadataContract;
 
 // version info for migration info
@@ -139,19 +140,9 @@ pub fn mint(
 
     // check if trying to mint too many
     // who can need more than 20?
-    let default_limit = 20;
-    let pks: Vec<_> = contract
-        .tokens
-        .idx
-        .owner
-        .prefix(address_trying_to_mint)
-        .keys(deps.storage, None, None, Order::Ascending)
-        .take(default_limit) // set default big limit
-        .collect();
-
-    let res: Result<Vec<_>, _> = pks.iter().map(|v| String::from_utf8(v.to_vec())).collect();
-    let owned_tokens = res.map_err(StdError::invalid_utf8)?;
-    let number_of_tokens_owned = owned_tokens.len();
+    let default_limit: usize = 20;
+    let number_of_tokens_owned =
+        get_number_of_owned_tokens(&contract, &deps, address_trying_to_mint, default_limit)?;
 
     // error out if we exceed configured cap or we already
     // have the default max
@@ -179,37 +170,8 @@ pub fn mint(
         return Err(ContractError::Unauthorized {});
     }
 
-    // is token name short enough to trigger a surcharge?
-    let surcharge_is_owed = match minting_fees.short_name_surcharge {
-        Some(ref sc) => username_length < sc.surcharge_max_characters,
-        None => false,
-    };
-
     // work out what fees are owed
-    let fee = match minting_fees.base_mint_fee {
-        Some(base_fee) => match minting_fees.short_name_surcharge {
-            Some(sc) => {
-                if surcharge_is_owed {
-                    let summed = base_fee + sc.surcharge_fee; // if both, sum
-                    Some(summed)
-                } else {
-                    Some(base_fee) // username is long, no sc owed
-                }
-            }
-            None => Some(base_fee), // just fee, no sc is configured
-        },
-        None => match minting_fees.short_name_surcharge {
-            // no base fee
-            Some(sc) => {
-                if surcharge_is_owed {
-                    Some(sc.surcharge_fee) // just surcharge
-                } else {
-                    None // neither owed
-                }
-            }
-            None => None, // neither owed
-        },
-    };
+    let fee = calculate_mint_fee(minting_fees.clone(), username_length);
 
     // create the token
     // this will fail if token_id (i.e. username)
