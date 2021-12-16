@@ -8,7 +8,7 @@ mod tests {
     };
     use crate::Cw721MetadataContract;
     use cosmwasm_std::{
-        coins, from_binary, to_binary, BankMsg, CosmosMsg, DepsMut, Response, Uint128,
+        coins, from_binary, to_binary, BankMsg, CosmosMsg, Decimal, DepsMut, Response, Uint128,
     };
     use cw721_base::{ContractError, MinterResponse};
 
@@ -542,11 +542,18 @@ mod tests {
         )
         .unwrap();
 
-        let msgs: Vec<CosmosMsg> = vec![BankMsg::Send {
-            to_address: jeff_address,
-            amount: coins(expected_mint_fee.u128(), native_denom),
-        }
-        .into()];
+        let half_of_fee = expected_mint_fee * Decimal::percent(50);
+        let msgs: Vec<CosmosMsg> = vec![
+            BankMsg::Send {
+                to_address: jeff_address,
+                amount: coins(half_of_fee.u128(), native_denom.clone()),
+            }
+            .into(),
+            BankMsg::Burn {
+                amount: coins(half_of_fee.u128(), native_denom),
+            }
+            .into(),
+        ];
 
         // should get a response with submsgs
         // todo - use multitest to simulate this better
@@ -621,15 +628,25 @@ mod tests {
         )
         .unwrap();
 
-        let msgs: Vec<CosmosMsg> = vec![BankMsg::Send {
-            to_address: jeff_address.to_string(),
-            amount: coins(expected_mint_fee.u128(), native_denom.clone()),
-        }
-        .into()];
+        let half_of_fee = expected_mint_fee * Decimal::percent(50);
+        let msgs: Vec<CosmosMsg> = vec![
+            BankMsg::Send {
+                to_address: jeff_address.to_string(),
+                amount: coins(half_of_fee.u128(), native_denom.clone()),
+            }
+            .into(),
+            BankMsg::Burn {
+                amount: coins(half_of_fee.u128(), native_denom.clone()),
+            }
+            .into(),
+        ];
 
         // should get a response with submsgs
         // should cost 2_000_000
         // todo - use multitest to simulate this better
+        // we expect this to be the expected_mint_fee / 2
+        // i.e 1_000_000 (half sent, half burned)
+        // base is 1_000_000, surcharge is 1_000_000
         assert_eq!(
             mint_res,
             Response::new()
@@ -660,13 +677,20 @@ mod tests {
         )
         .unwrap();
 
-        // we expect this to be the base_mint_fee
-        // i.e 1_000_000
-        let msgs2: Vec<CosmosMsg> = vec![BankMsg::Send {
-            to_address: jeff_address,
-            amount: coins(base_mint_fee.u128(), native_denom),
-        }
-        .into()];
+        // we expect this to be the base_mint_fee / 2
+        // i.e 500_000 (half sent, half burned)
+        // base is 1_000_000, surcharge is 1_000_000
+        let msgs2: Vec<CosmosMsg> = vec![
+            BankMsg::Send {
+                to_address: jeff_address,
+                amount: coins(500_000, native_denom.clone()),
+            }
+            .into(),
+            BankMsg::Burn {
+                amount: coins(500_000, native_denom),
+            }
+            .into(),
+        ];
 
         // todo - use multitest to simulate this better
         assert_eq!(
@@ -677,6 +701,94 @@ mod tests {
                 .add_attribute("token_id", longer_id)
                 .add_messages(msgs2)
         );
+    }
+
+    #[test]
+    fn base_minting_with_fees_and_surcharge_owed_rounding_check() {
+        let mut deps = mock_dependencies();
+        let contract = Cw721MetadataContract::default();
+
+        let jeff_address = "jeff-addr".to_string();
+
+        let native_denom = "uatom".to_string();
+        let base_mint_fee = Uint128::new(1_250_333);
+        // half of this number is 1_625_166.5 (i.e. smaller than decimals)
+        // let expected_mint_fee = Uint128::new(3_250_333);
+
+        let jeff_sender_info = mock_info(&jeff_address, &[]);
+        let init_msg = InstantiateMsg {
+            name: CONTRACT_NAME.to_string(),
+            symbol: SYMBOL.to_string(),
+            native_denom: native_denom.clone(),
+            native_decimals: 6,
+            token_cap: Some(2),
+            base_mint_fee: Some(base_mint_fee),
+            short_name_surcharge: Some(SurchargeInfo {
+                surcharge_max_characters: 5, // small enough that "jeff" will be caught
+                surcharge_fee: Uint128::new(2_000_000),
+            }),
+            admin_address: jeff_address.clone(),
+        };
+        entry::instantiate(
+            deps.as_mut(),
+            mock_env(),
+            jeff_sender_info.clone(),
+            init_msg,
+        )
+        .unwrap();
+
+        // init a plausible username
+        let token_id = "jeff".to_string();
+
+        // CHECK: short username is caught
+        let meta = Metadata {
+            twitter_id: Some(String::from("@jeff-vader")),
+            ..Metadata::default()
+        };
+
+        let mint_msg = MintMsg {
+            token_id: token_id.clone(),
+            owner: jeff_address.clone(),
+            token_uri: None,
+            extension: meta,
+        };
+        let exec_msg = ExecuteMsg::Mint(mint_msg.clone());
+        let mint_res = entry::execute(
+            deps.as_mut(),
+            mock_env(),
+            jeff_sender_info.clone(),
+            exec_msg,
+        )
+        .unwrap();
+
+        // should get a response with submsgs
+        // should cost 2_000_000
+        // 1_625_166 sent and 1_625_166 burned
+        // todo - use multitest to simulate this better
+        let msgs: Vec<CosmosMsg> = vec![
+            BankMsg::Send {
+                to_address: jeff_address,
+                amount: coins(1_625_166, native_denom.clone()),
+            }
+            .into(),
+            BankMsg::Burn {
+                amount: coins(1_625_166, native_denom),
+            }
+            .into(),
+        ];
+
+        assert_eq!(
+            mint_res,
+            Response::new()
+                .add_attribute("action", "mint")
+                .add_attribute("minter", &jeff_sender_info.sender)
+                .add_attribute("token_id", token_id.clone())
+                .add_messages(msgs)
+        );
+
+        let res = contract.nft_info(deps.as_ref(), token_id).unwrap();
+        assert_eq!(res.token_uri, mint_msg.token_uri);
+        assert_eq!(res.extension, mint_msg.extension);
     }
 
     #[test]
@@ -735,11 +847,18 @@ mod tests {
         )
         .unwrap();
 
-        let msgs: Vec<CosmosMsg> = vec![BankMsg::Send {
-            to_address: jeff_address,
-            amount: coins(expected_mint_fee.u128(), native_denom),
-        }
-        .into()];
+        let half_of_fee = expected_mint_fee * Decimal::percent(50);
+        let msgs: Vec<CosmosMsg> = vec![
+            BankMsg::Send {
+                to_address: jeff_address,
+                amount: coins(half_of_fee.u128(), native_denom.clone()),
+            }
+            .into(),
+            BankMsg::Burn {
+                amount: coins(half_of_fee.u128(), native_denom),
+            }
+            .into(),
+        ];
 
         // should get a response with submsgs
         // should cost 1_500_000
