@@ -427,6 +427,13 @@
             "null"
           ]
         },
+        "parent_token_id": {
+          "description": "For future compatibility, we want to support a recursive lookup of tokens that constitutes a path somewhat like a DNS if this is None then it is a base token",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "public_bio": {
           "type": [
             "string",
