@@ -1,4 +1,5 @@
 use cosmwasm_std::{Binary, Uint128};
+use cw20::Logo;
 use cw721::Expiration;
 use cw721_base::{
     msg::ExecuteMsg as CW721ExecuteMsg, MintMsg as CW721MintMsg, QueryMsg as CW721QueryMsg,
@@ -66,7 +67,7 @@ pub struct Trait {
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug, Default)]
 pub struct Metadata {
     pub image: Option<String>,
-    pub image_data: Option<String>,
+    pub image_data: Option<Logo>,
     pub email: Option<String>,
     pub external_url: Option<String>,
     pub public_name: Option<String>,

@@ -26,6 +26,8 @@ library = []
 
 [dependencies]
 cw2 = { version = "0.10.2" }
+cw20-base = { version = "0.10.2", features = ["library"] }
+cw20 = { version = "0.10.2" }
 cw721 = { version = "0.10.0" }
 cw721-base = { version = "0.10.0", features = ["library"] }
 cw-storage-plus = { version = "0.10.2" }

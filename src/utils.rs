@@ -1,9 +1,10 @@
+use crate::msg::MintingFeesResponse;
 use cosmwasm_std::{
     coins, Addr, BankMsg, CosmosMsg, Decimal, DepsMut, Order, Response, StdError, StdResult,
     Uint128,
 };
-
-use crate::msg::MintingFeesResponse;
+use cw20::{EmbeddedLogo, Logo};
+use cw721_base::ContractError;
 
 use crate::Cw721MetadataContract;
 
@@ -93,5 +94,83 @@ pub fn get_mint_response(
             .add_attribute("action", "mint")
             .add_attribute("minter", mint_message_sender)
             .add_attribute("token_id", token_id),
+    }
+}
+
+// -- logo helpers as they're not public in CW20 --
+const LOGO_SIZE_CAP: usize = 10 * 1024;
+
+/// Checks if data starts with XML preamble
+fn verify_xml_preamble(data: &[u8]) -> Result<(), ContractError> {
+    // The easiest way to perform this check would be just match on regex, however regex
+    // compilation is heavy and probably not worth it.
+
+    let preamble = data.split_inclusive(|c| *c == b'>').next().ok_or_else(|| {
+        ContractError::Std(StdError::ParseErr {
+            msg: "Failed to parse SVG".to_string(),
+            target_type: "Logo".to_string(),
+        })
+    })?;
+
+    const PREFIX: &[u8] = b"<?xml ";
+    const POSTFIX: &[u8] = b"?>";
+
+    if !(preamble.starts_with(PREFIX) && preamble.ends_with(POSTFIX)) {
+        Err(ContractError::Std(StdError::ParseErr {
+            msg: "Failed to parse SVG".to_string(),
+            target_type: "Logo".to_string(),
+        }))
+    } else {
+        Ok(())
+    }
+
+    // Additionally attributes format could be validated as they are well defined, as well as
+    // comments presence inside of preable, but it is probably not worth it.
+}
+
+/// Validates XML logo
+fn verify_xml_logo(logo: &[u8]) -> Result<(), ContractError> {
+    verify_xml_preamble(logo)?;
+
+    if logo.len() > LOGO_SIZE_CAP {
+        Err(ContractError::Std(StdError::ParseErr {
+            msg: "Failed to parse SVG - too large".to_string(),
+            target_type: "Logo".to_string(),
+        }))
+    } else {
+        Ok(())
+    }
+}
+
+/// Validates png logo
+fn verify_png_logo(logo: &[u8]) -> Result<(), ContractError> {
+    // PNG header format:
+    // 0x89 - magic byte, out of ASCII table to fail on 7-bit systems
+    // "PNG" ascii representation
+    // [0x0d, 0x0a] - dos style line ending
+    // 0x1a - dos control character, stop displaying rest of the file
+    // 0x0a - unix style line ending
+    const HEADER: [u8; 8] = [0x89, b'P', b'N', b'G', 0x0d, 0x0a, 0x1a, 0x0a];
+    if logo.len() > LOGO_SIZE_CAP {
+        Err(ContractError::Std(StdError::ParseErr {
+            msg: "Failed to parse PNG - too large".to_string(),
+            target_type: "Logo".to_string(),
+        }))
+    } else if !logo.starts_with(&HEADER) {
+        Err(ContractError::Std(StdError::ParseErr {
+            msg: "Failed to parse PNG".to_string(),
+            target_type: "Logo".to_string(),
+        }))
+    } else {
+        Ok(())
+    }
+}
+
+/// Checks if passed logo is correct, and if not, returns an error
+pub fn verify_logo(logo: &Logo) -> Result<(), ContractError> {
+    match logo {
+        Logo::Embedded(EmbeddedLogo::Svg(logo)) => verify_xml_logo(logo),
+        Logo::Embedded(EmbeddedLogo::Png(logo)) => verify_png_logo(logo),
+        Logo::Url(_) => Err(ContractError::Unauthorized {}), // this is an embedded field, we don't allow URLs like CW20
     }
 }
