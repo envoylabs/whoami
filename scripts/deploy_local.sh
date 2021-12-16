@@ -98,5 +98,5 @@ CONTRACT_ADDRESS=$($BINARY q wasm list-contract-by-code $CONTRACT_CODE --output 
 printf "\n ------------------------ \n"
 printf "Config Variables \n\n"
 
-echo "WHOAMI_CODE_ID=$CONTRACT_CODE"
-echo "WHOAMI_ADDRESS=$CONTRACT_ADDRESS"
+echo "NEXT_PUBLIC_WHOAMI_CODE_ID=$CONTRACT_CODE"
+echo "NEXT_PUBLIC_WHOAMI_ADDRESS=$CONTRACT_ADDRESS"
