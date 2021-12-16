@@ -77,6 +77,11 @@ pub struct Metadata {
     pub telegram_id: Option<String>,
     pub keybase_id: Option<String>,
     pub validator_operator_address: Option<String>,
+    /// For future compatibility, we want to support
+    /// a recursive lookup of tokens that constitutes a path
+    /// somewhat like a DNS
+    /// if this is None then it is a base token
+    pub parent_token_id: Option<String>,
 }
 
 pub type Extension = Metadata;
