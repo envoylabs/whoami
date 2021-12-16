@@ -1,5 +1,6 @@
 use cosmwasm_std::{
-    coins, Addr, BankMsg, CosmosMsg, DepsMut, Order, Response, StdError, StdResult, Uint128,
+    coins, Addr, BankMsg, CosmosMsg, Decimal, DepsMut, Order, Response, StdError, StdResult,
+    Uint128,
 };
 
 use crate::msg::MintingFeesResponse;
@@ -69,11 +70,18 @@ pub fn get_mint_response(
 ) -> Response {
     match fee {
         Some(fee) => {
-            let msgs: Vec<CosmosMsg> = vec![BankMsg::Send {
-                to_address: admin_address.to_string(),
-                amount: coins(fee.u128(), native_denom),
-            }
-            .into()];
+            let half_of_fee = fee * Decimal::percent(50);
+            let msgs: Vec<CosmosMsg> = vec![
+                BankMsg::Send {
+                    to_address: admin_address.to_string(),
+                    amount: coins(half_of_fee.u128(), native_denom.clone()),
+                }
+                .into(),
+                BankMsg::Burn {
+                    amount: coins(half_of_fee.u128(), native_denom),
+                }
+                .into(),
+            ];
 
             Response::new()
                 .add_attribute("action", "mint")
