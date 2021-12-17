@@ -83,6 +83,7 @@ WHOAMI_INIT='{
   "native_decimals": 6,
   "token_cap": null,
   "base_mint_fee": "1000000",
+  "burn_percentage": 50,
   "short_name_surcharge": {
     "surcharge_max_characters": 5,
     "surcharge_fee": "1000000"

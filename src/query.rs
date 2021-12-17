@@ -72,6 +72,7 @@ pub fn contract_info(deps: Deps) -> StdResult<ContractInfoResponse> {
         native_decimals: minting_fees.native_decimals,
         token_cap: minting_fees.token_cap,
         base_mint_fee: minting_fees.base_mint_fee,
+        burn_percentage: minting_fees.burn_percentage,
         short_name_surcharge: minting_fees.short_name_surcharge,
     };
     Ok(contract_info_response)

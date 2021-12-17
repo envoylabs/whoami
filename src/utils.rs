@@ -67,22 +67,33 @@ pub fn get_mint_response(
     mint_message_sender: Addr,
     native_denom: String,
     fee: Option<Uint128>,
+    burn_percentage: Option<u64>,
     token_id: String,
 ) -> Response {
     match fee {
         Some(fee) => {
-            let half_of_fee = fee * Decimal::percent(50);
-            let msgs: Vec<CosmosMsg> = vec![
-                BankMsg::Send {
+            let msgs: Vec<CosmosMsg> = match burn_percentage {
+                Some(bp) => {
+                    let fee_to_admin = fee * Decimal::percent(100 - bp);
+                    let fee_to_burn = fee * Decimal::percent(bp);
+                    vec![
+                        BankMsg::Send {
+                            to_address: admin_address.to_string(),
+                            amount: coins(fee_to_admin.u128(), native_denom.clone()),
+                        }
+                        .into(),
+                        BankMsg::Burn {
+                            amount: coins(fee_to_burn.u128(), native_denom),
+                        }
+                        .into(),
+                    ]
+                }
+                None => vec![BankMsg::Send {
                     to_address: admin_address.to_string(),
-                    amount: coins(half_of_fee.u128(), native_denom.clone()),
+                    amount: coins(fee.u128(), native_denom),
                 }
-                .into(),
-                BankMsg::Burn {
-                    amount: coins(half_of_fee.u128(), native_denom),
-                }
-                .into(),
-            ];
+                .into()],
+            };
 
             Response::new()
                 .add_attribute("action", "mint")

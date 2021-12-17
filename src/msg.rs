@@ -43,6 +43,9 @@ pub struct InstantiateMsg {
     /// in mint if that's not ok with you
     pub base_mint_fee: Option<Uint128>,
 
+    /// An optional percentage of the mint fee to burn
+    pub burn_percentage: Option<u64>,
+
     /// An optional surcharge for short names
     /// e.g. anything below 5 gets an additional charge
     /// this plus base_mint_fee are combined to come up
@@ -101,6 +104,7 @@ pub struct UpdateMetadataMsg {
 pub struct UpdateMintingFeesMsg {
     pub token_cap: Option<u32>,
     pub base_mint_fee: Option<Uint128>,
+    pub burn_percentage: Option<u64>,
     pub short_name_surcharge: Option<SurchargeInfo>,
 }
 
@@ -324,6 +328,7 @@ pub struct ContractInfoResponse {
     pub native_decimals: u8,
     pub token_cap: Option<u32>,
     pub base_mint_fee: Option<Uint128>,
+    pub burn_percentage: Option<u64>,
     pub short_name_surcharge: Option<SurchargeInfo>,
 }
 
@@ -333,5 +338,6 @@ pub struct MintingFeesResponse {
     pub native_decimals: u8,
     pub token_cap: Option<u32>,
     pub base_mint_fee: Option<Uint128>,
+    pub burn_percentage: Option<u64>,
     pub short_name_surcharge: Option<SurchargeInfo>,
 }
