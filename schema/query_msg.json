@@ -6,10 +6,10 @@
       "description": "Query preferred alias. Takes an address and returns the token id, if set. default behaviour is to return the first result, if unset.",
       "type": "object",
       "required": [
-        "preferred_alias"
+        "primary_alias"
       ],
       "properties": {
-        "preferred_alias": {
+        "primary_alias": {
           "type": "object",
           "required": [
             "address"

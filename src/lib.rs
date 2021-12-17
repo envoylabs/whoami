@@ -11,9 +11,9 @@ pub use cw721_base::ContractError;
 
 use execute::{
     burn, execute_instantiate, mint, send_nft, set_admin_address, transfer_nft, update_metadata,
-    update_minting_fees, update_preferred_alias,
+    update_minting_fees, update_primary_alias,
 };
-use query::{contract_info, preferred_alias};
+use query::{contract_info, primary_alias};
 
 pub use crate::msg::{ExecuteMsg, Extension, InstantiateMsg, QueryMsg};
 
@@ -49,8 +49,8 @@ pub mod entry {
             ExecuteMsg::UpdateMintingFees(msg) => update_minting_fees(tract, deps, env, info, msg),
             ExecuteMsg::Mint(msg) => mint(tract, deps, env, info, msg),
             ExecuteMsg::UpdateMetadata(msg) => update_metadata(tract, deps, env, info, msg),
-            ExecuteMsg::UpdatePreferredAlias { token_id } => {
-                update_preferred_alias(tract, deps, env, info, token_id)
+            ExecuteMsg::UpdatePrimaryAlias { token_id } => {
+                update_primary_alias(tract, deps, env, info, token_id)
             }
             // this actually sets the minter field,
             // but the interface is that we call it an admin_address
@@ -81,8 +81,8 @@ pub mod entry {
         let tract = Cw721MetadataContract::default();
 
         match msg {
-            QueryMsg::PreferredAlias { address } => {
-                to_binary(&preferred_alias(tract, deps, env, address)?)
+            QueryMsg::PrimaryAlias { address } => {
+                to_binary(&primary_alias(tract, deps, env, address)?)
             }
             QueryMsg::ContractInfo {} => to_binary(&contract_info(deps)?),
             _ => tract.query(deps, env, msg.into()).map_err(|err| err),

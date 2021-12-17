@@ -4,7 +4,7 @@ mod tests {
 
     use crate::msg::{
         ContractInfoResponse, ExecuteMsg, Extension, InstantiateMsg, Metadata, MintMsg,
-        PreferredAliasResponse, QueryMsg, SurchargeInfo, UpdateMetadataMsg, UpdateMintingFeesMsg,
+        PrimaryAliasResponse, QueryMsg, SurchargeInfo, UpdateMetadataMsg, UpdateMintingFeesMsg,
     };
     use crate::Cw721MetadataContract;
     use cosmwasm_std::{
@@ -986,11 +986,11 @@ mod tests {
         assert_eq!(1, count.count);
 
         // CHECK: check alias returns something
-        let alias_query_res: PreferredAliasResponse = from_binary(
+        let alias_query_res: PrimaryAliasResponse = from_binary(
             &entry::query(
                 deps.as_ref(),
                 mock_env(),
-                QueryMsg::PreferredAlias {
+                QueryMsg::PrimaryAlias {
                     address: jeff_address.clone(),
                 },
             )
@@ -1017,11 +1017,11 @@ mod tests {
 
         // default will be that last in is returned
         // CHECK: jeff alias will default to token_id_2
-        let alias_query_res_2: PreferredAliasResponse = from_binary(
+        let alias_query_res_2: PrimaryAliasResponse = from_binary(
             &entry::query(
                 deps.as_ref(),
                 mock_env(),
-                QueryMsg::PreferredAlias {
+                QueryMsg::PrimaryAlias {
                     address: jeff_address.clone(),
                 },
             )
@@ -1036,17 +1036,17 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             allowed.clone(),
-            ExecuteMsg::UpdatePreferredAlias {
+            ExecuteMsg::UpdatePrimaryAlias {
                 token_id: token_id.clone(),
             },
         );
 
         // CHECK: alias updated to token_id
-        let alias_query_res_3: PreferredAliasResponse = from_binary(
+        let alias_query_res_3: PrimaryAliasResponse = from_binary(
             &entry::query(
                 deps.as_ref(),
                 mock_env(),
-                QueryMsg::PreferredAlias {
+                QueryMsg::PrimaryAlias {
                     address: jeff_address.clone(),
                 },
             )
@@ -1069,11 +1069,11 @@ mod tests {
         let _ = entry::execute(deps.as_mut(), mock_env(), allowed, send_msg);
 
         // CHECK: jeff-address should be default alias NFT 2
-        let alias_query_res_4: PreferredAliasResponse = from_binary(
+        let alias_query_res_4: PrimaryAliasResponse = from_binary(
             &entry::query(
                 deps.as_ref(),
                 mock_env(),
-                QueryMsg::PreferredAlias {
+                QueryMsg::PrimaryAlias {
                     address: jeff_address,
                 },
             )
@@ -1115,11 +1115,11 @@ mod tests {
         assert_eq!(1, count.count);
 
         // CHECK: alias returns something
-        let alias_query_res: PreferredAliasResponse = from_binary(
+        let alias_query_res: PrimaryAliasResponse = from_binary(
             &entry::query(
                 deps.as_ref(),
                 mock_env(),
-                QueryMsg::PreferredAlias {
+                QueryMsg::PrimaryAlias {
                     address: jeff_address.clone(),
                 },
             )
@@ -1146,11 +1146,11 @@ mod tests {
 
         // default will be that last in is returned
         // CHECK: jeff alias will default to token_id_2
-        let alias_query_res_2: PreferredAliasResponse = from_binary(
+        let alias_query_res_2: PrimaryAliasResponse = from_binary(
             &entry::query(
                 deps.as_ref(),
                 mock_env(),
-                QueryMsg::PreferredAlias {
+                QueryMsg::PrimaryAlias {
                     address: jeff_address.clone(),
                 },
             )
@@ -1165,17 +1165,17 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             allowed.clone(),
-            ExecuteMsg::UpdatePreferredAlias {
+            ExecuteMsg::UpdatePrimaryAlias {
                 token_id: token_id.clone(),
             },
         );
 
         // CHECK: alias updated to token_id
-        let alias_query_res_3: PreferredAliasResponse = from_binary(
+        let alias_query_res_3: PrimaryAliasResponse = from_binary(
             &entry::query(
                 deps.as_ref(),
                 mock_env(),
-                QueryMsg::PreferredAlias {
+                QueryMsg::PrimaryAlias {
                     address: jeff_address.clone(),
                 },
             )
@@ -1212,11 +1212,11 @@ mod tests {
         // CHECK: jeff-address should be default alias NFT 2 and john_q_rando_address
         // should be alias NFT 1
         // making him thebestguy
-        let alias_query_res_4: PreferredAliasResponse = from_binary(
+        let alias_query_res_4: PrimaryAliasResponse = from_binary(
             &entry::query(
                 deps.as_ref(),
                 mock_env(),
-                QueryMsg::PreferredAlias {
+                QueryMsg::PrimaryAlias {
                     address: jeff_address,
                 },
             )
@@ -1226,11 +1226,11 @@ mod tests {
 
         assert_eq!(alias_query_res_4.username, token_id_2);
 
-        let alias_query_res_5: PreferredAliasResponse = from_binary(
+        let alias_query_res_5: PrimaryAliasResponse = from_binary(
             &entry::query(
                 deps.as_ref(),
                 mock_env(),
-                QueryMsg::PreferredAlias {
+                QueryMsg::PrimaryAlias {
                     address: john_q_rando_address.to_string(),
                 },
             )
@@ -1272,11 +1272,11 @@ mod tests {
         assert_eq!(1, count.count);
 
         // CHECK: alias returns something
-        let alias_query_res: PreferredAliasResponse = from_binary(
+        let alias_query_res: PrimaryAliasResponse = from_binary(
             &entry::query(
                 deps.as_ref(),
                 mock_env(),
-                QueryMsg::PreferredAlias {
+                QueryMsg::PrimaryAlias {
                     address: jeff_address.clone(),
                 },
             )
@@ -1302,11 +1302,11 @@ mod tests {
         assert_eq!(2, count_2.count);
 
         // CHECK: default will be that last in is returned
-        let alias_query_res_2: PreferredAliasResponse = from_binary(
+        let alias_query_res_2: PrimaryAliasResponse = from_binary(
             &entry::query(
                 deps.as_ref(),
                 mock_env(),
-                QueryMsg::PreferredAlias {
+                QueryMsg::PrimaryAlias {
                     address: jeff_address.clone(),
                 },
             )
@@ -1321,17 +1321,17 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             allowed.clone(),
-            ExecuteMsg::UpdatePreferredAlias {
+            ExecuteMsg::UpdatePrimaryAlias {
                 token_id: token_id.clone(),
             },
         );
 
         // CHECK: alias updated
-        let alias_query_res_3: PreferredAliasResponse = from_binary(
+        let alias_query_res_3: PrimaryAliasResponse = from_binary(
             &entry::query(
                 deps.as_ref(),
                 mock_env(),
-                QueryMsg::PreferredAlias {
+                QueryMsg::PrimaryAlias {
                     address: jeff_address.clone(),
                 },
             )
@@ -1366,11 +1366,11 @@ mod tests {
         assert_eq!(1, count.count);
 
         // CHECK: now preferred should return default
-        let alias_query_res_4: PreferredAliasResponse = from_binary(
+        let alias_query_res_4: PrimaryAliasResponse = from_binary(
             &entry::query(
                 deps.as_ref(),
                 mock_env(),
-                QueryMsg::PreferredAlias {
+                QueryMsg::PrimaryAlias {
                     address: jeff_address,
                 },
             )

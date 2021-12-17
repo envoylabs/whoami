@@ -19,10 +19,10 @@
       "description": "If the sender has multiple NFTs or aliases, they will want to set a default. This allows them to do this.",
       "type": "object",
       "required": [
-        "update_preferred_alias"
+        "update_primary_alias"
       ],
       "properties": {
-        "update_preferred_alias": {
+        "update_primary_alias": {
           "type": "object",
           "required": [
             "token_id"

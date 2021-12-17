@@ -51,7 +51,7 @@ There is an additional query message that allows for an owner set
 alias to be returned.
 
 ```rust
-PreferredAlias { address: String }
+PrimaryAlias { address: String }
 ```
 
 This returns:
@@ -59,7 +59,7 @@ This returns:
 ```rust
 // returns a token_id (i.e. a username)
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
-pub struct PreferredAliasResponse {
+pub struct PrimaryAliasResponse {
     pub username: String,
 }
 ```
@@ -76,7 +76,7 @@ Setting a preferred alias is done via a new `ExecuteMsg` variant. On
 storage.
 
 ```rust
-UpdatePreferredAlias {
+UpdatePrimaryAlias {
     token_id: String,
 },
 ```
