@@ -89,7 +89,7 @@ WHOAMI_INIT='{
     "surcharge_fee": "1000000"
   }
 }'
-echo "$WHOAMI_INIT"
+echo "$WHOAMI_INIT" | jq .
 $BINARY tx wasm instantiate $CONTRACT_CODE "$WHOAMI_INIT" --from "validator" --label "whoami NFT nameservice" $TXFLAG
 
 # get contract addr

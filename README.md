@@ -27,12 +27,12 @@ Minting is governed by a fee:
 - Base fee: charged for every mint (optional, and updateable)
 - Surcharge: charged for short usernames (optional, configurable and updateable)
 
-These two added together forms the `mint_fee`. This is divided 50-50 between:
+These two added together forms the `mint_fee`. This is divided between:
 
 1. The admin address (which could point to a multisig or DAO)
 2. Burning
 
-If you want to have this behaviour configurable, open an issue and let's talk.
+The burn percentage is configured at instantiation time.
 
 ## Dev quickstart
 
