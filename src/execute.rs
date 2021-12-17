@@ -11,7 +11,7 @@ use crate::msg::{
     UpdateMintingFeesMsg,
 };
 
-use crate::state::{CONTRACT_INFO, MINTING_FEES_INFO, PREFERRED_ALIASES};
+use crate::state::{CONTRACT_INFO, MINTING_FEES_INFO, PRIMARY_ALIASES};
 use crate::utils::{get_mint_fee, get_mint_response, get_number_of_owned_tokens, verify_logo};
 use crate::Cw721MetadataContract;
 
@@ -262,7 +262,7 @@ pub fn update_metadata(
 // look up token_id
 // if it is owned by sender,
 // then set mapping of sender -> token_id
-pub fn update_preferred_alias(
+pub fn update_primary_alias(
     contract: Cw721MetadataContract,
     deps: DepsMut,
     _env: Env,
@@ -280,7 +280,7 @@ pub fn update_preferred_alias(
     }
 
     // always overwrite
-    PREFERRED_ALIASES.save(deps.storage, &address_trying_to_update, &token_id)?;
+    PRIMARY_ALIASES.save(deps.storage, &address_trying_to_update, &token_id)?;
 
     let res = Response::new()
         .add_attribute("action", "update_preferred_alias")
@@ -299,7 +299,7 @@ pub fn update_preferred_alias(
 //     token_id: String,
 // ) -> Result<(), ContractError> {
 //     let username_nft = contract.tokens.load(deps.storage, &token_id)?;
-//     let res = PREFERRED_ALIASES.remove(deps.storage, &username_nft.owner);
+//     let res = PRIMARY_ALIASES.remove(deps.storage, &username_nft.owner);
 //     Ok(res)
 // }
 
@@ -313,7 +313,7 @@ pub fn transfer_nft(
 ) -> Result<Response, ContractError> {
     // clear aliases before transfer
     let username_nft = contract.tokens.load(deps.storage, &token_id)?;
-    PREFERRED_ALIASES.remove(deps.storage, &username_nft.owner);
+    PRIMARY_ALIASES.remove(deps.storage, &username_nft.owner);
 
     contract._transfer_nft(deps, &env, &info, &recipient, &token_id)?;
 
@@ -335,7 +335,7 @@ pub fn send_nft(
 ) -> Result<Response, ContractError> {
     // clear aliases before send
     let username_nft = contract.tokens.load(deps.storage, &token_id)?;
-    PREFERRED_ALIASES.remove(deps.storage, &username_nft.owner);
+    PRIMARY_ALIASES.remove(deps.storage, &username_nft.owner);
 
     // Transfer token
     contract._transfer_nft(deps, &env, &info, &receiving_contract, &token_id)?;
@@ -366,7 +366,7 @@ pub fn burn(
     contract.check_can_send(deps.as_ref(), &env, &info, &token)?;
 
     // clear aliases before delete
-    PREFERRED_ALIASES.remove(deps.storage, &token.owner);
+    PRIMARY_ALIASES.remove(deps.storage, &token.owner);
 
     contract.tokens.remove(deps.storage, &token_id)?;
     contract.decrement_tokens(deps.storage)?;

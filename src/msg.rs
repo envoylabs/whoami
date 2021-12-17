@@ -116,7 +116,7 @@ pub enum ExecuteMsg {
     UpdateMintingFees(UpdateMintingFeesMsg),
 
     /// If the sender has multiple NFTs or aliases, they will want to set a default. This allows them to do this.
-    UpdatePreferredAlias { token_id: String },
+    UpdatePrimaryAlias { token_id: String },
 
     /// Updates the metadata of the NFT
     UpdateMetadata(UpdateMetadataMsg),
@@ -204,7 +204,7 @@ impl From<ExecuteMsg> for CW721ExecuteMsg<Extension> {
 pub enum QueryMsg {
     /// Query preferred alias. Takes an address and returns the token id, if set.
     /// default behaviour is to return the first result, if unset.
-    PreferredAlias { address: String },
+    PrimaryAlias { address: String },
     /// Return the owner of the given token, error if token does not exist
     /// Return type: OwnerOfResponse
     OwnerOf {
@@ -310,7 +310,7 @@ impl From<QueryMsg> for CW721QueryMsg {
 
 // returns a token_id (i.e. a username)
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
-pub struct PreferredAliasResponse {
+pub struct PrimaryAliasResponse {
     pub username: String,
 }
 

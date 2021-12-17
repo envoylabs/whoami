@@ -1,5 +1,5 @@
-use crate::msg::{ContractInfoResponse, PreferredAliasResponse};
-use crate::state::{CONTRACT_INFO, MINTING_FEES_INFO, PREFERRED_ALIASES};
+use crate::msg::{ContractInfoResponse, PrimaryAliasResponse};
+use crate::state::{CONTRACT_INFO, MINTING_FEES_INFO, PRIMARY_ALIASES};
 use crate::Cw721MetadataContract;
 use cosmwasm_std::{Deps, Env, Order, StdError, StdResult};
 use cw721::TokensResponse;
@@ -44,21 +44,21 @@ fn get_first_token_for_owner(
 }
 
 // note we call this PRIMARY in the UI
-pub fn preferred_alias(
+pub fn primary_alias(
     contract: Cw721MetadataContract,
     deps: Deps,
     _env: Env,
     owner: String,
-) -> StdResult<PreferredAliasResponse> {
+) -> StdResult<PrimaryAliasResponse> {
     let owner_addr = deps.api.addr_validate(&owner)?;
-    let existing_alias = PREFERRED_ALIASES.may_load(deps.storage, &owner_addr)?;
+    let existing_alias = PRIMARY_ALIASES.may_load(deps.storage, &owner_addr)?;
 
     // if nothing returned, get first
     let username = match existing_alias {
         Some(alias) => alias,
         None => get_first_token_for_owner(contract, deps, owner)?,
     };
-    Ok(PreferredAliasResponse { username })
+    Ok(PrimaryAliasResponse { username })
 }
 
 pub fn contract_info(deps: Deps) -> StdResult<ContractInfoResponse> {
