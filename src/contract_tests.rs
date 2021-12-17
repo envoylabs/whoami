@@ -30,6 +30,7 @@ mod tests {
             native_decimals: 6,
             token_cap: Some(2),
             base_mint_fee: None,
+            burn_percentage: Some(50),
             short_name_surcharge: None,
             admin_address: String::from(MINTER),
         };
@@ -53,6 +54,7 @@ mod tests {
             native_decimals: 6,
             token_cap: Some(2),
             base_mint_fee: None,
+            burn_percentage: None,
             short_name_surcharge: None,
             admin_address: jeff_address,
         };
@@ -63,6 +65,7 @@ mod tests {
         // this means fields that are a Some can actually be updated to be None later
         let mint_msg = UpdateMintingFeesMsg {
             base_mint_fee: Some(Uint128::new(1000000)),
+            burn_percentage: None,
             token_cap: None,
             short_name_surcharge: None,
         };
@@ -81,6 +84,7 @@ mod tests {
             native_decimals: 6,
             token_cap: None, // THIS IS IMPORTANT
             base_mint_fee: Some(Uint128::new(1000000)),
+            burn_percentage: None,
             short_name_surcharge: None,
         };
 
@@ -101,6 +105,7 @@ mod tests {
             native_decimals: 6,
             token_cap: Some(2),
             base_mint_fee: None,
+            burn_percentage: None,
             short_name_surcharge: None,
             admin_address: jeff_address,
         };
@@ -111,6 +116,7 @@ mod tests {
         // this means fields that are a Some can actually be updated to be None later
         let mint_msg = UpdateMintingFeesMsg {
             base_mint_fee: Some(Uint128::new(1000000)),
+            burn_percentage: None,
             token_cap: Some(3),
             short_name_surcharge: Some(SurchargeInfo {
                 surcharge_max_characters: 5,
@@ -132,6 +138,7 @@ mod tests {
             native_decimals: 6,
             token_cap: Some(3),
             base_mint_fee: Some(Uint128::new(1000000)),
+            burn_percentage: None,
             short_name_surcharge: Some(SurchargeInfo {
                 surcharge_max_characters: 5,
                 surcharge_fee: Uint128::new(2000000),
@@ -158,6 +165,7 @@ mod tests {
             native_decimals: 6,
             token_cap: Some(2),
             base_mint_fee: None,
+            burn_percentage: None,
             short_name_surcharge: None,
             admin_address: jeff_address.clone(),
         };
@@ -508,6 +516,7 @@ mod tests {
             native_decimals: 6,
             token_cap: Some(2),
             base_mint_fee: Some(Uint128::new(1_000_000)),
+            burn_percentage: Some(50),
             short_name_surcharge: None,
             admin_address: jeff_address.clone(),
         };
@@ -590,6 +599,7 @@ mod tests {
             native_decimals: 6,
             token_cap: Some(2),
             base_mint_fee: Some(base_mint_fee),
+            burn_percentage: None,
             short_name_surcharge: Some(SurchargeInfo {
                 surcharge_max_characters: 5, // small enough that "jeff" will be caught
                 surcharge_fee: Uint128::new(1_000_000),
@@ -628,25 +638,16 @@ mod tests {
         )
         .unwrap();
 
-        let half_of_fee = expected_mint_fee * Decimal::percent(50);
-        let msgs: Vec<CosmosMsg> = vec![
-            BankMsg::Send {
-                to_address: jeff_address.to_string(),
-                amount: coins(half_of_fee.u128(), native_denom.clone()),
-            }
-            .into(),
-            BankMsg::Burn {
-                amount: coins(half_of_fee.u128(), native_denom.clone()),
-            }
-            .into(),
-        ];
-
         // should get a response with submsgs
         // should cost 2_000_000
         // todo - use multitest to simulate this better
-        // we expect this to be the expected_mint_fee / 2
-        // i.e 1_000_000 (half sent, half burned)
-        // base is 1_000_000, surcharge is 1_000_000
+        // we expect this to be the expected_mint_fee
+        let msgs: Vec<CosmosMsg> = vec![BankMsg::Send {
+            to_address: jeff_address.to_string(),
+            amount: coins(expected_mint_fee.u128(), native_denom.clone()),
+        }
+        .into()];
+
         assert_eq!(
             mint_res,
             Response::new()
@@ -677,20 +678,12 @@ mod tests {
         )
         .unwrap();
 
-        // we expect this to be the base_mint_fee / 2
-        // i.e 500_000 (half sent, half burned)
-        // base is 1_000_000, surcharge is 1_000_000
-        let msgs2: Vec<CosmosMsg> = vec![
-            BankMsg::Send {
-                to_address: jeff_address,
-                amount: coins(500_000, native_denom.clone()),
-            }
-            .into(),
-            BankMsg::Burn {
-                amount: coins(500_000, native_denom),
-            }
-            .into(),
-        ];
+        // we expect this to be the base_mint_fee
+        let msgs2: Vec<CosmosMsg> = vec![BankMsg::Send {
+            to_address: jeff_address,
+            amount: coins(1_000_000, native_denom),
+        }
+        .into()];
 
         // todo - use multitest to simulate this better
         assert_eq!(
@@ -723,6 +716,7 @@ mod tests {
             native_decimals: 6,
             token_cap: Some(2),
             base_mint_fee: Some(base_mint_fee),
+            burn_percentage: Some(50),
             short_name_surcharge: Some(SurchargeInfo {
                 surcharge_max_characters: 5, // small enough that "jeff" will be caught
                 surcharge_fee: Uint128::new(2_000_000),
@@ -809,6 +803,7 @@ mod tests {
             native_decimals: 6,
             token_cap: Some(2),
             base_mint_fee: None,
+            burn_percentage: Some(50),
             short_name_surcharge: Some(SurchargeInfo {
                 surcharge_max_characters: 5, // small enough that "jeff" will be caught
                 surcharge_fee: Uint128::new(1_500_000),
@@ -1399,6 +1394,7 @@ mod tests {
             native_decimals: 6,
             token_cap: None,
             base_mint_fee: None,
+            burn_percentage: None,
             short_name_surcharge: None,
             admin_address: "jeff-addr".to_string(),
         };

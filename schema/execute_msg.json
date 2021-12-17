@@ -567,6 +567,14 @@
             }
           ]
         },
+        "burn_percentage": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0.0
+        },
         "short_name_surcharge": {
           "anyOf": [
             {

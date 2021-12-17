@@ -25,6 +25,15 @@
         }
       ]
     },
+    "burn_percentage": {
+      "description": "An optional percentage of the mint fee to burn",
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint64",
+      "minimum": 0.0
+    },
     "name": {
       "description": "Name of the NFT contract",
       "type": "string"

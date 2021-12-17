@@ -39,6 +39,7 @@ pub fn execute_instantiate(
         native_decimals: msg.native_decimals,
         token_cap: msg.token_cap,
         base_mint_fee: msg.base_mint_fee,
+        burn_percentage: msg.burn_percentage,
         short_name_surcharge: msg.short_name_surcharge,
     };
     MINTING_FEES_INFO.save(deps.storage, &minting_fees)?;
@@ -75,6 +76,7 @@ pub fn update_minting_fees(
         // these can
         token_cap: msg.token_cap,
         base_mint_fee: msg.base_mint_fee,
+        burn_percentage: msg.burn_percentage,
         short_name_surcharge: msg.short_name_surcharge,
     };
 
@@ -206,6 +208,7 @@ pub fn mint(
         address_trying_to_mint,
         minting_fees.native_denom,
         fee,
+        minting_fees.burn_percentage,
         msg.token_id,
     );
     Ok(res)
