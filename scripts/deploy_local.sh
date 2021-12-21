@@ -91,6 +91,7 @@ WHOAMI_INIT='{
 }'
 echo "$WHOAMI_INIT" | jq .
 $BINARY tx wasm instantiate $CONTRACT_CODE "$WHOAMI_INIT" --from "validator" --label "whoami NFT nameservice" $TXFLAG
+RES=$?
 
 # get contract addr
 CONTRACT_ADDRESS=$($BINARY q wasm list-contract-by-code $CONTRACT_CODE --output json | jq -r '.contracts[-1]')
@@ -101,3 +102,6 @@ printf "Config Variables \n\n"
 
 echo "NEXT_PUBLIC_WHOAMI_CODE_ID=$CONTRACT_CODE"
 echo "NEXT_PUBLIC_WHOAMI_ADDRESS=$CONTRACT_ADDRESS"
+
+echo $RES
+exit $RES
