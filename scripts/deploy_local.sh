@@ -10,13 +10,15 @@ fi
 # this rather assumes you're using juno bootstrap script
 # this script takes an address to use inside the container
 # you get this address when running the juno bootstrap - it will be logged
-IMAGE_TAG="v2.1.0"
+IMAGE_TAG=${2:-"v2.1.0"}
 CONTAINER_NAME="juno_whoami"
 BINARY="docker exec -i $CONTAINER_NAME junod"
 DENOM='ujunox'
 CHAIN_ID='testing'
 RPC='http://localhost:26657/'
 TXFLAG="--gas-prices 0.1$DENOM --gas auto --gas-adjustment 1.5 -y -b block --chain-id $CHAIN_ID --node $RPC"
+
+echo "Building $IMAGE_TAG"
 
 # kill any orphans
 docker kill $CONTAINER_NAME
