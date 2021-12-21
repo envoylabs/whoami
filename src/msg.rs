@@ -213,8 +213,8 @@ pub enum QueryMsg {
         include_expired: Option<bool>,
     },
     /// List all operators that can access all of the owner's tokens.
-    /// Return type: `ApprovedForAllResponse`
-    ApprovedForAll {
+    /// Return type: `OperatorsResponse`
+    AllOperators {
         owner: String,
         /// unset or false will filter out expired approvals, you must set to true to see them
         include_expired: Option<bool>,
@@ -271,12 +271,12 @@ impl From<QueryMsg> for CW721QueryMsg {
                 token_id,
                 include_expired,
             },
-            QueryMsg::ApprovedForAll {
+            QueryMsg::AllOperators {
                 owner,
                 include_expired,
                 start_after,
                 limit,
-            } => CW721QueryMsg::ApprovedForAll {
+            } => CW721QueryMsg::AllOperators {
                 owner,
                 include_expired,
                 start_after,

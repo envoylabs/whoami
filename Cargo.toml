@@ -28,8 +28,8 @@ library = []
 cw2 = { version = "0.10.2" }
 cw20-base = { version = "0.10.2", features = ["library"] }
 cw20 = { version = "0.10.2" }
-cw721 = { version = "0.10.0" }
-cw721-base = { version = "0.10.0", features = ["library"] }
+cw721 = { version = "0.10.1" }
+cw721-base = { version = "0.10.1", features = ["library"] }
 cw-storage-plus = { version = "0.10.2" }
 cosmwasm-std = { version = "1.0.0-beta2" }
 schemars = "0.8.6"
