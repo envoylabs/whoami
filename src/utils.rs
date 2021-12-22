@@ -9,8 +9,19 @@ use cw721_base::ContractError;
 use crate::Cw721MetadataContract;
 use lazy_static::lazy_static;
 use regex::Regex;
+use std::convert::TryFrom;
 
-pub fn validate_username(username: &str) -> bool {
+pub fn get_username_length(username: &str) -> u32 {
+    u32::try_from(username.chars().count()).unwrap()
+}
+
+// validate username length. this, or to some number of bytes?
+pub fn validate_username_length(username: &str) -> bool {
+    let username_length = get_username_length(username);
+    username_length <= 20
+}
+
+pub fn validate_username_characters(username: &str) -> bool {
     // first check for allowed characters
     lazy_static! {
         static ref VALID: Regex = Regex::new(r"[a-z0-9_\-]").unwrap();
@@ -25,6 +36,12 @@ pub fn validate_username(username: &str) -> bool {
     let second_check_passed = !INVALID.is_match(username);
 
     first_check_passed && second_check_passed
+}
+
+pub fn username_is_valid(username: &str) -> bool {
+    let username_length_valid = validate_username_length(username);
+    let username_characters_valid = validate_username_characters(username);
+    username_characters_valid && username_length_valid
 }
 
 pub fn get_mint_fee(minting_fees: MintingFeesResponse, username_length: u32) -> Option<Uint128> {

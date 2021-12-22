@@ -2,7 +2,7 @@
 mod tests {
     use crate::entry;
 
-    use crate::utils::validate_username;
+    use crate::utils::validate_username_characters;
 
     use crate::msg::{
         ContractInfoResponse, ExecuteMsg, Extension, InstantiateMsg, Metadata, MintMsg,
@@ -21,40 +21,40 @@ mod tests {
     // test some utils first
     #[test]
     fn username_validator() {
-        let first_check = validate_username("jeffvader");
+        let first_check = validate_username_characters("jeffvader");
         assert_eq!(first_check, true);
 
-        let second_check = validate_username("jeff-vader");
+        let second_check = validate_username_characters("jeff-vader");
         assert_eq!(second_check, true);
 
-        let third_check = validate_username("jeff--vader");
+        let third_check = validate_username_characters("jeff--vader");
         assert_eq!(third_check, false);
 
-        let fourth_check = validate_username("_jeff-vader");
+        let fourth_check = validate_username_characters("_jeff-vader");
         assert_eq!(fourth_check, true);
 
-        let fifth_check = validate_username("jeff_vader");
+        let fifth_check = validate_username_characters("jeff_vader");
         assert_eq!(fifth_check, true);
 
-        let sixth_check = validate_username("_jeff_vader");
+        let sixth_check = validate_username_characters("_jeff_vader");
         assert_eq!(sixth_check, true);
 
-        let seventh_check = validate_username("-jeff_vader");
+        let seventh_check = validate_username_characters("-jeff_vader");
         assert_eq!(seventh_check, true);
 
-        let eighth_check = validate_username("__jeffvader");
+        let eighth_check = validate_username_characters("__jeffvader");
         assert_eq!(eighth_check, false);
 
-        let ninth_check = validate_username("j3ffv4d3r");
+        let ninth_check = validate_username_characters("j3ffv4d3r");
         assert_eq!(ninth_check, true);
 
-        let tenth_check = validate_username("j3ff_v4d3r");
+        let tenth_check = validate_username_characters("j3ff_v4d3r");
         assert_eq!(tenth_check, true);
 
-        let eleventh_check = validate_username("j3ff__v4d3r");
+        let eleventh_check = validate_username_characters("j3ff__v4d3r");
         assert_eq!(eleventh_check, false);
 
-        let twelfth_check = validate_username("jeff_-vader");
+        let twelfth_check = validate_username_characters("jeff_-vader");
         assert_eq!(twelfth_check, false);
     }
 

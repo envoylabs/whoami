@@ -3,7 +3,7 @@ use cw2::set_contract_version;
 use cw721::Cw721ReceiveMsg;
 use cw721_base::state::TokenInfo;
 use cw721_base::ContractError;
-use std::convert::TryFrom;
+
 use std::convert::TryInto;
 
 use crate::msg::{
@@ -13,7 +13,8 @@ use crate::msg::{
 
 use crate::state::{CONTRACT_INFO, MINTING_FEES_INFO, PRIMARY_ALIASES};
 use crate::utils::{
-    get_mint_fee, get_mint_response, get_number_of_owned_tokens, validate_username, verify_logo,
+    get_mint_fee, get_mint_response, get_number_of_owned_tokens, get_username_length,
+    username_is_valid, verify_logo,
 };
 use crate::Cw721MetadataContract;
 
@@ -175,17 +176,13 @@ pub fn mint(
     let owner_address = deps.api.addr_validate(&msg.owner)?;
 
     // username == token_id
-    // validate username length. this, or to some number of bytes?
-    // also validate username characters
     let username = &msg.token_id;
-    let username_length = u32::try_from(username.chars().count()).unwrap();
-    let username_valid = validate_username(username);
-    if !username_valid || username_length > 20 {
+    if !username_is_valid(username) {
         return Err(ContractError::Unauthorized {});
     }
 
     // work out what fees are owed
-    let fee = get_mint_fee(minting_fees.clone(), username_length);
+    let fee = get_mint_fee(minting_fees.clone(), get_username_length(username));
 
     // create the token
     // this will fail if token_id (i.e. username)
