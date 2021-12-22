@@ -14,8 +14,10 @@ DENOM='ujunox'
 CHAIN_ID='testing'
 RPC='http://localhost:26657/'
 TXFLAG="--gas-prices 0.1$DENOM --gas auto --gas-adjustment 1.5 -y -b block --chain-id $CHAIN_ID --node $RPC"
+BLOCK_GAS_LIMIT=${GAS_LIMIT:-100000000} # should mirror mainnet
 
 echo "Building $IMAGE_TAG"
+echo "Configured Block Gas Limit: $BLOCK_GAS_LIMIT"
 
 # kill any orphans
 docker kill $CONTAINER_NAME
@@ -25,6 +27,7 @@ docker volume rm -f junod_data
 docker run --rm -it \
     -e PASSWORD=xxxxxxxxx \
     -e STAKE_TOKEN=$DENOM \
+    -e GAS_LIMIT="$GAS_LIMIT" \
     --mount type=volume,source=junod_data,target=/root \
     ghcr.io/cosmoscontracts/juno:$IMAGE_TAG /opt/setup_junod.sh $1
 
