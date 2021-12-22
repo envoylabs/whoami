@@ -7,7 +7,6 @@ use cw20::{EmbeddedLogo, Logo};
 use cw721_base::ContractError;
 
 use crate::Cw721MetadataContract;
-use lazy_static::lazy_static;
 use regex::Regex;
 use std::convert::TryFrom;
 
@@ -23,17 +22,13 @@ pub fn validate_username_length(username: &str) -> bool {
 
 pub fn validate_username_characters(username: &str) -> bool {
     // first check for allowed characters
-    lazy_static! {
-        static ref VALID: Regex = Regex::new(r"[a-z0-9_\-]").unwrap();
-    }
-    let first_check_passed = VALID.is_match(username);
+    let valid_match: Regex = Regex::new(r"[a-z0-9_\-]").unwrap();
+    let first_check_passed = valid_match.is_match(username);
 
     // then check for invalid sequence of hyphens or underscores
     // if is_match returns true, it is invalid
-    lazy_static! {
-        static ref INVALID: Regex = Regex::new(r"[_\-]{2,}").unwrap();
-    }
-    let second_check_passed = !INVALID.is_match(username);
+    let invalid_match: Regex = Regex::new(r"[_\-]{2,}").unwrap();
+    let second_check_passed = !invalid_match.is_match(username);
 
     first_check_passed && second_check_passed
 }
