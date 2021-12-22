@@ -12,7 +12,9 @@ use crate::msg::{
 };
 
 use crate::state::{CONTRACT_INFO, MINTING_FEES_INFO, PRIMARY_ALIASES};
-use crate::utils::{get_mint_fee, get_mint_response, get_number_of_owned_tokens, verify_logo};
+use crate::utils::{
+    get_mint_fee, get_mint_response, get_number_of_owned_tokens, validate_username, verify_logo,
+};
 use crate::Cw721MetadataContract;
 
 // version info for migration info
@@ -174,9 +176,11 @@ pub fn mint(
 
     // username == token_id
     // validate username length. this, or to some number of bytes?
+    // also validate username characters
     let username = &msg.token_id;
     let username_length = u32::try_from(username.chars().count()).unwrap();
-    if username_length > 20 {
+    let username_valid = validate_username(username);
+    if !username_valid || username_length > 20 {
         return Err(ContractError::Unauthorized {});
     }
 

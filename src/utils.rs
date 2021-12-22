@@ -7,6 +7,25 @@ use cw20::{EmbeddedLogo, Logo};
 use cw721_base::ContractError;
 
 use crate::Cw721MetadataContract;
+use lazy_static::lazy_static;
+use regex::Regex;
+
+pub fn validate_username(username: &str) -> bool {
+    // first check for allowed characters
+    lazy_static! {
+        static ref VALID: Regex = Regex::new(r"[a-z0-9_\-]").unwrap();
+    }
+    let first_check_passed = VALID.is_match(username);
+
+    // then check for invalid sequence of hyphens or underscores
+    // if is_match returns true, it is invalid
+    lazy_static! {
+        static ref INVALID: Regex = Regex::new(r"[_\-]{2,}").unwrap();
+    }
+    let second_check_passed = !INVALID.is_match(username);
+
+    first_check_passed && second_check_passed
+}
 
 pub fn get_mint_fee(minting_fees: MintingFeesResponse, username_length: u32) -> Option<Uint128> {
     // is token name short enough to trigger a surcharge?
