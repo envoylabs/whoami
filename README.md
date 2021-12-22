@@ -65,13 +65,13 @@ pub struct PrimaryAliasResponse {
 ```
 
 Its default behaviour is to return the last NFT in the list owned by
-the address (LILO). Alternatively, the user can set a preferred alias.
+the address (LILO). Alternatively, the user can set a primary alias.
 
-### Setting a preferred alias
+### Setting a primary alias
 
 An owner might have multiple NFTs.
 
-Setting a preferred alias is done via a new `ExecuteMsg` variant. On
+Setting a primary alias is done via a new `ExecuteMsg` variant. On
 `burn`, `transfer_nft` or `send_nft`, this entry will be cleared from
 storage.
 
@@ -84,7 +84,7 @@ UpdatePrimaryAlias {
 ### Other query strategies
 
 It is possible also to use `token_info` and pass in a limit of 1, to
-match the default behaviour of the `PreferredAlias` query message.
+match the default behaviour of the `PrimaryAlias` query message.
 
 ```rust
 Tokens {
