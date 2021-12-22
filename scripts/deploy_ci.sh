@@ -6,15 +6,12 @@ then
   exit
 fi
 
-IMAGE_TAG=${2:-"v2.1.0"}
 CONTAINER_NAME="juno_node_1"
 BINARY="docker exec -i $CONTAINER_NAME junod"
 DENOM='ujunox'
 CHAIN_ID='testing'
 RPC='http://localhost:26657/'
 TXFLAG="--gas-prices 0.1$DENOM --gas auto --gas-adjustment 1.5 -y -b block --chain-id $CHAIN_ID --node $RPC"
-
-echo "Building $IMAGE_TAG"
 
 # compile
 docker run --rm -v "$(pwd)":/code \
