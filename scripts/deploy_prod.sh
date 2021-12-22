@@ -29,11 +29,20 @@ echo "Stored: $CONTRACT_CODE"
 
 # instantiate the CW721
 WHOAMI_INIT='{
-  "minter": "'"$1"'",
-  "name": "'"$3"'",
-  "symbol": "'"$4"'"
+  "admin_address": "'"$1"'",
+  "name": "Decentralized Name Service",
+  "symbol": "WHO",
+  "native_denom": "'"$DENOM"'",
+  "native_decimals": 6,
+  "token_cap": null,
+  "base_mint_fee": "1000000",
+  "burn_percentage": 50,
+  "short_name_surcharge": {
+    "surcharge_max_characters": 5,
+    "surcharge_fee": "1000000"
+  }
 }'
-echo "$WHOAMI_INIT"
+echo "$WHOAMI_INIT" | jq .
 $BINARY tx wasm instantiate $CONTRACT_CODE "$WHOAMI_INIT" --from "$2" --label $LABEL $TXFLAG
 
 # get contract addr
