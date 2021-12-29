@@ -1,10 +1,10 @@
+use crate::error::ContractError;
 use crate::msg::MintingFeesResponse;
 use cosmwasm_std::{
     coins, Addr, BankMsg, CosmosMsg, Decimal, DepsMut, Order, Response, StdError, StdResult,
     Uint128,
 };
 use cw20::{EmbeddedLogo, Logo};
-use cw721_base::ContractError;
 
 use crate::Cw721MetadataContract;
 use regex::Regex;
@@ -213,6 +213,6 @@ pub fn verify_logo(logo: &Logo) -> Result<(), ContractError> {
     match logo {
         Logo::Embedded(EmbeddedLogo::Svg(logo)) => verify_xml_logo(logo),
         Logo::Embedded(EmbeddedLogo::Png(logo)) => verify_png_logo(logo),
-        Logo::Url(_) => Err(ContractError::Unauthorized {}), // this is an embedded field, we don't allow URLs like CW20
+        Logo::Url(_) => Err(ContractError::NoLinksPermitted {}), // this is an embedded field, we don't allow URLs like CW20
     }
 }
