@@ -1,8 +1,9 @@
+use crate::error::ContractError;
 use cosmwasm_std::{Binary, DepsMut, Env, MessageInfo, Response, StdResult};
 use cw2::set_contract_version;
 use cw721::Cw721ReceiveMsg;
 use cw721_base::state::TokenInfo;
-use cw721_base::ContractError;
+use cw_utils::must_pay;
 
 use std::convert::TryInto;
 
@@ -130,7 +131,7 @@ pub fn mint(
 ) -> Result<Response, ContractError> {
     // any address can mint
     // sender of the execute
-    let address_trying_to_mint = info.sender;
+    let address_trying_to_mint = info.sender.clone();
 
     // can only mint NFTs belonging to yourself
     if address_trying_to_mint != msg.owner {
@@ -183,6 +184,10 @@ pub fn mint(
 
     // work out what fees are owed
     let fee = get_mint_fee(minting_fees.clone(), get_username_length(username));
+    // error out if this fee isn't covered in the msg
+    if fee.is_some() {
+        must_pay(&info, &minting_fees.native_denom)?;
+    };
 
     // create the token
     // this will fail if token_id (i.e. username)

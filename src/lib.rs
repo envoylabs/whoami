@@ -1,4 +1,5 @@
 mod contract_tests;
+mod error;
 pub mod execute;
 pub mod msg;
 pub mod query;
@@ -7,8 +8,6 @@ pub mod utils;
 
 use cosmwasm_std::{to_binary, Empty};
 
-pub use cw721_base::ContractError;
-
 use execute::{
     burn, execute_instantiate, mint, send_nft, set_admin_address, transfer_nft, update_metadata,
     update_minting_fees, update_primary_alias,
@@ -16,6 +15,8 @@ use execute::{
 use query::{contract_info, primary_alias};
 
 pub use crate::msg::{ExecuteMsg, Extension, InstantiateMsg, QueryMsg};
+
+pub use crate::error::ContractError;
 
 pub type Cw721MetadataContract<'a> = cw721_base::Cw721Contract<'a, Extension, Empty>;
 
@@ -72,7 +73,7 @@ pub mod entry {
 
             _ => tract
                 .execute(deps, env, info, msg.into())
-                .map_err(|err| err),
+                .map_err(ContractError::Base),
         }
     }
 

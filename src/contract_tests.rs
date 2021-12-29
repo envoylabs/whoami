@@ -4,6 +4,8 @@ mod tests {
 
     use crate::utils::validate_username_characters;
 
+    use crate::error::ContractError;
+
     use crate::msg::{
         ContractInfoResponse, ExecuteMsg, Extension, InstantiateMsg, Metadata, MintMsg,
         PrimaryAliasResponse, QueryMsg, SurchargeInfo, UpdateMetadataMsg, UpdateMintingFeesMsg,
@@ -12,7 +14,7 @@ mod tests {
     use cosmwasm_std::{
         coins, from_binary, to_binary, BankMsg, CosmosMsg, Decimal, DepsMut, Response, Uint128,
     };
-    use cw721_base::{ContractError, MinterResponse};
+    use cw721_base::MinterResponse;
 
     use cw721::{Cw721Query, NftInfoResponse, OwnerOfResponse};
 
@@ -588,7 +590,10 @@ mod tests {
         let mint_res = entry::execute(
             deps.as_mut(),
             mock_env(),
-            jeff_sender_info.clone(),
+            mock_info(
+                &jeff_address,
+                &coins(expected_mint_fee.u128(), native_denom.clone()),
+            ),
             exec_msg,
         )
         .unwrap();
@@ -675,7 +680,10 @@ mod tests {
         let mint_res = entry::execute(
             deps.as_mut(),
             mock_env(),
-            jeff_sender_info.clone(),
+            mock_info(
+                &jeff_address,
+                &coins(expected_mint_fee.u128(), native_denom.clone()),
+            ),
             exec_msg,
         )
         .unwrap();
@@ -715,7 +723,10 @@ mod tests {
         let mint_res2 = entry::execute(
             deps.as_mut(),
             mock_env(),
-            jeff_sender_info.clone(),
+            mock_info(
+                &jeff_address,
+                &coins(base_mint_fee.u128(), native_denom.clone()),
+            ),
             exec_msg2,
         )
         .unwrap();
@@ -792,13 +803,13 @@ mod tests {
         let mint_res = entry::execute(
             deps.as_mut(),
             mock_env(),
-            jeff_sender_info.clone(),
+            mock_info(&jeff_address, &coins(3_250_333, native_denom.clone())),
             exec_msg,
         )
         .unwrap();
 
         // should get a response with submsgs
-        // should cost 2_000_000
+        // should cost 3_250_333
         // 1_625_166 sent and 1_625_166 burned
         // todo - use multitest to simulate this better
         let msgs: Vec<CosmosMsg> = vec![
@@ -879,7 +890,10 @@ mod tests {
         let mint_res = entry::execute(
             deps.as_mut(),
             mock_env(),
-            jeff_sender_info.clone(),
+            mock_info(
+                &jeff_address,
+                &coins(expected_mint_fee.u128(), native_denom.clone()),
+            ),
             exec_msg,
         )
         .unwrap();
@@ -1398,7 +1412,10 @@ mod tests {
         )
         .unwrap_err();
 
-        assert_eq!(err, ContractError::Unauthorized {});
+        assert_eq!(
+            err,
+            ContractError::Base(cw721_base::ContractError::Unauthorized {})
+        );
 
         // then check jeff can
         let _ = entry::execute(deps.as_mut(), mock_env(), allowed, burn_msg).unwrap();
