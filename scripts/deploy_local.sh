@@ -76,6 +76,10 @@ BALANCE_2=$($BINARY q bank balances $VALIDATOR_ADDR)
 echo "Post-store balance:"
 echo $BALANCE_2
 
+BASE_MINT_FEE=1000000
+SURCHARGE_FEE=1000000
+TOTAL_FEE=$((BASE_MINT_FEE + SURCHARGE_FEE))
+
 # instantiate the CW721
 WHOAMI_INIT='{
   "admin_address": "'"$1"'",
@@ -84,11 +88,11 @@ WHOAMI_INIT='{
   "native_denom": "'"$DENOM"'",
   "native_decimals": 6,
   "token_cap": null,
-  "base_mint_fee": "1000000",
+  "base_mint_fee": "'"$BASE_MINT_FEE"'",
   "burn_percentage": 50,
   "short_name_surcharge": {
     "surcharge_max_characters": 5,
-    "surcharge_fee": "1000000"
+    "surcharge_fee": "'"$SURCHARGE_FEE"'"
   }
 }'
 echo "$WHOAMI_INIT" | jq .
@@ -104,6 +108,7 @@ printf "Config Variables \n\n"
 
 echo "NEXT_PUBLIC_WHOAMI_CODE_ID=$CONTRACT_CODE"
 echo "NEXT_PUBLIC_WHOAMI_ADDRESS=$CONTRACT_ADDRESS"
+echo "NEXT_PUBLIC_MINT_FEE=$TOTAL_FEE"
 
 echo $RES
 exit $RES
