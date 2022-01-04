@@ -21,14 +21,14 @@ pub fn validate_username_length(username: &str) -> bool {
 }
 
 pub fn validate_username_characters(username: &str) -> bool {
-    // first check for allowed characters
-    let valid_match: Regex = Regex::new(r"[a-z0-9_\-]").unwrap();
-    let first_check_passed = valid_match.is_match(username);
+    // first check for any characters _other than_ allowed characters
+    let invalid_characters: Regex = Regex::new(r"[^a-z0-9_\-]").unwrap();
+    let first_check_passed = !invalid_characters.is_match(username);
 
     // then check for invalid sequence of hyphens or underscores
     // if is_match returns true, it is invalid
-    let invalid_match: Regex = Regex::new(r"[_\-]{2,}").unwrap();
-    let second_check_passed = !invalid_match.is_match(username);
+    let invalid_hyphens_underscores: Regex = Regex::new(r"[_\-]{2,}").unwrap();
+    let second_check_passed = !invalid_hyphens_underscores.is_match(username);
 
     first_check_passed && second_check_passed
 }
