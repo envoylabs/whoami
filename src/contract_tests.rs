@@ -58,6 +58,14 @@ mod tests {
 
         let twelfth_check = validate_username_characters("jeff_-vader");
         assert_eq!(twelfth_check, false);
+
+        // strictly speaking these are invalid
+        // but we should normalize before we even hit these
+        let thirteenth_check = validate_username_characters("JeffVader");
+        assert_eq!(thirteenth_check, false);
+
+        let fourteenth_check = validate_username_characters("Jeff");
+        assert_eq!(fourteenth_check, false);
     }
 
     const CREATOR: &str = "creator";
@@ -1463,7 +1471,7 @@ mod tests {
         // info.sender and owner need to be the same
         // that & MINTER do not need to be
         // as MINTER is the admin addr on the contract
-        let token_id = "Enterprise";
+        let token_id = "enterprise";
         let mint_msg = MintMsg {
             token_id: token_id.to_string(),
             owner: CREATOR.to_string(),

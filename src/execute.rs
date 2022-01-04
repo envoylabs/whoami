@@ -177,7 +177,8 @@ pub fn mint(
     let owner_address = deps.api.addr_validate(&msg.owner)?;
 
     // username == token_id
-    let username = &msg.token_id;
+    // normalize it to lowercase
+    let username = &msg.token_id.to_lowercase();
     if !username_is_valid(username) {
         return Err(ContractError::Unauthorized {});
     }
