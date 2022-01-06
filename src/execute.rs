@@ -310,6 +310,22 @@ pub fn update_primary_alias(
 //     Ok(res)
 // }
 
+// pub fn get_primary_and_username_nft(
+//     deps: DepsMut,
+//     token_id: String,
+// ) -> Result<(String, TokenInfo<Metadata>), ContractError> {
+//     let contract = Cw721MetadataContract::default();
+//     let username_nft = contract.tokens.load(deps.storage, &token_id)?;
+//     let primary_alias = PRIMARY_ALIASES.may_load(deps.storage, &username_nft.owner)?;
+
+//     let primary_alias = match primary_alias {
+//         Some(alias) => alias,
+//         None => String::default(),
+//     };
+
+//     Ok((primary_alias, username_nft))
+// }
+
 pub fn transfer_nft(
     contract: Cw721MetadataContract,
     deps: DepsMut,
@@ -318,9 +334,14 @@ pub fn transfer_nft(
     recipient: String,
     token_id: String,
 ) -> Result<Response, ContractError> {
-    // clear aliases before transfer
+    // clear aliases before transfer iif it is the one being xfrd
     let username_nft = contract.tokens.load(deps.storage, &token_id)?;
-    PRIMARY_ALIASES.remove(deps.storage, &username_nft.owner);
+    let primary_alias = PRIMARY_ALIASES.may_load(deps.storage, &username_nft.owner)?;
+    if let Some(alias) = primary_alias {
+        if alias == token_id {
+            PRIMARY_ALIASES.remove(deps.storage, &username_nft.owner);
+        }
+    }
 
     contract._transfer_nft(deps, &env, &info, &recipient, &token_id)?;
 
@@ -340,9 +361,14 @@ pub fn send_nft(
     token_id: String,
     msg: Binary,
 ) -> Result<Response, ContractError> {
-    // clear aliases before send
+    // clear aliases before send iif it is the one being sent
     let username_nft = contract.tokens.load(deps.storage, &token_id)?;
-    PRIMARY_ALIASES.remove(deps.storage, &username_nft.owner);
+    let primary_alias = PRIMARY_ALIASES.may_load(deps.storage, &username_nft.owner)?;
+    if let Some(alias) = primary_alias {
+        if alias == token_id {
+            PRIMARY_ALIASES.remove(deps.storage, &username_nft.owner);
+        }
+    }
 
     // Transfer token
     contract._transfer_nft(deps, &env, &info, &receiving_contract, &token_id)?;
@@ -372,8 +398,13 @@ pub fn burn(
     let token = contract.tokens.load(deps.storage, &token_id)?;
     contract.check_can_send(deps.as_ref(), &env, &info, &token)?;
 
-    // clear aliases before delete
-    PRIMARY_ALIASES.remove(deps.storage, &token.owner);
+    // clear aliases before delete iif it is the one being burned
+    let primary_alias = PRIMARY_ALIASES.may_load(deps.storage, &token.owner)?;
+    if let Some(alias) = primary_alias {
+        if alias == token_id {
+            PRIMARY_ALIASES.remove(deps.storage, &token.owner);
+        }
+    }
 
     contract.tokens.remove(deps.storage, &token_id)?;
     contract.decrement_tokens(deps.storage)?;
