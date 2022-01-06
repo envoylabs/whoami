@@ -1306,6 +1306,197 @@ mod tests {
     }
 
     #[test]
+    fn alias_unchanged_if_primary_not_burned() {
+        let mut deps = mock_dependencies();
+        let contract = Cw721MetadataContract::default();
+
+        let msg = InstantiateMsg {
+            name: CONTRACT_NAME.to_string(),
+            symbol: SYMBOL.to_string(),
+            native_denom: "uatom".to_string(),
+            native_decimals: 6,
+            token_cap: Some(3),
+            base_mint_fee: None,
+            burn_percentage: Some(50),
+            short_name_surcharge: None,
+            admin_address: String::from(MINTER),
+        };
+        let info = mock_info("creator", &[]);
+        let res = entry::instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+        assert_eq!(0, res.messages.len());
+
+        // init a plausible username
+        let token_id = "jeffisthebest".to_string();
+        let token_uri = "https://example.com/jeff-vader".to_string();
+        let jeff_address = String::from("jeff-vader");
+
+        let meta = Metadata {
+            twitter_id: Some(String::from("@jeff-vader")),
+            ..Metadata::default()
+        };
+
+        let mint_msg = ExecuteMsg::Mint(MintMsg {
+            token_id: token_id.clone(),
+            owner: jeff_address.clone(),
+            token_uri: Some(token_uri),
+            extension: meta.clone(),
+        });
+
+        // CHECK: jeff can mint
+        let allowed = mock_info(&jeff_address, &[]);
+        let _ = entry::execute(deps.as_mut(), mock_env(), allowed.clone(), mint_msg).unwrap();
+
+        // CHECK: ensure num tokens increases
+        let count = contract.num_tokens(deps.as_ref()).unwrap();
+        assert_eq!(1, count.count);
+
+        // CHECK: alias returns something
+        let alias_query_res: PrimaryAliasResponse = from_binary(
+            &entry::query(
+                deps.as_ref(),
+                mock_env(),
+                QueryMsg::PrimaryAlias {
+                    address: jeff_address.clone(),
+                },
+            )
+            .unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(alias_query_res.username, token_id);
+
+        // CHECK: can mint second NFT
+        let token_id_2 = "jeffisbetterthanjohn".to_string();
+        let mint_msg2 = ExecuteMsg::Mint(MintMsg {
+            token_id: token_id_2.clone(),
+            owner: jeff_address.clone(),
+            token_uri: None,
+            extension: meta.clone(),
+        });
+
+        let _ = entry::execute(deps.as_mut(), mock_env(), allowed.clone(), mint_msg2).unwrap();
+
+        // CHECK: ensure num tokens increases to 2
+        let count_2 = contract.num_tokens(deps.as_ref()).unwrap();
+        assert_eq!(2, count_2.count);
+
+        // CHECK: default will be that last in is returned
+        let alias_query_res_2: PrimaryAliasResponse = from_binary(
+            &entry::query(
+                deps.as_ref(),
+                mock_env(),
+                QueryMsg::PrimaryAlias {
+                    address: jeff_address.clone(),
+                },
+            )
+            .unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(alias_query_res_2.username, token_id_2);
+
+        // set alias to NFT 1
+        let _update_alias_res = entry::execute(
+            deps.as_mut(),
+            mock_env(),
+            allowed.clone(),
+            ExecuteMsg::UpdatePrimaryAlias {
+                token_id: token_id.clone(),
+            },
+        );
+
+        // CHECK: alias updated
+        let alias_query_res_3: PrimaryAliasResponse = from_binary(
+            &entry::query(
+                deps.as_ref(),
+                mock_env(),
+                QueryMsg::PrimaryAlias {
+                    address: jeff_address.clone(),
+                },
+            )
+            .unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(alias_query_res_3.username, token_id);
+
+        // CHECK: can mint third NFT
+        let token_id_3 = "third-username".to_string();
+        let mint_msg3 = ExecuteMsg::Mint(MintMsg {
+            token_id: token_id_3,
+            owner: jeff_address.clone(),
+            token_uri: None,
+            extension: meta,
+        });
+
+        let _ = entry::execute(deps.as_mut(), mock_env(), allowed.clone(), mint_msg3).unwrap();
+
+        // CHECK: ensure num tokens increases to 3
+        let count_3 = contract.num_tokens(deps.as_ref()).unwrap();
+        assert_eq!(3, count_3.count);
+
+        // CHECK: alias NOT updated
+        let alias_query_res_4: PrimaryAliasResponse = from_binary(
+            &entry::query(
+                deps.as_ref(),
+                mock_env(),
+                QueryMsg::PrimaryAlias {
+                    address: jeff_address.clone(),
+                },
+            )
+            .unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(alias_query_res_4.username, token_id);
+
+        // let's burn
+        let burn_msg = ExecuteMsg::Burn {
+            token_id: token_id_2,
+        };
+
+        // CHECK: random cannot burn
+        let john_q_rando = "random-guy";
+
+        let not_allowed_to_burn = mock_info(john_q_rando, &[]);
+        let err = entry::execute(
+            deps.as_mut(),
+            mock_env(),
+            not_allowed_to_burn,
+            burn_msg.clone(),
+        )
+        .unwrap_err();
+
+        assert_eq!(
+            err,
+            ContractError::Base(cw721_base::ContractError::Unauthorized {})
+        );
+
+        // then check jeff can
+        let _ = entry::execute(deps.as_mut(), mock_env(), allowed, burn_msg).unwrap();
+
+        // ensure num tokens decreases
+        let count = contract.num_tokens(deps.as_ref()).unwrap();
+        assert_eq!(2, count.count);
+
+        // CHECK: now preferred should return the unchanged token_id
+        // that was set as primary
+        let alias_query_res_5: PrimaryAliasResponse = from_binary(
+            &entry::query(
+                deps.as_ref(),
+                mock_env(),
+                QueryMsg::PrimaryAlias {
+                    address: jeff_address,
+                },
+            )
+            .unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(alias_query_res_5.username, token_id);
+    }
+
+    #[test]
     fn alias_cleared_on_burn() {
         let mut deps = mock_dependencies();
         let contract = setup_contract(deps.as_mut());
