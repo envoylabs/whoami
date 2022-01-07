@@ -300,41 +300,15 @@ pub fn update_primary_alias(
 // --- we override these purely so we can clear any preferred aliases on transfer or burn
 //
 
-// fn clear_aliases(
-//     contract: Cw721MetadataContract,
-//     deps: DepsMut,
-//     token_id: String,
-// ) -> Result<(), ContractError> {
+// fn clear_aliases(deps: DepsMut, token_id: String) -> Result<(), ContractError> {
+//     let contract = Cw721MetadataContract::default();
 //     let username_nft = contract.tokens.load(deps.storage, &token_id)?;
 //     let res = PRIMARY_ALIASES.remove(deps.storage, &username_nft.owner);
 //     Ok(res)
 // }
 
-// pub fn get_primary_and_username_nft(
-//     deps: DepsMut,
-//     token_id: String,
-// ) -> Result<(String, TokenInfo<Metadata>), ContractError> {
-//     let contract = Cw721MetadataContract::default();
-//     let username_nft = contract.tokens.load(deps.storage, &token_id)?;
-//     let primary_alias = PRIMARY_ALIASES.may_load(deps.storage, &username_nft.owner)?;
-
-//     let primary_alias = match primary_alias {
-//         Some(alias) => alias,
-//         None => String::default(),
-//     };
-
-//     Ok((primary_alias, username_nft))
-// }
-
-pub fn transfer_nft(
-    contract: Cw721MetadataContract,
-    deps: DepsMut,
-    env: Env,
-    info: MessageInfo,
-    recipient: String,
-    token_id: String,
-) -> Result<Response, ContractError> {
-    // clear aliases before transfer iif it is the one being xfrd
+pub fn clear_alias_if_primary(deps: DepsMut, token_id: String) -> Result<(), ContractError> {
+    let contract = Cw721MetadataContract::default();
     let username_nft = contract.tokens.load(deps.storage, &token_id)?;
     let primary_alias = PRIMARY_ALIASES.may_load(deps.storage, &username_nft.owner)?;
     if let Some(alias) = primary_alias {
@@ -342,6 +316,19 @@ pub fn transfer_nft(
             PRIMARY_ALIASES.remove(deps.storage, &username_nft.owner);
         }
     }
+    Ok(())
+}
+
+pub fn transfer_nft(
+    contract: Cw721MetadataContract,
+    mut deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    recipient: String,
+    token_id: String,
+) -> Result<Response, ContractError> {
+    // clear aliases before transfer iif it is the one being xfrd
+    clear_alias_if_primary(deps.branch(), token_id.to_string())?;
 
     contract._transfer_nft(deps, &env, &info, &recipient, &token_id)?;
 
@@ -354,7 +341,7 @@ pub fn transfer_nft(
 
 pub fn send_nft(
     contract: Cw721MetadataContract,
-    deps: DepsMut,
+    mut deps: DepsMut,
     env: Env,
     info: MessageInfo,
     receiving_contract: String,
@@ -362,13 +349,7 @@ pub fn send_nft(
     msg: Binary,
 ) -> Result<Response, ContractError> {
     // clear aliases before send iif it is the one being sent
-    let username_nft = contract.tokens.load(deps.storage, &token_id)?;
-    let primary_alias = PRIMARY_ALIASES.may_load(deps.storage, &username_nft.owner)?;
-    if let Some(alias) = primary_alias {
-        if alias == token_id {
-            PRIMARY_ALIASES.remove(deps.storage, &username_nft.owner);
-        }
-    }
+    clear_alias_if_primary(deps.branch(), token_id.to_string())?;
 
     // Transfer token
     contract._transfer_nft(deps, &env, &info, &receiving_contract, &token_id)?;
@@ -390,7 +371,7 @@ pub fn send_nft(
 
 pub fn burn(
     contract: Cw721MetadataContract,
-    deps: DepsMut,
+    mut deps: DepsMut,
     env: Env,
     info: MessageInfo,
     token_id: String,
@@ -399,12 +380,7 @@ pub fn burn(
     contract.check_can_send(deps.as_ref(), &env, &info, &token)?;
 
     // clear aliases before delete iif it is the one being burned
-    let primary_alias = PRIMARY_ALIASES.may_load(deps.storage, &token.owner)?;
-    if let Some(alias) = primary_alias {
-        if alias == token_id {
-            PRIMARY_ALIASES.remove(deps.storage, &token.owner);
-        }
-    }
+    clear_alias_if_primary(deps.branch(), token_id.to_string())?;
 
     contract.tokens.remove(deps.storage, &token_id)?;
     contract.decrement_tokens(deps.storage)?;
