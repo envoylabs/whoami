@@ -1,4 +1,7 @@
-use crate::msg::{ContractInfoResponse, IsContractResponse, PrimaryAliasResponse};
+use crate::msg::{
+    ContractInfoResponse, GetParentIdResponse, GetPathResponse, IsContractResponse,
+    PrimaryAliasResponse, WhoamiNftInfoResponse,
+};
 use crate::state::{CONTRACT_INFO, MINTING_FEES_INFO, PRIMARY_ALIASES};
 use crate::Cw721MetadataContract;
 use cosmwasm_std::{Deps, Env, Order, StdError, StdResult};
@@ -87,4 +90,80 @@ pub fn is_contract(
     let is_contract = token.extension.is_contract.unwrap_or(false);
 
     Ok(IsContractResponse { is_contract })
+}
+
+// looks up the actual token
+// so throws an error if it doesn't exist
+pub fn get_parent_id(
+    contract: Cw721MetadataContract,
+    deps: Deps,
+    token_id: String,
+) -> StdResult<GetParentIdResponse> {
+    let token = contract.tokens.load(deps.storage, &token_id)?;
+
+    match token.extension.parent_token_id {
+        Some(pti) => {
+            // attempt to load parent
+            // else error
+            let _parent_token = contract.tokens.load(deps.storage, &pti)?;
+
+            Ok(GetParentIdResponse {
+                parent_token_id: pti,
+            })
+        }
+        None => Err(StdError::NotFound {
+            kind: "Parent not found".to_string(),
+        }),
+    }
+}
+
+pub fn get_parent_nft_info(
+    contract: Cw721MetadataContract,
+    deps: Deps,
+    token_id: String,
+) -> StdResult<WhoamiNftInfoResponse> {
+    let token = contract.tokens.load(deps.storage, &token_id)?;
+
+    match token.extension.parent_token_id {
+        Some(pti) => {
+            // attempt to load parent
+            let parent_token = contract.tokens.load(deps.storage, &pti)?;
+
+            Ok(WhoamiNftInfoResponse {
+                token_uri: parent_token.token_uri,
+                extension: parent_token.extension,
+            })
+        }
+        None => Err(StdError::NotFound {
+            kind: "Parent not found".to_string(),
+        }),
+    }
+}
+
+// get full path by heading up through the parents
+pub fn get_path(
+    contract: Cw721MetadataContract,
+    deps: Deps,
+    token_id: String,
+) -> StdResult<GetPathResponse> {
+    let token = contract.tokens.load(deps.storage, &token_id)?;
+
+    let mut parents = vec![token_id];
+    let mut current_parent_token_id = token.extension.parent_token_id;
+
+    while current_parent_token_id.is_some() {
+        let cpti = current_parent_token_id.unwrap();
+
+        // look up parent token
+        let parent_token = contract.tokens.load(deps.storage, &cpti)?;
+
+        // insert current token
+        parents.insert(0, cpti);
+
+        // set the next one - this will be Some or None
+        current_parent_token_id = parent_token.extension.parent_token_id;
+    }
+
+    let path = parents.join("/");
+    Ok(GetPathResponse { path })
 }

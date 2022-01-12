@@ -15,7 +15,7 @@ use crate::msg::{
 use crate::state::{CONTRACT_INFO, MINTING_FEES_INFO, PRIMARY_ALIASES};
 use crate::utils::{
     get_mint_fee, get_mint_response, get_number_of_owned_tokens, get_username_length,
-    username_is_valid, verify_logo,
+    username_is_valid, validate_subdomain, verify_logo,
 };
 use crate::Cw721MetadataContract;
 
@@ -163,12 +163,12 @@ pub fn mint(
     match minting_fees.token_cap {
         Some(tc) => {
             if number_of_tokens_owned >= tc.try_into().unwrap() {
-                return Err(ContractError::Unauthorized {});
+                return Err(ContractError::TokenCapExceeded {});
             }
         }
         None => {
             if number_of_tokens_owned == default_limit {
-                return Err(ContractError::Unauthorized {});
+                return Err(ContractError::TokenCapExceeded {});
             }
         }
     }
@@ -180,7 +180,23 @@ pub fn mint(
     // normalize it to lowercase
     let username = &msg.token_id.to_lowercase();
     if !username_is_valid(username) {
-        return Err(ContractError::Unauthorized {});
+        return Err(ContractError::TokenNameInvalid {});
+    }
+
+    // if parent_token_id is set,
+    // this is a subdomain
+    // we also check for cycles
+    if let Some(ref parent_token_id) = msg.extension.parent_token_id {
+        if parent_token_id == username {
+            return Err(ContractError::CycleDetected {});
+        } else {
+            validate_subdomain(
+                &contract,
+                &deps,
+                parent_token_id.to_string(),
+                address_trying_to_mint.clone(),
+            )?;
+        }
     }
 
     // work out what fees are owed
