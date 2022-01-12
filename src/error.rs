@@ -19,6 +19,9 @@ pub enum ContractError {
     #[error("Unauthorized")]
     Unauthorized {},
 
+    #[error("Unauthorized")]
+    CycleDetected {},
+
     #[error("No Links Permitted for Embedded Field")]
     NoLinksPermitted {},
 }

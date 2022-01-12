@@ -10,6 +10,28 @@ use crate::Cw721MetadataContract;
 use regex::Regex;
 use std::convert::TryFrom;
 
+// for a subdomain, we need to validate:
+// first, is the parent_token_id an actual token?
+// if it's not, throw an error
+// second, is the parent_token_id owned by the same owner?
+// if not, throw an error
+pub fn validate_subdomain(
+    contract: &Cw721MetadataContract,
+    deps: &DepsMut,
+    token_id: String,
+    minter: Addr,
+) -> Result<(), ContractError> {
+    // check one - load
+    let token = contract.tokens.load(deps.storage, &token_id)?;
+
+    // check two
+    if minter != token.owner {
+        return Err(ContractError::Unauthorized {});
+    }
+
+    Ok(())
+}
+
 pub fn get_username_length(username: &str) -> u32 {
     u32::try_from(username.chars().count()).unwrap()
 }

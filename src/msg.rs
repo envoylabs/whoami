@@ -1,6 +1,6 @@
 use cosmwasm_std::{Binary, Uint128};
 use cw20::Logo;
-use cw721::Expiration;
+use cw721::{Expiration, NftInfoResponse};
 use cw721_base::{
     msg::ExecuteMsg as CW721ExecuteMsg, MintMsg as CW721MintMsg, QueryMsg as CW721QueryMsg,
 };
@@ -91,6 +91,8 @@ pub struct Metadata {
 pub type Extension = Metadata;
 
 pub type MintMsg = CW721MintMsg<Extension>;
+
+pub type WhoamiNftInfoResponse = NftInfoResponse<Extension>;
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug, Default)]
 pub struct UpdateMetadataMsg {
@@ -213,6 +215,8 @@ pub enum QueryMsg {
         /// unset or false will filter out expired approvals, you must set to true to see them
         include_expired: Option<bool>,
     },
+    /// Query address of a name
+    AddressOf { token_id: String },
     /// List all operators that can access all of the owner's tokens.
     /// Return type: `OperatorsResponse`
     AllOperators {
@@ -262,6 +266,12 @@ pub enum QueryMsg {
 
     /// Return if this is an executable contract or not
     IsContract { token_id: String },
+
+    /// Return the id for a parent for this token_id
+    GetParentId { token_id: String },
+
+    /// Return the NFT info for a parent of this token_id
+    GetParentInfo { token_id: String },
 }
 
 impl From<QueryMsg> for CW721QueryMsg {
@@ -274,6 +284,10 @@ impl From<QueryMsg> for CW721QueryMsg {
             } => CW721QueryMsg::OwnerOf {
                 token_id,
                 include_expired,
+            },
+            QueryMsg::AddressOf { token_id } => CW721QueryMsg::OwnerOf {
+                token_id,
+                include_expired: None,
             },
             QueryMsg::AllOperators {
                 owner,
@@ -352,4 +366,9 @@ pub struct MintingFeesResponse {
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub struct IsContractResponse {
     pub is_contract: bool,
+}
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+pub struct GetParentIdResponse {
+    pub parent_token_id: String,
 }

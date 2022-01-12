@@ -7,9 +7,9 @@ mod tests {
     use crate::error::ContractError;
 
     use crate::msg::{
-        ContractInfoResponse, ExecuteMsg, Extension, InstantiateMsg, IsContractResponse, Metadata,
-        MintMsg, PrimaryAliasResponse, QueryMsg, SurchargeInfo, UpdateMetadataMsg,
-        UpdateMintingFeesMsg,
+        ContractInfoResponse, ExecuteMsg, Extension, GetParentIdResponse, InstantiateMsg,
+        IsContractResponse, Metadata, MintMsg, PrimaryAliasResponse, QueryMsg, SurchargeInfo,
+        UpdateMetadataMsg, UpdateMintingFeesMsg, WhoamiNftInfoResponse,
     };
     use crate::Cw721MetadataContract;
     use cosmwasm_std::{
@@ -393,8 +393,19 @@ mod tests {
         let err = entry::execute(deps.as_mut(), mock_env(), random, mint_msg.clone()).unwrap_err();
         assert_eq!(err, ContractError::Unauthorized {});
 
-        // jeff can mint
+        // jeff cannot mint FOR random
         let allowed = mock_info(MINTER, &[]);
+        let bad_mint_msg = ExecuteMsg::Mint(MintMsg {
+            token_id: token_id.clone(),
+            owner: String::from("random"), // i.e. not jeff
+            token_uri: Some(token_uri.clone()),
+            extension: meta.clone(),
+        });
+        let err2 =
+            entry::execute(deps.as_mut(), mock_env(), allowed.clone(), bad_mint_msg).unwrap_err();
+        assert_eq!(err2, ContractError::Unauthorized {});
+
+        // jeff can mint
         let _ = entry::execute(deps.as_mut(), mock_env(), allowed, mint_msg).unwrap();
 
         // CHECK: ensure num tokens increases
@@ -549,6 +560,182 @@ mod tests {
         let tokens = contract.all_tokens(deps.as_ref(), None, None).unwrap();
         assert_eq!(3, tokens.tokens.len());
         assert_eq!(vec![token_id_2, token_id, john_token_id], tokens.tokens);
+    }
+
+    #[test]
+    fn subdomain_minting() {
+        let mut deps = mock_dependencies();
+        let contract = setup_contract(deps.as_mut());
+
+        // init a plausible username
+        let token_id = "jeffvader".to_string();
+        let token_uri = "https://example.com/jeff-vader".to_string();
+
+        let meta = Metadata {
+            twitter_id: Some(String::from("@jeff-vader")),
+            ..Metadata::default()
+        };
+
+        let mint_msg = ExecuteMsg::Mint(MintMsg {
+            token_id: token_id.clone(),
+            owner: String::from("jeff-vader"),
+            token_uri: Some(token_uri.clone()),
+            extension: meta.clone(),
+        });
+
+        // jeff can mint
+        let allowed = mock_info(MINTER, &[]);
+        let _ = entry::execute(deps.as_mut(), mock_env(), allowed.clone(), mint_msg).unwrap();
+
+        // CHECK: ensure num tokens increases
+        let count = contract.num_tokens(deps.as_ref()).unwrap();
+        assert_eq!(1, count.count);
+
+        // unknown nft returns error
+        let _ = contract
+            .nft_info(deps.as_ref(), "unknown".to_string())
+            .unwrap_err();
+
+        // CHECK: this nft info is correct
+        let info = contract.nft_info(deps.as_ref(), token_id.clone()).unwrap();
+        assert_eq!(
+            info,
+            NftInfoResponse::<Extension> {
+                token_uri: Some(token_uri.clone()),
+                extension: meta.clone(),
+            }
+        );
+
+        // CHECK: owner info is correct
+        let owner = contract
+            .owner_of(deps.as_ref(), mock_env(), token_id.clone(), true)
+            .unwrap();
+        assert_eq!(
+            owner,
+            OwnerOfResponse {
+                owner: String::from("jeff-vader"),
+                approvals: vec![],
+            }
+        );
+
+        // this should fail for a random
+        // but succeed for jeff
+        let subdomain_meta = Metadata {
+            parent_token_id: Some(token_id.clone()),
+            ..Metadata::default()
+        };
+
+        let subdomain_id = String::from("subdomain");
+
+        // CHECK: random cannot mint a subdomain with jeff as owner of parent
+        let random_subdomain_mint_msg = ExecuteMsg::Mint(MintMsg {
+            token_id: String::from("subdomain"),
+            owner: String::from("jeff-vader"),
+            token_uri: Some(token_uri.clone()),
+            extension: subdomain_meta.clone(),
+        });
+        let random = mock_info("random", &[]);
+        let err = entry::execute(deps.as_mut(), mock_env(), random, random_subdomain_mint_msg)
+            .unwrap_err();
+        assert_eq!(err, ContractError::Unauthorized {});
+
+        // CHECK: ensure num tokens does not increase
+        let count2 = contract.num_tokens(deps.as_ref()).unwrap();
+        assert_eq!(1, count2.count);
+
+        // CHECK: jeff can mint a subdomain
+        let subdomain_uri = "https://example.com/jeff-vader/subdomain".to_string();
+        let mint_msg_2 = ExecuteMsg::Mint(MintMsg {
+            token_id: subdomain_id.clone(),
+            owner: String::from("jeff-vader"),
+            token_uri: Some(subdomain_uri.clone()),
+            extension: subdomain_meta.clone(),
+        });
+        let _ = entry::execute(deps.as_mut(), mock_env(), allowed, mint_msg_2).unwrap();
+
+        // CHECK: ensure num tokens increases
+        let count3 = contract.num_tokens(deps.as_ref()).unwrap();
+        assert_eq!(2, count3.count);
+
+        // CHECK: this nft info is correct
+        let subdomain_info = contract
+            .nft_info(deps.as_ref(), subdomain_id.clone())
+            .unwrap();
+        assert_eq!(
+            subdomain_info,
+            WhoamiNftInfoResponse {
+                token_uri: Some(subdomain_uri),
+                extension: subdomain_meta,
+            }
+        );
+
+        // CHECK: owner info is correct
+        let owner = contract
+            .owner_of(deps.as_ref(), mock_env(), subdomain_id.clone(), true)
+            .unwrap();
+        assert_eq!(
+            owner,
+            OwnerOfResponse {
+                owner: String::from("jeff-vader"),
+                approvals: vec![],
+            }
+        );
+
+        // CHECK: address mapping is correct
+        let address_query_res: OwnerOfResponse = from_binary(
+            &entry::query(
+                deps.as_ref(),
+                mock_env(),
+                QueryMsg::AddressOf {
+                    token_id: subdomain_id.clone(),
+                },
+            )
+            .unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(
+            address_query_res,
+            OwnerOfResponse {
+                owner: String::from("jeff-vader"),
+                approvals: vec![],
+            }
+        );
+
+        // CHECK: can get parent ID
+        let parent_id_query_res: GetParentIdResponse = from_binary(
+            &entry::query(
+                deps.as_ref(),
+                mock_env(),
+                QueryMsg::GetParentId {
+                    token_id: subdomain_id.clone(),
+                },
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        // parent token id should equal the first minted token_id
+        assert_eq!(parent_id_query_res.parent_token_id, token_id);
+
+        // CHECK: can get parent NFT info
+        let parent_id_query_res: WhoamiNftInfoResponse = from_binary(
+            &entry::query(
+                deps.as_ref(),
+                mock_env(),
+                QueryMsg::GetParentInfo {
+                    token_id: subdomain_id,
+                },
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        assert_eq!(
+            parent_id_query_res,
+            WhoamiNftInfoResponse {
+                token_uri: Some(token_uri),
+                extension: meta,
+            }
+        );
     }
 
     #[test]

@@ -52,6 +52,27 @@
       "additionalProperties": false
     },
     {
+      "description": "Query address of a name",
+      "type": "object",
+      "required": [
+        "address_of"
+      ],
+      "properties": {
+        "address_of": {
+          "type": "object",
+          "required": [
+            "token_id"
+          ],
+          "properties": {
+            "token_id": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    {
       "description": "List all operators that can access all of the owner's tokens. Return type: `OperatorsResponse`",
       "type": "object",
       "required": [
@@ -253,6 +274,48 @@
       ],
       "properties": {
         "is_contract": {
+          "type": "object",
+          "required": [
+            "token_id"
+          ],
+          "properties": {
+            "token_id": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Return the id for a parent for this token_id",
+      "type": "object",
+      "required": [
+        "get_parent_id"
+      ],
+      "properties": {
+        "get_parent_id": {
+          "type": "object",
+          "required": [
+            "token_id"
+          ],
+          "properties": {
+            "token_id": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Return the NFT info for a parent of this token_id",
+      "type": "object",
+      "required": [
+        "get_parent_info"
+      ],
+      "properties": {
+        "get_parent_info": {
           "type": "object",
           "required": [
             "token_id"

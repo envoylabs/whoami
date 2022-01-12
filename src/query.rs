@@ -1,4 +1,7 @@
-use crate::msg::{ContractInfoResponse, IsContractResponse, PrimaryAliasResponse};
+use crate::msg::{
+    ContractInfoResponse, GetParentIdResponse, IsContractResponse, PrimaryAliasResponse,
+    WhoamiNftInfoResponse,
+};
 use crate::state::{CONTRACT_INFO, MINTING_FEES_INFO, PRIMARY_ALIASES};
 use crate::Cw721MetadataContract;
 use cosmwasm_std::{Deps, Env, Order, StdError, StdResult};
@@ -87,4 +90,52 @@ pub fn is_contract(
     let is_contract = token.extension.is_contract.unwrap_or(false);
 
     Ok(IsContractResponse { is_contract })
+}
+
+// looks up the actual token
+// so throws an error if it doesn't exist
+pub fn get_parent_id(
+    contract: Cw721MetadataContract,
+    deps: Deps,
+    token_id: String,
+) -> StdResult<GetParentIdResponse> {
+    let token = contract.tokens.load(deps.storage, &token_id)?;
+
+    match token.extension.parent_token_id {
+        Some(pti) => {
+            // attempt to load parent
+            // else error
+            let _parent_token = contract.tokens.load(deps.storage, &pti)?;
+
+            Ok(GetParentIdResponse {
+                parent_token_id: pti,
+            })
+        }
+        None => Err(StdError::NotFound {
+            kind: "parent not found".to_string(),
+        }),
+    }
+}
+
+pub fn get_parent_nft_info(
+    contract: Cw721MetadataContract,
+    deps: Deps,
+    token_id: String,
+) -> StdResult<WhoamiNftInfoResponse> {
+    let token = contract.tokens.load(deps.storage, &token_id)?;
+
+    match token.extension.parent_token_id {
+        Some(pti) => {
+            // attempt to load parent
+            let parent_token = contract.tokens.load(deps.storage, &pti)?;
+
+            Ok(WhoamiNftInfoResponse {
+                token_uri: parent_token.token_uri,
+                extension: parent_token.extension,
+            })
+        }
+        None => Err(StdError::NotFound {
+            kind: "parent not found".to_string(),
+        }),
+    }
 }
