@@ -22,17 +22,16 @@ fn get_tokens_for_owner(
     let start = start_after.map(Bound::exclusive);
 
     let owner_addr = deps.api.addr_validate(&owner)?;
-    let pks: Vec<_> = contract
+    let tokens: Vec<String> = contract
         .tokens
         .idx
         .owner
         .prefix(owner_addr)
         .keys(deps.storage, start, None, Order::Ascending)
         .take(limit)
-        .collect();
+        .map(|x| x.map(|addr| addr.to_string()))
+        .collect::<StdResult<Vec<_>>>()?;
 
-    let res: Result<Vec<_>, _> = pks.iter().map(|v| String::from_utf8(v.to_vec())).collect();
-    let tokens = res.map_err(StdError::invalid_utf8)?;
     Ok(TokensResponse { tokens })
 }
 
