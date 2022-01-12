@@ -80,6 +80,7 @@ pub struct Metadata {
     pub telegram_id: Option<String>,
     pub keybase_id: Option<String>,
     pub validator_operator_address: Option<String>,
+    pub is_contract: Option<bool>,
     /// For future compatibility, we want to support
     /// a recursive lookup of tokens that constitutes a path
     /// somewhat like a DNS
@@ -258,6 +259,9 @@ pub enum QueryMsg {
 
     /// Return the admin address
     AdminAddress {},
+
+    /// Return if this is an executable contract or not
+    IsContract { token_id: String },
 }
 
 impl From<QueryMsg> for CW721QueryMsg {
@@ -340,4 +344,12 @@ pub struct MintingFeesResponse {
     pub base_mint_fee: Option<Uint128>,
     pub burn_percentage: Option<u64>,
     pub short_name_surcharge: Option<SurchargeInfo>,
+}
+
+/// Is this a contract? Can it be executed?
+/// potentially confusing
+/// given the top level Contract Response for the container Contract
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+pub struct IsContractResponse {
+    pub is_contract: bool,
 }

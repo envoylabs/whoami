@@ -16,6 +16,7 @@ pub struct Metadata {
     pub telegram_id: Option<String>,
     pub keybase_id: Option<String>,
     pub validator_operator_address: Option<String>,
+    pub is_contract: Option<bool>, // marks this as executable
     pub parent_token_id: Option<String>, // for paths/nested tokens
 }
 ```

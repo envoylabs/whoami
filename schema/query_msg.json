@@ -244,6 +244,27 @@
         }
       },
       "additionalProperties": false
+    },
+    {
+      "description": "Return if this is an executable contract or not",
+      "type": "object",
+      "required": [
+        "is_contract"
+      ],
+      "properties": {
+        "is_contract": {
+          "type": "object",
+          "required": [
+            "token_id"
+          ],
+          "properties": {
+            "token_id": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "additionalProperties": false
     }
   ]
 }

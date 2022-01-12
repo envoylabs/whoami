@@ -7,8 +7,9 @@ mod tests {
     use crate::error::ContractError;
 
     use crate::msg::{
-        ContractInfoResponse, ExecuteMsg, Extension, InstantiateMsg, Metadata, MintMsg,
-        PrimaryAliasResponse, QueryMsg, SurchargeInfo, UpdateMetadataMsg, UpdateMintingFeesMsg,
+        ContractInfoResponse, ExecuteMsg, Extension, InstantiateMsg, IsContractResponse, Metadata,
+        MintMsg, PrimaryAliasResponse, QueryMsg, SurchargeInfo, UpdateMetadataMsg,
+        UpdateMintingFeesMsg,
     };
     use crate::Cw721MetadataContract;
     use cosmwasm_std::{
@@ -1669,6 +1670,7 @@ mod tests {
             token_uri: Some("https://starships.example.com/Starship/Enterprise.json".into()),
             extension: Metadata {
                 twitter_id: Some(String::from("@jeff-vader")),
+                is_contract: Some(false),
                 ..Metadata::default()
             },
         };
@@ -1678,5 +1680,126 @@ mod tests {
         let res = contract.nft_info(deps.as_ref(), token_id.into()).unwrap();
         assert_eq!(res.token_uri, mint_msg.token_uri);
         assert_eq!(res.extension, mint_msg.extension);
+
+        let contract_query_res: IsContractResponse = from_binary(
+            &entry::query(
+                deps.as_ref(),
+                mock_env(),
+                QueryMsg::IsContract {
+                    token_id: token_id.to_string(),
+                },
+            )
+            .unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(contract_query_res.is_contract, false);
+    }
+
+    #[test]
+    fn is_contract_is_default_path() {
+        let mut deps = mock_dependencies();
+        let contract = Cw721MetadataContract::default();
+
+        let info = mock_info(CREATOR, &[]);
+        let init_msg = InstantiateMsg {
+            name: "SpaceShips".to_string(),
+            symbol: "SPACE".to_string(),
+            native_denom: "uatom".to_string(),
+            native_decimals: 6,
+            token_cap: None,
+            base_mint_fee: None,
+            burn_percentage: None,
+            short_name_surcharge: None,
+            admin_address: "jeff-addr".to_string(),
+        };
+        entry::instantiate(deps.as_mut(), mock_env(), info.clone(), init_msg).unwrap();
+
+        // mock info contains sender &&
+        // info.sender and owner need to be the same
+        // that & MINTER do not need to be
+        // as MINTER is the admin addr on the contract
+        let token_id = "enterprise";
+        let mint_msg = MintMsg {
+            token_id: token_id.to_string(),
+            owner: CREATOR.to_string(),
+            token_uri: Some("https://starships.example.com/Starship/Enterprise.json".into()),
+            extension: Metadata {
+                twitter_id: Some(String::from("@jeff-vader")),
+                ..Metadata::default()
+            },
+        };
+        let exec_msg = ExecuteMsg::Mint(mint_msg.clone());
+        entry::execute(deps.as_mut(), mock_env(), info, exec_msg).unwrap();
+
+        let res = contract.nft_info(deps.as_ref(), token_id.into()).unwrap();
+        assert_eq!(res.token_uri, mint_msg.token_uri);
+        assert_eq!(res.extension, mint_msg.extension);
+
+        let contract_query_res: IsContractResponse = from_binary(
+            &entry::query(
+                deps.as_ref(),
+                mock_env(),
+                QueryMsg::IsContract {
+                    token_id: token_id.to_string(),
+                },
+            )
+            .unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(contract_query_res.is_contract, false);
+    }
+
+    #[test]
+    fn name_refers_to_contract() {
+        let mut deps = mock_dependencies();
+        let contract = Cw721MetadataContract::default();
+
+        let info = mock_info(CREATOR, &[]);
+        let init_msg = InstantiateMsg {
+            name: "SpaceShips".to_string(),
+            symbol: "SPACE".to_string(),
+            native_denom: "uatom".to_string(),
+            native_decimals: 6,
+            token_cap: None,
+            base_mint_fee: None,
+            burn_percentage: None,
+            short_name_surcharge: None,
+            admin_address: "jeff-addr".to_string(),
+        };
+        entry::instantiate(deps.as_mut(), mock_env(), info.clone(), init_msg).unwrap();
+
+        // let's imagine this is a contract that does something
+        // to do with the enterprise
+        let token_id = "enterprise-contract";
+        let mint_msg = MintMsg {
+            token_id: token_id.to_string(),
+            owner: CREATOR.to_string(),
+            token_uri: Some("https://starships.example.com/Starship/Enterprise.json".into()),
+            extension: Metadata {
+                is_contract: Some(true),
+                ..Metadata::default()
+            },
+        };
+        let exec_msg = ExecuteMsg::Mint(mint_msg.clone());
+        entry::execute(deps.as_mut(), mock_env(), info, exec_msg).unwrap();
+
+        let res = contract.nft_info(deps.as_ref(), token_id.into()).unwrap();
+        assert_eq!(res.extension, mint_msg.extension);
+
+        let contract_query_res: IsContractResponse = from_binary(
+            &entry::query(
+                deps.as_ref(),
+                mock_env(),
+                QueryMsg::IsContract {
+                    token_id: token_id.to_string(),
+                },
+            )
+            .unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(contract_query_res.is_contract, true);
     }
 }

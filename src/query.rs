@@ -1,4 +1,4 @@
-use crate::msg::{ContractInfoResponse, PrimaryAliasResponse};
+use crate::msg::{ContractInfoResponse, IsContractResponse, PrimaryAliasResponse};
 use crate::state::{CONTRACT_INFO, MINTING_FEES_INFO, PRIMARY_ALIASES};
 use crate::Cw721MetadataContract;
 use cosmwasm_std::{Deps, Env, Order, StdError, StdResult};
@@ -76,4 +76,15 @@ pub fn contract_info(deps: Deps) -> StdResult<ContractInfoResponse> {
         short_name_surcharge: minting_fees.short_name_surcharge,
     };
     Ok(contract_info_response)
+}
+
+pub fn is_contract(
+    contract: Cw721MetadataContract,
+    deps: Deps,
+    token_id: String,
+) -> StdResult<IsContractResponse> {
+    let token = contract.tokens.load(deps.storage, &token_id)?;
+    let is_contract = token.extension.is_contract.unwrap_or(false);
+
+    Ok(IsContractResponse { is_contract })
 }

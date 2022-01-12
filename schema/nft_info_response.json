@@ -126,6 +126,12 @@
             }
           ]
         },
+        "is_contract": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
         "keybase_id": {
           "type": [
             "string",
