@@ -26,13 +26,13 @@ library = []
 
 [dependencies]
 cw-utils = { version = "0.11.1" }
-cw2 = { version = "0.10.2" }
-cw20-base = { version = "0.10.2", features = ["library"] }
-cw20 = { version = "0.10.2" }
-cw721 = { version = "0.10.1" }
-cw721-base = { version = "0.10.1", features = ["library"] }
-cw-storage-plus = { version = "0.10.2" }
-cosmwasm-std = { version = "1.0.0-beta2" }
+cw2 = { version = "0.11.1" }
+cw20-base = { version = "0.11.1", features = ["library"] }
+cw20 = { version = "0.11.1" }
+cw721 = { version = "0.11" }
+cw721-base = { version = "0.11", features = ["library"] }
+cw-storage-plus = { version = "0.11.1" }
+cosmwasm-std = { version = "1.0.0-beta4" }
 schemars = "0.8.6"
 serde = { version = "1.0.130", default-features = false, features = ["derive"] }
 thiserror = { version = "1.0.30" }

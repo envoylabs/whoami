@@ -100,17 +100,16 @@ pub fn get_number_of_owned_tokens(
     address: Addr,
     default_limit: usize,
 ) -> StdResult<usize> {
-    let pks: Vec<_> = contract
+    let owned_tokens: Vec<String> = contract
         .tokens
         .idx
         .owner
         .prefix(address)
         .keys(deps.storage, None, None, Order::Ascending)
         .take(default_limit) // set default big limit
-        .collect();
+        .map(|x| x.map(|addr| addr.to_string()))
+        .collect::<StdResult<Vec<_>>>()?;
 
-    let res: Result<Vec<_>, _> = pks.iter().map(|v| String::from_utf8(v.to_vec())).collect();
-    let owned_tokens = res.map_err(StdError::invalid_utf8)?;
     let number_of_tokens_owned = owned_tokens.len();
     Ok(number_of_tokens_owned)
 }
