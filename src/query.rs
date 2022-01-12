@@ -1,6 +1,6 @@
 use crate::msg::{
-    ContractInfoResponse, GetParentIdResponse, IsContractResponse, PrimaryAliasResponse,
-    WhoamiNftInfoResponse,
+    ContractInfoResponse, GetParentIdResponse, GetPathResponse, IsContractResponse,
+    PrimaryAliasResponse, WhoamiNftInfoResponse,
 };
 use crate::state::{CONTRACT_INFO, MINTING_FEES_INFO, PRIMARY_ALIASES};
 use crate::Cw721MetadataContract;
@@ -138,4 +138,32 @@ pub fn get_parent_nft_info(
             kind: "parent not found".to_string(),
         }),
     }
+}
+
+// get full path by heading up through the parents
+pub fn get_path(
+    contract: Cw721MetadataContract,
+    deps: Deps,
+    token_id: String,
+) -> StdResult<GetPathResponse> {
+    let token = contract.tokens.load(deps.storage, &token_id)?;
+
+    let mut parents = vec![token_id];
+    let mut current_parent_token_id = token.extension.parent_token_id;
+
+    while current_parent_token_id.is_some() {
+        let cpti = current_parent_token_id.unwrap();
+
+        // look up parent token
+        let parent_token = contract.tokens.load(deps.storage, &cpti)?;
+
+        // insert current token
+        parents.insert(0, cpti);
+
+        // set the next one - this will be Some or None
+        current_parent_token_id = parent_token.extension.parent_token_id;
+    }
+
+    let path = parents.join("/");
+    Ok(GetPathResponse { path })
 }

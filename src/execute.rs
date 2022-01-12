@@ -163,12 +163,12 @@ pub fn mint(
     match minting_fees.token_cap {
         Some(tc) => {
             if number_of_tokens_owned >= tc.try_into().unwrap() {
-                return Err(ContractError::Unauthorized {});
+                return Err(ContractError::TokenCapExceeded {});
             }
         }
         None => {
             if number_of_tokens_owned == default_limit {
-                return Err(ContractError::Unauthorized {});
+                return Err(ContractError::TokenCapExceeded {});
             }
         }
     }
@@ -180,7 +180,7 @@ pub fn mint(
     // normalize it to lowercase
     let username = &msg.token_id.to_lowercase();
     if !username_is_valid(username) {
-        return Err(ContractError::Unauthorized {});
+        return Err(ContractError::TokenNameInvalid {});
     }
 
     // if parent_token_id is set,

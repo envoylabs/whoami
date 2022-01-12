@@ -19,6 +19,12 @@ pub enum ContractError {
     #[error("Unauthorized")]
     Unauthorized {},
 
+    #[error("Token Cap Exceeded")]
+    TokenCapExceeded {},
+
+    #[error("Token Name Invalid")]
+    TokenNameInvalid {},
+
     #[error("Unauthorized")]
     CycleDetected {},
 

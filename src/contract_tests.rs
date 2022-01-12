@@ -7,9 +7,9 @@ mod tests {
     use crate::error::ContractError;
 
     use crate::msg::{
-        ContractInfoResponse, ExecuteMsg, Extension, GetParentIdResponse, InstantiateMsg,
-        IsContractResponse, Metadata, MintMsg, PrimaryAliasResponse, QueryMsg, SurchargeInfo,
-        UpdateMetadataMsg, UpdateMintingFeesMsg, WhoamiNftInfoResponse,
+        ContractInfoResponse, ExecuteMsg, Extension, GetParentIdResponse, GetPathResponse,
+        InstantiateMsg, IsContractResponse, Metadata, MintMsg, PrimaryAliasResponse, QueryMsg,
+        SurchargeInfo, UpdateMetadataMsg, UpdateMintingFeesMsg, WhoamiNftInfoResponse,
     };
     use crate::Cw721MetadataContract;
     use cosmwasm_std::{
@@ -553,7 +553,7 @@ mod tests {
         let allowed = mock_info(MINTER, &[]);
         let token_cap_err =
             entry::execute(deps.as_mut(), mock_env(), allowed, mint_msg4).unwrap_err();
-        assert_eq!(token_cap_err, ContractError::Unauthorized {}); // todo - better error
+        assert_eq!(token_cap_err, ContractError::TokenCapExceeded {});
 
         // list the token_ids
         // CHECK: five calls to mint, 3 tokens minted
@@ -564,8 +564,26 @@ mod tests {
 
     #[test]
     fn subdomain_minting() {
+        let allowed = mock_info(MINTER, &[]);
         let mut deps = mock_dependencies();
+        let jeff_address = String::from("jeff-vader");
+
         let contract = setup_contract(deps.as_mut());
+        let init_msg = InstantiateMsg {
+            name: CONTRACT_NAME.to_string(),
+            symbol: SYMBOL.to_string(),
+            native_denom: "uatom".to_string(),
+            native_decimals: 6,
+            token_cap: Some(3),
+            base_mint_fee: None,
+            burn_percentage: Some(50),
+            short_name_surcharge: Some(SurchargeInfo {
+                surcharge_max_characters: 5, // small enough that "jeff" will be caught
+                surcharge_fee: Uint128::new(1_500_000),
+            }),
+            admin_address: jeff_address.clone(),
+        };
+        entry::instantiate(deps.as_mut(), mock_env(), allowed.clone(), init_msg).unwrap();
 
         // init a plausible username
         let token_id = "jeffvader".to_string();
@@ -578,13 +596,12 @@ mod tests {
 
         let mint_msg = ExecuteMsg::Mint(MintMsg {
             token_id: token_id.clone(),
-            owner: String::from("jeff-vader"),
+            owner: jeff_address.clone(),
             token_uri: Some(token_uri.clone()),
             extension: meta.clone(),
         });
 
         // jeff can mint
-        let allowed = mock_info(MINTER, &[]);
         let _ = entry::execute(deps.as_mut(), mock_env(), allowed.clone(), mint_msg).unwrap();
 
         // CHECK: ensure num tokens increases
@@ -630,7 +647,7 @@ mod tests {
         // CHECK: random cannot mint a subdomain with jeff as owner of parent
         let random_subdomain_mint_msg = ExecuteMsg::Mint(MintMsg {
             token_id: String::from("subdomain"),
-            owner: String::from("jeff-vader"),
+            owner: String::from("random"),
             token_uri: Some(token_uri.clone()),
             extension: subdomain_meta.clone(),
         });
@@ -644,14 +661,14 @@ mod tests {
         assert_eq!(1, count2.count);
 
         // CHECK: jeff can mint a subdomain
-        let subdomain_uri = "https://example.com/jeff-vader/subdomain".to_string();
+        let subdomain_uri = "https://example.com/jeffvader/subdomain".to_string();
         let mint_msg_2 = ExecuteMsg::Mint(MintMsg {
             token_id: subdomain_id.clone(),
-            owner: String::from("jeff-vader"),
+            owner: jeff_address.clone(),
             token_uri: Some(subdomain_uri.clone()),
             extension: subdomain_meta.clone(),
         });
-        let _ = entry::execute(deps.as_mut(), mock_env(), allowed, mint_msg_2).unwrap();
+        let _ = entry::execute(deps.as_mut(), mock_env(), allowed.clone(), mint_msg_2).unwrap();
 
         // CHECK: ensure num tokens increases
         let count3 = contract.num_tokens(deps.as_ref()).unwrap();
@@ -676,7 +693,7 @@ mod tests {
         assert_eq!(
             owner,
             OwnerOfResponse {
-                owner: String::from("jeff-vader"),
+                owner: jeff_address.clone(),
                 approvals: vec![],
             }
         );
@@ -697,7 +714,7 @@ mod tests {
         assert_eq!(
             address_query_res,
             OwnerOfResponse {
-                owner: String::from("jeff-vader"),
+                owner: jeff_address,
                 approvals: vec![],
             }
         );
@@ -723,7 +740,7 @@ mod tests {
                 deps.as_ref(),
                 mock_env(),
                 QueryMsg::GetParentInfo {
-                    token_id: subdomain_id,
+                    token_id: subdomain_id.clone(),
                 },
             )
             .unwrap(),
@@ -734,6 +751,76 @@ mod tests {
             WhoamiNftInfoResponse {
                 token_uri: Some(token_uri),
                 extension: meta,
+            }
+        );
+
+        // CHECK: we need to go ~derper~ deeper
+        // get path for subdomain
+        let path_query_res: GetPathResponse = from_binary(
+            &entry::query(
+                deps.as_ref(),
+                mock_env(),
+                QueryMsg::GetPath {
+                    token_id: subdomain_id.clone(),
+                },
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        assert_eq!(
+            path_query_res,
+            GetPathResponse {
+                path: String::from("jeffvader/subdomain")
+            }
+        );
+
+        // CHECK: jeff can mint a sub-subdomain
+        let deeper_subdomain_meta = Metadata {
+            parent_token_id: Some(subdomain_id),
+            ..Metadata::default()
+        };
+        let subdomain2_id = String::from("deeper");
+        let subdomain2_uri = "https://example.com/jeffvader/subdomain/deeper".to_string();
+
+        let mint_msg_3 = ExecuteMsg::Mint(MintMsg {
+            token_id: subdomain2_id.clone(),
+            owner: String::from("jeff-vader"),
+            token_uri: Some(subdomain2_uri.clone()),
+            extension: deeper_subdomain_meta.clone(),
+        });
+        let _ = entry::execute(deps.as_mut(), mock_env(), allowed, mint_msg_3).unwrap();
+
+        // CHECK: ensure num tokens increases
+        let count4 = contract.num_tokens(deps.as_ref()).unwrap();
+        assert_eq!(3, count4.count);
+
+        // CHECK: this nft info is correct
+        let subdomain_info = contract
+            .nft_info(deps.as_ref(), subdomain2_id.clone())
+            .unwrap();
+        assert_eq!(
+            subdomain_info,
+            WhoamiNftInfoResponse {
+                token_uri: Some(subdomain2_uri),
+                extension: deeper_subdomain_meta,
+            }
+        );
+
+        let deeper_path_query_res: GetPathResponse = from_binary(
+            &entry::query(
+                deps.as_ref(),
+                mock_env(),
+                QueryMsg::GetPath {
+                    token_id: subdomain2_id,
+                },
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        assert_eq!(
+            deeper_path_query_res,
+            GetPathResponse {
+                path: String::from("jeffvader/subdomain/deeper")
             }
         );
     }

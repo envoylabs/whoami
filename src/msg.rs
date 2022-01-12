@@ -272,6 +272,10 @@ pub enum QueryMsg {
 
     /// Return the NFT info for a parent of this token_id
     GetParentInfo { token_id: String },
+
+    /// Return complete path to token_id
+    /// recurses through parent_token_ids
+    GetPath { token_id: String },
 }
 
 impl From<QueryMsg> for CW721QueryMsg {
@@ -371,4 +375,9 @@ pub struct IsContractResponse {
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub struct GetParentIdResponse {
     pub parent_token_id: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+pub struct GetPathResponse {
+    pub path: String,
 }

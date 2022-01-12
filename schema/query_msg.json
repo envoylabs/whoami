@@ -328,6 +328,27 @@
         }
       },
       "additionalProperties": false
+    },
+    {
+      "description": "Return complete path to token_id recurses through parent_token_ids",
+      "type": "object",
+      "required": [
+        "get_path"
+      ],
+      "properties": {
+        "get_path": {
+          "type": "object",
+          "required": [
+            "token_id"
+          ],
+          "properties": {
+            "token_id": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "additionalProperties": false
     }
   ]
 }
