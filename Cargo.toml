@@ -27,7 +27,6 @@ library = []
 [dependencies]
 cw-utils = { version = "0.11.1" }
 cw2 = { version = "0.11.1" }
-cw20-base = { version = "0.11.1", features = ["library"] }
 cw20 = { version = "0.11.1" }
 cw721 = { version = "0.11" }
 cw721-base = { version = "0.11", features = ["library"] }
@@ -43,4 +42,4 @@ cosmwasm-schema = { version = "1.0.0-beta2" }
 [dependencies.regex]
 version = "1.5.4"
 default-features = false
-features = ["std", "perf-dfa", "perf-inline", "perf-cache"]
+features = ["std"]
