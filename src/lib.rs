@@ -12,7 +12,7 @@ use execute::{
     burn, execute_instantiate, mint, send_nft, set_admin_address, transfer_nft, update_metadata,
     update_minting_fees, update_primary_alias,
 };
-use query::{contract_info, primary_alias};
+use query::{contract_info, is_contract, primary_alias};
 
 pub use crate::msg::{ExecuteMsg, Extension, InstantiateMsg, QueryMsg};
 
@@ -86,6 +86,7 @@ pub mod entry {
                 to_binary(&primary_alias(tract, deps, env, address)?)
             }
             QueryMsg::ContractInfo {} => to_binary(&contract_info(deps)?),
+            QueryMsg::IsContract { token_id } => to_binary(&is_contract(tract, deps, token_id)?),
             _ => tract.query(deps, env, msg.into()).map_err(|err| err),
         }
     }
