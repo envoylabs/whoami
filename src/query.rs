@@ -112,7 +112,7 @@ pub fn get_parent_id(
             })
         }
         None => Err(StdError::NotFound {
-            kind: "parent not found".to_string(),
+            kind: "Parent not found".to_string(),
         }),
     }
 }
@@ -135,7 +135,7 @@ pub fn get_parent_nft_info(
             })
         }
         None => Err(StdError::NotFound {
-            kind: "parent not found".to_string(),
+            kind: "Parent not found".to_string(),
         }),
     }
 }

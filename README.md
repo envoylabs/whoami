@@ -97,7 +97,15 @@ Tokens {
 
 ## Mapping username -> address
 
-TL;DR - use `owner_of`.
+Use `AddressOf` to get the address linked to a token. This is just an alias for `OwnerOf` with fewer requirements.
+
+```rust
+AddressOf {
+    token_id: String,
+},
+```
+
+If you're a fan of just using the NFT implementation - use `owner_of`. This also allows you to specify expiry.
 
 ```rust
 OwnerOf {
@@ -110,3 +118,52 @@ The mapping of `username -> address` is in practice simply the link
 between `token_id` (the string username) and the `owner`. As/when the
 username is transferred or sold, this is updated with no additional
 computation required.
+
+## Subdomains
+
+Although it is complex to do UI for, and most users don't seem to need it, subdomains are supported in this first version.
+
+### Getting a full path
+
+For resolving a full path, selecting a parent, or working with subdomains, you will want to resolve the tree of `parent_token_id`s that a token has.
+
+The query for this is `GetPath`:
+
+```rust
+GetPath { token_id: String }
+```
+
+This returns:
+
+```rust
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+pub struct GetPathResponse {
+    pub path: String,
+}
+```
+
+Where `path` will likely be `something/like/this` made up of nested tokens delimited by slashes.
+
+### Getting the Token ID for a parent
+
+With the following query, you pass in a token's ID, and get back the ID of their parent, if it exists.
+
+Will return `StdError::NotFound` if there is no parent.
+
+```rust
+GetParentId {
+    token_id: String,
+}
+```
+
+### Getting the NFT info for a parent
+
+With this, you return the `NftInfoResponse` for a parent.
+
+Will return `StdError::NotFound` if there is no parent.
+
+```rust
+GetParentInfo {
+    token_id: String,
+}
+```

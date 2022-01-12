@@ -13,7 +13,8 @@ mod tests {
     };
     use crate::Cw721MetadataContract;
     use cosmwasm_std::{
-        coins, from_binary, to_binary, BankMsg, CosmosMsg, Decimal, DepsMut, Response, Uint128,
+        coins, from_binary, to_binary, BankMsg, CosmosMsg, Decimal, DepsMut, Response, StdError,
+        Uint128,
     };
     use cw721_base::MinterResponse;
 
@@ -632,6 +633,24 @@ mod tests {
             OwnerOfResponse {
                 owner: String::from("jeff-vader"),
                 approvals: vec![],
+            }
+        );
+
+        // CHECK: with no parent
+        let no_parent_token_id_res = entry::query(
+            deps.as_ref(),
+            mock_env(),
+            QueryMsg::GetParentId {
+                token_id: token_id.clone(),
+            },
+        )
+        .unwrap_err();
+
+        // parent token id should equal the first minted token_id
+        assert_eq!(
+            no_parent_token_id_res,
+            StdError::NotFound {
+                kind: "Parent not found".to_string()
             }
         );
 
