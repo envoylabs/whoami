@@ -16,6 +16,29 @@
       "additionalProperties": false
     },
     {
+      "description": "Updates the username length cap",
+      "type": "object",
+      "required": [
+        "update_username_length_cap"
+      ],
+      "properties": {
+        "update_username_length_cap": {
+          "type": "object",
+          "required": [
+            "new_length"
+          ],
+          "properties": {
+            "new_length": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0.0
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    {
       "description": "If the sender has multiple NFTs or aliases, they will want to set a default. This allows them to do this.",
       "type": "object",
       "required": [

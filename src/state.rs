@@ -8,5 +8,8 @@ pub const PRIMARY_ALIASES: Map<&Addr, String> = Map::new("aliases");
 // this is the contract info
 pub const CONTRACT_INFO: Item<ContractInfo> = Item::new("contract_info");
 
+// this is the username length cap
+pub const USERNAME_LENGTH_CAP: Item<u32> = Item::new("username_length_cap");
+
 // this is fees info
 pub const MINTING_FEES_INFO: Item<MintingFeesResponse> = Item::new("minting_fees");

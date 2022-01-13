@@ -71,6 +71,15 @@
       ],
       "format": "uint32",
       "minimum": 0.0
+    },
+    "username_length_cap": {
+      "description": "The cap for a username length can be updated later by the admin_address",
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint32",
+      "minimum": 0.0
     }
   },
   "definitions": {

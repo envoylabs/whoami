@@ -1,5 +1,5 @@
 use crate::error::ContractError;
-use cosmwasm_std::{Binary, DepsMut, Env, MessageInfo, Response, StdResult};
+use cosmwasm_std::{Binary, DepsMut, Env, MessageInfo, Response, StdResult, Uint128};
 use cw2::set_contract_version;
 use cw721::Cw721ReceiveMsg;
 use cw721_base::state::TokenInfo;
@@ -12,7 +12,7 @@ use crate::msg::{
     UpdateMintingFeesMsg,
 };
 
-use crate::state::{CONTRACT_INFO, MINTING_FEES_INFO, PRIMARY_ALIASES};
+use crate::state::{CONTRACT_INFO, MINTING_FEES_INFO, PRIMARY_ALIASES, USERNAME_LENGTH_CAP};
 use crate::utils::{
     get_mint_fee, get_mint_response, get_number_of_owned_tokens, get_username_length,
     username_is_valid, validate_subdomain, verify_logo,
@@ -37,6 +37,10 @@ pub fn execute_instantiate(
         symbol: msg.symbol,
     };
     CONTRACT_INFO.save(deps.storage, &info)?;
+
+    if let Some(ulc) = msg.username_length_cap {
+        USERNAME_LENGTH_CAP.save(deps.storage, &ulc)?;
+    }
 
     let minting_fees = MintingFeesResponse {
         native_denom: msg.native_denom,
@@ -88,6 +92,56 @@ pub fn update_minting_fees(
     MINTING_FEES_INFO.save(deps.storage, &minting_fees)?;
 
     let res = Response::new().add_attribute("action", "update_contract_minting_fees");
+    Ok(res)
+}
+
+// the admin addr can update the cap on usernames length
+pub fn set_username_length_cap(
+    contract: Cw721MetadataContract,
+    deps: DepsMut,
+    _env: Env,
+    info: MessageInfo,
+    new_length: u32,
+) -> Result<Response, ContractError> {
+    let address_trying_to_update = info.sender;
+    let current_admin_address = contract.minter(deps.as_ref())?.minter;
+
+    // check it's the admin of the contract updating
+    if current_admin_address != address_trying_to_update {
+        return Err(ContractError::Unauthorized {});
+    }
+
+    // init default
+    let default_cap = 20;
+
+    // can't decrease cap below previous or default
+    let username_length_cap = USERNAME_LENGTH_CAP.may_load(deps.storage).unwrap();
+
+    let cap = match username_length_cap {
+        Some(ulc) => {
+            if new_length <= ulc {
+                ulc
+            } else if new_length <= default_cap {
+                default_cap
+            } else {
+                new_length
+            }
+        }
+        None => {
+            if new_length <= default_cap {
+                default_cap
+            } else {
+                new_length
+            }
+        }
+    };
+
+    // set to new
+    USERNAME_LENGTH_CAP.save(deps.storage, &cap)?;
+
+    let res = Response::new()
+        .add_attribute("action", "update_username_length_cap")
+        .add_attribute("new_length_cap", Uint128::new(cap.into()));
     Ok(res)
 }
 
@@ -179,7 +233,7 @@ pub fn mint(
     // username == token_id
     // normalize it to lowercase
     let username = &msg.token_id.to_lowercase();
-    if !username_is_valid(username) {
+    if !username_is_valid(deps.as_ref(), username) {
         return Err(ContractError::TokenNameInvalid {});
     }
 

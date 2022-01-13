@@ -1,7 +1,8 @@
 use crate::error::ContractError;
 use crate::msg::MintingFeesResponse;
+use crate::state::USERNAME_LENGTH_CAP;
 use cosmwasm_std::{
-    coins, Addr, BankMsg, CosmosMsg, Decimal, DepsMut, Order, Response, StdError, StdResult,
+    coins, Addr, BankMsg, CosmosMsg, Decimal, Deps, DepsMut, Order, Response, StdError, StdResult,
     Uint128,
 };
 use cw20::{EmbeddedLogo, Logo};
@@ -37,9 +38,13 @@ pub fn get_username_length(username: &str) -> u32 {
 }
 
 // validate username length. this, or to some number of bytes?
-pub fn validate_username_length(username: &str) -> bool {
+pub fn validate_username_length(deps: Deps, username: &str) -> bool {
+    let username_length_cap = USERNAME_LENGTH_CAP.may_load(deps.storage).unwrap();
+
+    let cap = username_length_cap.unwrap_or(20);
     let username_length = get_username_length(username);
-    username_length <= 20
+
+    username_length <= cap
 }
 
 pub fn validate_username_characters(username: &str) -> bool {
@@ -55,8 +60,8 @@ pub fn validate_username_characters(username: &str) -> bool {
     first_check_passed && second_check_passed
 }
 
-pub fn username_is_valid(username: &str) -> bool {
-    let username_length_valid = validate_username_length(username);
+pub fn username_is_valid(deps: Deps, username: &str) -> bool {
+    let username_length_valid = validate_username_length(deps, username);
     let username_characters_valid = validate_username_characters(username);
     username_characters_valid && username_length_valid
 }

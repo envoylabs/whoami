@@ -93,7 +93,8 @@ WHOAMI_INIT='{
   "short_name_surcharge": {
     "surcharge_max_characters": 5,
     "surcharge_fee": "'"$SURCHARGE_FEE"'"
-  }
+  },
+  "username_length_cap": 20
 }'
 echo "$WHOAMI_INIT" | jq .
 $BINARY tx wasm instantiate $CONTRACT_CODE "$WHOAMI_INIT" --from "validator" --label "whoami NFT nameservice" $TXFLAG
