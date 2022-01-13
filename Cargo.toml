@@ -1,6 +1,6 @@
 [package]
 name = "whoami"
-version = "0.4.10"
+version = "0.4.12"
 authors = ["Alex Lynham <alex@lynh.am>"]
 edition = "2018"
 description = "NFT based metadata for PFP/user directory purposes"
