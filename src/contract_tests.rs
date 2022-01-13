@@ -1328,10 +1328,14 @@ mod tests {
             ..Metadata::default()
         };
 
+        let default_meta = Metadata {
+            ..Metadata::default()
+        };
+
         let mint_msg = ExecuteMsg::Mint(MintMsg {
             token_id: token_id.clone(),
             owner: jeff_address.clone(),
-            token_uri: Some(token_uri),
+            token_uri: Some(token_uri.clone()),
             extension: meta.clone(),
         });
 
@@ -1420,7 +1424,7 @@ mod tests {
         // jeff sends the token to another contract cos YOLO
         let send_msg = ExecuteMsg::SendNft {
             contract: other_contract_address.to_string(),
-            token_id,
+            token_id: token_id.clone(),
             msg: to_binary("yolo").unwrap(),
         };
 
@@ -1440,6 +1444,17 @@ mod tests {
         .unwrap();
 
         assert_eq!(alias_query_res_4.username, token_id_2);
+
+        // CHECK: this nft info META is correct
+        // i.e. it has been reset to the default
+        let info = contract.nft_info(deps.as_ref(), token_id).unwrap();
+        assert_eq!(
+            info,
+            NftInfoResponse::<Extension> {
+                token_uri: Some(token_uri),
+                extension: default_meta,
+            }
+        );
     }
 
     #[test]
@@ -1457,10 +1472,14 @@ mod tests {
             ..Metadata::default()
         };
 
+        let default_meta = Metadata {
+            ..Metadata::default()
+        };
+
         let mint_msg = ExecuteMsg::Mint(MintMsg {
             token_id: token_id.clone(),
             owner: jeff_address.clone(),
-            token_uri: Some(token_uri),
+            token_uri: Some(token_uri.clone()),
             extension: meta.clone(),
         });
 
@@ -1597,6 +1616,17 @@ mod tests {
         .unwrap();
 
         assert_eq!(alias_query_res_5.username, token_id);
+
+        // CHECK: this nft info META is correct
+        // i.e. it has been reset to the default
+        let info = contract.nft_info(deps.as_ref(), token_id).unwrap();
+        assert_eq!(
+            info,
+            NftInfoResponse::<Extension> {
+                token_uri: Some(token_uri),
+                extension: default_meta,
+            }
+        );
     }
 
     #[test]
