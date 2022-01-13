@@ -8,7 +8,7 @@ use cw_utils::must_pay;
 use std::convert::TryInto;
 
 use crate::msg::{
-    ContractInfo, InstantiateMsg, MintMsg, MintingFeesResponse, UpdateMetadataMsg,
+    ContractInfo, InstantiateMsg, Metadata, MintMsg, MintingFeesResponse, UpdateMetadataMsg,
     UpdateMintingFeesMsg,
 };
 
@@ -335,6 +335,29 @@ pub fn clear_alias_if_primary(deps: DepsMut, token_id: String) -> Result<(), Con
     Ok(())
 }
 
+// this function clears metadata
+// for situations like transfer and send
+// to enable web of trust stuff
+// and make sure stale meta doesn't persist after send/transfer
+pub fn clear_metadata(deps: DepsMut, token_id: String) -> Result<(), ContractError> {
+    let contract = Cw721MetadataContract::default();
+    let username_nft = contract.tokens.load(deps.storage, &token_id)?;
+    contract
+        .tokens
+        .update(deps.storage, &token_id, |token| -> StdResult<_> {
+            match token {
+                Some(mut nft) => {
+                    nft.extension = Metadata {
+                        ..Metadata::default()
+                    };
+                    Ok(nft)
+                }
+                None => Ok(username_nft),
+            }
+        })?;
+    Ok(())
+}
+
 pub fn transfer_nft(
     contract: Cw721MetadataContract,
     mut deps: DepsMut,
@@ -345,6 +368,9 @@ pub fn transfer_nft(
 ) -> Result<Response, ContractError> {
     // clear aliases before transfer iif it is the one being xfrd
     clear_alias_if_primary(deps.branch(), token_id.to_string())?;
+
+    // blank meta before xfer
+    clear_metadata(deps.branch(), token_id.to_string())?;
 
     contract._transfer_nft(deps, &env, &info, &recipient, &token_id)?;
 
@@ -366,6 +392,9 @@ pub fn send_nft(
 ) -> Result<Response, ContractError> {
     // clear aliases before send iif it is the one being sent
     clear_alias_if_primary(deps.branch(), token_id.to_string())?;
+
+    // blank meta before send
+    clear_metadata(deps.branch(), token_id.to_string())?;
 
     // Transfer token
     contract._transfer_nft(deps, &env, &info, &receiving_contract, &token_id)?;
