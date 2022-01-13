@@ -9,8 +9,8 @@ pub mod utils;
 use cosmwasm_std::{to_binary, Empty};
 
 use execute::{
-    burn, execute_instantiate, mint, send_nft, set_admin_address, transfer_nft, update_metadata,
-    update_minting_fees, update_primary_alias,
+    burn, execute_instantiate, mint, send_nft, set_admin_address, set_username_length_cap,
+    transfer_nft, update_metadata, update_minting_fees, update_primary_alias,
 };
 use query::{
     contract_info, get_parent_id, get_parent_nft_info, get_path, is_contract, primary_alias,
@@ -50,6 +50,9 @@ pub mod entry {
         let tract = Cw721MetadataContract::default();
         match msg {
             ExecuteMsg::UpdateMintingFees(msg) => update_minting_fees(tract, deps, env, info, msg),
+            ExecuteMsg::UpdateUsernameLengthCap { new_length } => {
+                set_username_length_cap(tract, deps, env, info, new_length)
+            }
             ExecuteMsg::Mint(msg) => mint(tract, deps, env, info, msg),
             ExecuteMsg::UpdateMetadata(msg) => update_metadata(tract, deps, env, info, msg),
             ExecuteMsg::UpdatePrimaryAlias { token_id } => {

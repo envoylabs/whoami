@@ -87,6 +87,7 @@ mod tests {
             burn_percentage: Some(50),
             short_name_surcharge: None,
             admin_address: String::from(MINTER),
+            username_length_cap: None,
         };
         let info = mock_info("creator", &[]);
         let res = entry::instantiate(deps, mock_env(), info, msg).unwrap();
@@ -111,6 +112,7 @@ mod tests {
             burn_percentage: None,
             short_name_surcharge: None,
             admin_address: jeff_address,
+            username_length_cap: None,
         };
         entry::instantiate(deps.as_mut(), mock_env(), info.clone(), init_msg).unwrap();
 
@@ -162,6 +164,7 @@ mod tests {
             burn_percentage: None,
             short_name_surcharge: None,
             admin_address: jeff_address,
+            username_length_cap: None,
         };
         entry::instantiate(deps.as_mut(), mock_env(), info.clone(), init_msg).unwrap();
 
@@ -203,6 +206,194 @@ mod tests {
     }
 
     #[test]
+    fn update_username_length_cap_from_default() {
+        let contract = Cw721MetadataContract::default();
+        let mut deps = mock_dependencies();
+
+        let jeff_address = "jeff-addr".to_string();
+        let john_address = "john-q-rando-addr".to_string();
+
+        let jeff_sender_info = mock_info(&jeff_address, &[]);
+        let john_sender_info = mock_info(&john_address, &[]);
+
+        let init_msg = InstantiateMsg {
+            name: CONTRACT_NAME.to_string(),
+            symbol: SYMBOL.to_string(),
+            native_denom: "uatom".to_string(),
+            native_decimals: 6,
+            token_cap: Some(2),
+            base_mint_fee: None,
+            burn_percentage: None,
+            short_name_surcharge: None,
+            admin_address: jeff_address.clone(),
+            username_length_cap: None,
+        };
+        entry::instantiate(
+            deps.as_mut(),
+            mock_env(),
+            jeff_sender_info.clone(),
+            init_msg,
+        )
+        .unwrap();
+
+        // CHECK: john cannot update
+        let john_failed_attempt_1 = entry::execute(
+            deps.as_mut(),
+            mock_env(),
+            john_sender_info,
+            ExecuteMsg::UpdateUsernameLengthCap { new_length: 25 },
+        )
+        .unwrap_err();
+        assert_eq!(john_failed_attempt_1, ContractError::Unauthorized {});
+
+        // CHECK: can't mint 21 chr NFT
+        let token_id = "jeffisthebest12345678".to_string();
+        let token_uri = "https://example.com/jeff-vader".to_string();
+
+        let meta = Metadata {
+            ..Metadata::default()
+        };
+
+        let mint_msg = ExecuteMsg::Mint(MintMsg {
+            token_id,
+            owner: jeff_address,
+            token_uri: Some(token_uri),
+            extension: meta,
+        });
+
+        let failed_mint = entry::execute(
+            deps.as_mut(),
+            mock_env(),
+            jeff_sender_info.clone(),
+            mint_msg.clone(),
+        )
+        .unwrap_err();
+        assert_eq!(failed_mint, ContractError::TokenNameInvalid {});
+
+        // CHECK: jeff can update length cap
+        let _ = entry::execute(
+            deps.as_mut(),
+            mock_env(),
+            jeff_sender_info.clone(),
+            ExecuteMsg::UpdateUsernameLengthCap { new_length: 25 },
+        );
+
+        // CHECK: minting is back on the menu boys
+        let _ = entry::execute(deps.as_mut(), mock_env(), jeff_sender_info, mint_msg).unwrap();
+
+        // CHECK: ensure num tokens increases
+        let count = contract.num_tokens(deps.as_ref()).unwrap();
+        assert_eq!(1, count.count);
+    }
+
+    #[test]
+    fn update_username_length_cap() {
+        let contract = Cw721MetadataContract::default();
+        let mut deps = mock_dependencies();
+
+        let jeff_address = "jeff-addr".to_string();
+
+        let jeff_sender_info = mock_info(&jeff_address, &[]);
+
+        let init_msg = InstantiateMsg {
+            name: CONTRACT_NAME.to_string(),
+            symbol: SYMBOL.to_string(),
+            native_denom: "uatom".to_string(),
+            native_decimals: 6,
+            token_cap: Some(2),
+            base_mint_fee: None,
+            burn_percentage: None,
+            short_name_surcharge: None,
+            admin_address: jeff_address.clone(),
+            username_length_cap: Some(22),
+        };
+        entry::instantiate(
+            deps.as_mut(),
+            mock_env(),
+            jeff_sender_info.clone(),
+            init_msg,
+        )
+        .unwrap();
+
+        // CHECK: CAN mint 21 chr NFT
+        let token_id = "jeffisthebest12345678".to_string();
+        let token_uri = "https://example.com/jeff-vader".to_string();
+
+        let meta = Metadata {
+            ..Metadata::default()
+        };
+
+        let mint_msg = ExecuteMsg::Mint(MintMsg {
+            token_id: token_id.clone(),
+            owner: jeff_address.clone(),
+            token_uri: Some(token_uri.clone()),
+            extension: meta.clone(),
+        });
+
+        let _ = entry::execute(
+            deps.as_mut(),
+            mock_env(),
+            jeff_sender_info.clone(),
+            mint_msg,
+        )
+        .unwrap();
+
+        let count = contract.num_tokens(deps.as_ref()).unwrap();
+        assert_eq!(1, count.count);
+
+        let info = contract.nft_info(deps.as_ref(), token_id).unwrap();
+        assert_eq!(
+            info,
+            NftInfoResponse::<Extension> {
+                token_uri: Some(token_uri.clone()),
+                extension: meta.clone(),
+            }
+        );
+
+        // CHECK: but cannot mint 25 chr NFT
+        let token_id_2 = "jeffisthebestest123456789".to_string();
+        let mint_msg_2 = ExecuteMsg::Mint(MintMsg {
+            token_id: token_id_2.clone(),
+            owner: jeff_address,
+            token_uri: Some(token_uri.clone()),
+            extension: meta.clone(),
+        });
+
+        let failed_mint = entry::execute(
+            deps.as_mut(),
+            mock_env(),
+            jeff_sender_info.clone(),
+            mint_msg_2.clone(),
+        )
+        .unwrap_err();
+        assert_eq!(failed_mint, ContractError::TokenNameInvalid {});
+
+        // CHECK: jeff can update length cap
+        let _ = entry::execute(
+            deps.as_mut(),
+            mock_env(),
+            jeff_sender_info.clone(),
+            ExecuteMsg::UpdateUsernameLengthCap { new_length: 25 },
+        );
+
+        // CHECK: can mint longer name now
+        let _ = entry::execute(deps.as_mut(), mock_env(), jeff_sender_info, mint_msg_2).unwrap();
+
+        // CHECK: ensure num tokens increases
+        let count2 = contract.num_tokens(deps.as_ref()).unwrap();
+        assert_eq!(2, count2.count);
+
+        let info_res_2 = contract.nft_info(deps.as_ref(), token_id_2).unwrap();
+        assert_eq!(
+            info_res_2,
+            NftInfoResponse::<Extension> {
+                token_uri: Some(token_uri),
+                extension: meta,
+            }
+        );
+    }
+
+    #[test]
     fn update_admin_address() {
         let mut deps = mock_dependencies();
 
@@ -222,6 +413,7 @@ mod tests {
             burn_percentage: None,
             short_name_surcharge: None,
             admin_address: jeff_address.clone(),
+            username_length_cap: None,
         };
         entry::instantiate(
             deps.as_mut(),
@@ -583,6 +775,7 @@ mod tests {
                 surcharge_fee: Uint128::new(1_500_000),
             }),
             admin_address: jeff_address.clone(),
+            username_length_cap: None,
         };
         entry::instantiate(deps.as_mut(), mock_env(), allowed.clone(), init_msg).unwrap();
 
@@ -865,6 +1058,7 @@ mod tests {
             burn_percentage: Some(50),
             short_name_surcharge: None,
             admin_address: jeff_address.clone(),
+            username_length_cap: None,
         };
         entry::instantiate(
             deps.as_mut(),
@@ -954,6 +1148,7 @@ mod tests {
                 surcharge_fee: Uint128::new(1_000_000),
             }),
             admin_address: jeff_address.clone(),
+            username_length_cap: None,
         };
         entry::instantiate(
             deps.as_mut(),
@@ -1077,6 +1272,7 @@ mod tests {
                 surcharge_fee: Uint128::new(2_000_000),
             }),
             admin_address: jeff_address.clone(),
+            username_length_cap: None,
         };
         entry::instantiate(
             deps.as_mut(),
@@ -1164,6 +1360,7 @@ mod tests {
                 surcharge_fee: Uint128::new(1_500_000),
             }),
             admin_address: jeff_address.clone(),
+            username_length_cap: None,
         };
         entry::instantiate(
             deps.as_mut(),
@@ -1644,6 +1841,7 @@ mod tests {
             burn_percentage: Some(50),
             short_name_surcharge: None,
             admin_address: String::from(MINTER),
+            username_length_cap: None,
         };
         let info = mock_info("creator", &[]);
         let res = entry::instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
@@ -1979,6 +2177,7 @@ mod tests {
             burn_percentage: None,
             short_name_surcharge: None,
             admin_address: "jeff-addr".to_string(),
+            username_length_cap: None,
         };
         entry::instantiate(deps.as_mut(), mock_env(), info.clone(), init_msg).unwrap();
 
@@ -2035,6 +2234,7 @@ mod tests {
             burn_percentage: None,
             short_name_surcharge: None,
             admin_address: "jeff-addr".to_string(),
+            username_length_cap: None,
         };
         entry::instantiate(deps.as_mut(), mock_env(), info.clone(), init_msg).unwrap();
 
@@ -2090,6 +2290,7 @@ mod tests {
             burn_percentage: None,
             short_name_surcharge: None,
             admin_address: "jeff-addr".to_string(),
+            username_length_cap: None,
         };
         entry::instantiate(deps.as_mut(), mock_env(), info.clone(), init_msg).unwrap();
 

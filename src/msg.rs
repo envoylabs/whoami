@@ -58,6 +58,10 @@ pub struct InstantiateMsg {
     /// The admin address for the contract
     /// replaces the minter field as minting is permissionless
     pub admin_address: String,
+
+    /// The cap for a username length
+    /// can be updated later by the admin_address
+    pub username_length_cap: Option<u32>,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug, Default)]
@@ -117,6 +121,9 @@ pub struct UpdateMintingFeesMsg {
 pub enum ExecuteMsg {
     /// Updates the minting fees configured at contract instantiation
     UpdateMintingFees(UpdateMintingFeesMsg),
+
+    /// Updates the username length cap
+    UpdateUsernameLengthCap { new_length: u32 },
 
     /// If the sender has multiple NFTs or aliases, they will want to set a default. This allows them to do this.
     UpdatePrimaryAlias { token_id: String },
