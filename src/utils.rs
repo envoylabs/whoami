@@ -66,29 +66,37 @@ pub fn username_is_valid(deps: Deps, username: &str) -> bool {
     username_characters_valid && username_length_valid
 }
 
-pub fn validate_path_characters(username: &str) -> bool {
+pub fn validate_path_characters(path: &str, parent_token_id: &str) -> bool {
     // first check for any characters _other than_ allowed characters
     let invalid_characters: Regex = Regex::new(r"[^a-z0-9_\-/]").unwrap();
-    let first_check_passed = !invalid_characters.is_match(username);
+    let first_check_passed = !invalid_characters.is_match(path);
 
     // then check for invalid sequence of hyphens or underscores
     // if is_match returns true, it is invalid
     let invalid_hyphens_underscores: Regex = Regex::new(r"[_\-/]{2,}").unwrap();
-    let second_check_passed = !invalid_hyphens_underscores.is_match(username);
+    let second_check_passed = !invalid_hyphens_underscores.is_match(path);
 
     let leading_forward_slash: Regex = Regex::new(r"^[_\-/]").unwrap();
-    let third_check_passed = !leading_forward_slash.is_match(username);
+    let third_check_passed = !leading_forward_slash.is_match(path);
 
     let trailing_forward_slash: Regex = Regex::new(r"[_\-/]$").unwrap();
-    let fourth_check_passed = !trailing_forward_slash.is_match(username);
+    let fourth_check_passed = !trailing_forward_slash.is_match(path);
 
-    first_check_passed && second_check_passed && third_check_passed && fourth_check_passed
+    // check parent token isn't in there
+    let parent_token_id_present: Regex = Regex::new(parent_token_id).unwrap();
+    let fifth_check_passed = !parent_token_id_present.is_match(path);
+
+    first_check_passed
+        && second_check_passed
+        && third_check_passed
+        && fourth_check_passed
+        && fifth_check_passed
 }
 
-pub fn path_is_valid(path: &str) -> bool {
+pub fn path_is_valid(path: &str, parent_token_id: &str) -> bool {
     let path_length = u32::try_from(path.chars().count()).unwrap();
     let path_length_valid = path_length <= 2048;
-    let path_characters_valid = validate_path_characters(path);
+    let path_characters_valid = validate_path_characters(path, parent_token_id);
     path_characters_valid && path_length_valid
 }
 

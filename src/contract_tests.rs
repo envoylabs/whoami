@@ -72,56 +72,74 @@ mod tests {
 
     #[test]
     fn path_validator() {
-        let first_check = validate_path_characters("jeff/vader");
+        let first_check = validate_path_characters("jeff/vader", "death-star-employees");
         assert_eq!(first_check, true);
 
-        let second_check = validate_path_characters("jeff/vader/notable-works");
+        let second_check =
+            validate_path_characters("jeff/vader/notable-works", "death-star-employees");
         assert_eq!(second_check, true);
 
-        let third_check = validate_path_characters("jeff//vader");
+        let third_check = validate_path_characters("jeff//vader", "death-star-employees");
         assert_eq!(third_check, false);
 
-        let fourth_check = validate_path_characters("/jeff-vader");
+        let fourth_check = validate_path_characters("/jeff-vader", "death-star-employees");
         assert_eq!(fourth_check, false);
 
-        let fifth_check = validate_path_characters("jeff_vader");
+        let fifth_check = validate_path_characters("jeff_vader", "death-star-employees");
         assert_eq!(fifth_check, true);
 
         // no two special chars together
-        let sixth_check = validate_path_characters("_jeff_vader/_past_employment");
+        let sixth_check =
+            validate_path_characters("_jeff_vader/_past_employment", "death-star-employees");
         assert_eq!(sixth_check, false);
 
         // no leading, as it will result in same error case
-        let seventh_check = validate_path_characters("-jeff_vader");
+        let seventh_check = validate_path_characters("-jeff_vader", "death-star-employees");
         assert_eq!(seventh_check, false);
 
-        let eighth_check =
-            validate_path_characters("jeffvader/past-construction-projects//death-star-one");
+        let eighth_check = validate_path_characters(
+            "jeffvader/past-construction-projects//death-star-one",
+            "death-star-employees",
+        );
         assert_eq!(eighth_check, false);
 
-        let ninth_check = validate_path_characters("j3ffv4d3r");
+        let ninth_check = validate_path_characters("j3ffv4d3r", "death-star-employees");
         assert_eq!(ninth_check, true);
 
-        let tenth_check = validate_path_characters("j3ff_v4d3r");
+        let tenth_check = validate_path_characters("j3ff_v4d3r", "death-star-employees");
         assert_eq!(tenth_check, true);
 
-        let eleventh_check = validate_path_characters("j3ff__v4d3r");
+        let eleventh_check = validate_path_characters("j3ff__v4d3r", "death-star-employees");
         assert_eq!(eleventh_check, false);
 
-        let twelfth_check = validate_path_characters("jeff_-vader");
+        let twelfth_check = validate_path_characters("jeff_-vader", "death-star-employees");
         assert_eq!(twelfth_check, false);
 
         // strictly speaking these are invalid
         // but we should normalize before we even hit these
-        let thirteenth_check = validate_path_characters("JeffVader");
+        let thirteenth_check = validate_path_characters("JeffVader", "death-star-employees");
         assert_eq!(thirteenth_check, false);
 
         // no trailing
-        let fourteenth_check = validate_path_characters("jeff/vader-");
+        let fourteenth_check = validate_path_characters("jeff/vader-", "death-star-employees");
         assert_eq!(fourteenth_check, false);
 
-        let fifteenth_check = validate_path_characters("jeff/vader/trying/to/screw/up/parsing/");
+        let fifteenth_check = validate_path_characters(
+            "jeff/vader/trying/to/screw/up/parsing/",
+            "death-star-employees",
+        );
         assert_eq!(fifteenth_check, false);
+
+        // just like Just A Minute
+        // there will be no - well
+        // maybe deviation and hesitation
+        // but no repetition
+        let sixteenth_check = validate_path_characters("jeff-vader/trying/his/best", "jeff-vader");
+        assert_eq!(sixteenth_check, false);
+
+        let seventeenth_check =
+            validate_path_characters("trying/his/best/it-is/jeff-vader", "jeff-vader");
+        assert_eq!(seventeenth_check, false);
     }
 
     const CREATOR: &str = "creator";

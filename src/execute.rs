@@ -323,17 +323,19 @@ pub fn mint_path(
     // path == token_id
     // normalize it to lowercase
     let path = &msg.token_id.to_lowercase();
-    if !path_is_valid(path) {
-        return Err(ContractError::TokenNameInvalid {});
-    }
 
     // if parent_token_id is set,
     // this is a subdomain
     // we also check for cycles
+    // we also check that parent token isn't repeated in the path
     if let Some(ref parent_token_id) = msg.extension.parent_token_id {
         if parent_token_id == path {
             return Err(ContractError::CycleDetected {});
         } else {
+            if !path_is_valid(path, parent_token_id) {
+                return Err(ContractError::TokenNameInvalid {});
+            }
+
             validate_subdomain(
                 &contract,
                 &deps,
