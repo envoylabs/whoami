@@ -52,7 +52,7 @@
       "additionalProperties": false
     },
     {
-      "description": "Query address of a name",
+      "description": "Query address of a name - should this return contract address if contract?",
       "type": "object",
       "required": [
         "address_of"
@@ -225,6 +225,41 @@
       "additionalProperties": false
     },
     {
+      "description": "With Enumerable extension. Returns all namespace/base tokens owned by the given address, [] if unset. Return type: TokensResponse.",
+      "type": "object",
+      "required": [
+        "base_tokens"
+      ],
+      "properties": {
+        "base_tokens": {
+          "type": "object",
+          "required": [
+            "owner"
+          ],
+          "properties": {
+            "limit": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint32",
+              "minimum": 0.0
+            },
+            "owner": {
+              "type": "string"
+            },
+            "start_after": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    {
       "description": "With Enumerable extension. Requires pagination. Lists all token_ids controlled by the contract. Return type: TokensResponse.",
       "type": "object",
       "required": [
@@ -333,15 +368,89 @@
       "description": "Return complete path to token_id recurses through parent_token_ids",
       "type": "object",
       "required": [
-        "get_path"
+        "get_full_path"
       ],
       "properties": {
-        "get_path": {
+        "get_full_path": {
           "type": "object",
           "required": [
             "token_id"
           ],
           "properties": {
+            "token_id": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Analogous to Tokens {} Returns all paths owned by the given address, [] if unset. Return type: TokensResponse.",
+      "type": "object",
+      "required": [
+        "paths"
+      ],
+      "properties": {
+        "paths": {
+          "type": "object",
+          "required": [
+            "owner"
+          ],
+          "properties": {
+            "limit": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint32",
+              "minimum": 0.0
+            },
+            "owner": {
+              "type": "string"
+            },
+            "start_after": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Analogous to Tokens {} Returns all paths owned by the given address, where the namespace/parent is token_id [] if unset. Return type: TokensResponse.",
+      "type": "object",
+      "required": [
+        "paths_for_token"
+      ],
+      "properties": {
+        "paths_for_token": {
+          "type": "object",
+          "required": [
+            "owner",
+            "token_id"
+          ],
+          "properties": {
+            "limit": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint32",
+              "minimum": 0.0
+            },
+            "owner": {
+              "type": "string"
+            },
+            "start_after": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
             "token_id": {
               "type": "string"
             }

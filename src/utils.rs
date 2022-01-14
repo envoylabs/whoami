@@ -19,14 +19,14 @@ use std::convert::TryFrom;
 pub fn validate_subdomain(
     contract: &Cw721MetadataContract,
     deps: &DepsMut,
-    token_id: String,
+    parent_token_id: String,
     minter: Addr,
 ) -> Result<(), ContractError> {
     // check one - load
-    let token = contract.tokens.load(deps.storage, &token_id)?;
+    let parent_token = contract.tokens.load(deps.storage, &parent_token_id)?;
 
     // check two
-    if minter != token.owner {
+    if minter != parent_token.owner {
         return Err(ContractError::Unauthorized {});
     }
 
@@ -64,6 +64,58 @@ pub fn username_is_valid(deps: Deps, username: &str) -> bool {
     let username_length_valid = validate_username_length(deps, username);
     let username_characters_valid = validate_username_characters(username);
     username_characters_valid && username_length_valid
+}
+
+pub fn validate_path_characters(path: &str, parent_token_id: &str) -> bool {
+    // first check for any characters _other than_ allowed characters
+    let invalid_characters: Regex = Regex::new(r"[^a-z0-9_\-/]").unwrap();
+    let first_check_passed = !invalid_characters.is_match(path);
+
+    // then check for invalid sequence of hyphens or underscores
+    // if is_match returns true, it is invalid
+    let invalid_hyphens_underscores: Regex = Regex::new(r"[_\-/]{2,}").unwrap();
+    let second_check_passed = !invalid_hyphens_underscores.is_match(path);
+
+    let leading_forward_slash: Regex = Regex::new(r"^[_\-/]").unwrap();
+    let third_check_passed = !leading_forward_slash.is_match(path);
+
+    let trailing_forward_slash: Regex = Regex::new(r"[_\-/]$").unwrap();
+    let fourth_check_passed = !trailing_forward_slash.is_match(path);
+
+    // check parent token isn't in there
+    let parent_token_id_present: Regex = Regex::new(parent_token_id).unwrap();
+    let fifth_check_passed = !parent_token_id_present.is_match(path);
+
+    first_check_passed
+        && second_check_passed
+        && third_check_passed
+        && fourth_check_passed
+        && fifth_check_passed
+}
+
+pub fn path_is_valid(path: &str, parent_token_id: &str) -> bool {
+    let path_length = u32::try_from(path.chars().count()).unwrap();
+    let path_length_valid = path_length <= 2048;
+    let path_characters_valid = validate_path_characters(path, parent_token_id);
+    path_characters_valid && path_length_valid
+}
+
+pub fn is_path(token_id: &str) -> bool {
+    token_id.contains("::")
+}
+
+// check whether the offered token id matches the namespace
+pub fn namespace_in_path(token_id: &str, parent_token_id: &str) -> bool {
+    let namespace_regex = format!("^{}", parent_token_id);
+    let has_namespace: Regex = Regex::new(&namespace_regex).unwrap();
+    has_namespace.is_match(token_id)
+}
+
+// if it is a path, removes the namespace
+// otherwise leaves it untouched
+pub fn remove_namespace_from_path(path: &str, parent_token_id: &str) -> String {
+    let parent_id_regex = Regex::new(parent_token_id).unwrap();
+    parent_id_regex.replace_all(path, "").to_string()
 }
 
 pub fn get_mint_fee(minting_fees: MintingFeesResponse, username_length: u32) -> Option<Uint128> {

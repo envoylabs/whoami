@@ -9,11 +9,13 @@ pub mod utils;
 use cosmwasm_std::{to_binary, Empty};
 
 use execute::{
-    burn, execute_instantiate, mint, send_nft, set_admin_address, set_username_length_cap,
-    transfer_nft, update_metadata, update_minting_fees, update_primary_alias,
+    burn, execute_instantiate, mint, mint_path, send_nft, set_admin_address,
+    set_username_length_cap, transfer_nft, update_metadata, update_minting_fees,
+    update_primary_alias,
 };
 use query::{
-    contract_info, get_parent_id, get_parent_nft_info, get_path, is_contract, primary_alias,
+    contract_info, get_base_tokens_for_owner, get_parent_id, get_parent_nft_info, get_path,
+    get_paths_for_owner, get_paths_for_owner_and_token, is_contract, primary_alias,
 };
 
 pub use crate::msg::{ExecuteMsg, Extension, InstantiateMsg, QueryMsg};
@@ -54,6 +56,7 @@ pub mod entry {
                 set_username_length_cap(tract, deps, env, info, new_length)
             }
             ExecuteMsg::Mint(msg) => mint(tract, deps, env, info, msg),
+            ExecuteMsg::MintPath(msg) => mint_path(tract, deps, env, info, msg),
             ExecuteMsg::UpdateMetadata(msg) => update_metadata(tract, deps, env, info, msg),
             ExecuteMsg::UpdatePrimaryAlias { token_id } => {
                 update_primary_alias(tract, deps, env, info, token_id)
@@ -87,6 +90,17 @@ pub mod entry {
         let tract = Cw721MetadataContract::default();
 
         match msg {
+            QueryMsg::BaseTokens {
+                owner,
+                start_after,
+                limit,
+            } => to_binary(&get_base_tokens_for_owner(
+                tract,
+                deps,
+                owner,
+                start_after,
+                limit,
+            )?),
             QueryMsg::PrimaryAlias { address } => {
                 to_binary(&primary_alias(tract, deps, env, address)?)
             }
@@ -96,7 +110,30 @@ pub mod entry {
             QueryMsg::GetParentInfo { token_id } => {
                 to_binary(&get_parent_nft_info(tract, deps, token_id)?)
             }
-            QueryMsg::GetPath { token_id } => to_binary(&get_path(tract, deps, token_id)?),
+            QueryMsg::GetFullPath { token_id } => to_binary(&get_path(tract, deps, token_id)?),
+            QueryMsg::Paths {
+                owner,
+                start_after,
+                limit,
+            } => to_binary(&get_paths_for_owner(
+                tract,
+                deps,
+                owner,
+                start_after,
+                limit,
+            )?),
+            QueryMsg::PathsForToken {
+                owner,
+                token_id,
+                start_after,
+                limit,
+            } => to_binary(&get_paths_for_owner_and_token(
+                deps,
+                owner,
+                token_id,
+                start_after,
+                limit,
+            )?),
             _ => tract.query(deps, env, msg.into()).map_err(|err| err),
         }
     }

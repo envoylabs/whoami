@@ -3,6 +3,7 @@ use crate::msg::{
     PrimaryAliasResponse, WhoamiNftInfoResponse,
 };
 use crate::state::{CONTRACT_INFO, MINTING_FEES_INFO, PRIMARY_ALIASES};
+use crate::utils::{is_path, namespace_in_path, remove_namespace_from_path};
 use crate::Cw721MetadataContract;
 use cosmwasm_std::{Deps, Env, Order, StdError, StdResult};
 use cw721::TokensResponse;
@@ -11,13 +12,13 @@ use cw_storage_plus::Bound;
 const DEFAULT_LIMIT: u32 = 10;
 const MAX_LIMIT: u32 = 30;
 
-fn get_tokens_for_owner(
+fn get_tokens(
     contract: Cw721MetadataContract,
     deps: Deps,
     owner: String,
     start_after: Option<String>,
     limit: Option<u32>,
-) -> StdResult<TokensResponse> {
+) -> StdResult<Vec<String>> {
     let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
     let start = start_after.map(Bound::exclusive);
 
@@ -32,17 +33,79 @@ fn get_tokens_for_owner(
         .map(|x| x.map(|addr| addr.to_string()))
         .collect::<StdResult<Vec<_>>>()?;
 
+    Ok(tokens)
+}
+
+fn get_tokens_for_owner(
+    contract: Cw721MetadataContract,
+    deps: Deps,
+    owner: String,
+    start_after: Option<String>,
+    limit: Option<u32>,
+) -> StdResult<TokensResponse> {
+    let tokens = get_tokens(contract, deps, owner, start_after, limit)?;
+
     Ok(TokensResponse { tokens })
 }
 
+pub fn get_base_tokens_for_owner(
+    contract: Cw721MetadataContract,
+    deps: Deps,
+    owner: String,
+    start_after: Option<String>,
+    limit: Option<u32>,
+) -> StdResult<TokensResponse> {
+    let tokens = get_tokens_for_owner(contract, deps, owner, start_after, limit)?.tokens;
+
+    let non_path_tokens = tokens.into_iter().filter(|path| !is_path(path)).collect();
+
+    Ok(TokensResponse {
+        tokens: non_path_tokens,
+    })
+}
+
+// get the first non_path token
 fn get_first_token_for_owner(
     contract: Cw721MetadataContract,
     deps: Deps,
     owner: String,
 ) -> StdResult<String> {
-    let tokens_response = get_tokens_for_owner(contract, deps, owner, None, Some(1))?;
+    let tokens_response = get_base_tokens_for_owner(contract, deps, owner, None, Some(1))?;
     let first_token = tokens_response.tokens[0].clone();
     Ok(first_token)
+}
+
+pub fn get_paths_for_owner(
+    contract: Cw721MetadataContract,
+    deps: Deps,
+    owner: String,
+    start_after: Option<String>,
+    limit: Option<u32>,
+) -> StdResult<TokensResponse> {
+    let tokens = get_tokens_for_owner(contract, deps, owner, start_after, limit)?.tokens;
+
+    let paths = tokens.into_iter().filter(|path| is_path(path)).collect();
+
+    Ok(TokensResponse { tokens: paths })
+}
+
+// get only those namespaced under token_id
+pub fn get_paths_for_owner_and_token(
+    deps: Deps,
+    owner: String,
+    token_id: String,
+    start_after: Option<String>,
+    limit: Option<u32>,
+) -> StdResult<TokensResponse> {
+    let contract = Cw721MetadataContract::default();
+    let tokens = get_tokens(contract, deps, owner, start_after, limit)?;
+
+    let paths = tokens
+        .into_iter()
+        .filter(|path| is_path(path) && namespace_in_path(path, &token_id))
+        .collect();
+
+    Ok(TokensResponse { tokens: paths })
 }
 
 // note we call this PRIMARY in the UI
@@ -86,9 +149,16 @@ pub fn is_contract(
     token_id: String,
 ) -> StdResult<IsContractResponse> {
     let token = contract.tokens.load(deps.storage, &token_id)?;
-    let is_contract = token.extension.is_contract.unwrap_or(false);
 
-    Ok(IsContractResponse { is_contract })
+    if let Some(addr) = token.extension.contract_address {
+        Ok(IsContractResponse {
+            contract_address: addr,
+        })
+    } else {
+        Err(StdError::NotFound {
+            kind: "No contract address".to_string(),
+        })
+    }
 }
 
 // looks up the actual token
@@ -147,7 +217,12 @@ pub fn get_path(
 ) -> StdResult<GetPathResponse> {
     let token = contract.tokens.load(deps.storage, &token_id)?;
 
-    let mut parents = vec![token_id];
+    // clip front off token_id if it is a path
+    let sanitized_token_id = match token.extension.parent_token_id {
+        Some(ref pti) => remove_namespace_from_path(&token_id, pti),
+        None => token_id,
+    };
+    let mut parents = vec![sanitized_token_id];
     let mut current_parent_token_id = token.extension.parent_token_id;
 
     while current_parent_token_id.is_some() {
@@ -156,13 +231,24 @@ pub fn get_path(
         // look up parent token
         let parent_token = contract.tokens.load(deps.storage, &cpti)?;
 
+        // clip off the front if this is a path
+        // i.e. jeffvader::employment/death-star-1 will resolve
+        // so we clip off jeffvader
+        // not even sure this case _can_ happen, but still
+        let sanitized_parent_token_id = match parent_token.extension.parent_token_id {
+            Some(ref cppti) => remove_namespace_from_path(&cpti, cppti),
+            None => cpti,
+        };
+
         // insert current token
-        parents.insert(0, cpti);
+        parents.insert(0, sanitized_parent_token_id);
 
         // set the next one - this will be Some or None
         current_parent_token_id = parent_token.extension.parent_token_id;
     }
 
-    let path = parents.join("/");
+    // finally, ensure we have no instances of /:: after join
+    let joined = parents.join("/");
+    let path = joined.replace("/::", "::");
     Ok(GetPathResponse { path })
 }
