@@ -279,7 +279,6 @@ pub fn mint(
     contract.increment_tokens(deps.storage)?;
 
     // if there is a fee, add a bank msg to send to the admin_address
-    // TODO - implement burn of 50%
     let res = get_mint_response(
         admin_address,
         address_trying_to_mint,
@@ -330,48 +329,50 @@ pub fn mint_path(
     // we also check that parent token isn't repeated in the path
     if let Some(ref parent_token_id) = msg.extension.parent_token_id {
         if parent_token_id == path {
-            return Err(ContractError::CycleDetected {});
+            Err(ContractError::CycleDetected {})
         } else {
+            // first we validate path
             if !path_is_valid(path, parent_token_id) {
                 return Err(ContractError::TokenNameInvalid {});
             }
 
+            // then its hierarchy
             validate_subdomain(
                 &contract,
                 &deps,
                 parent_token_id.to_string(),
                 address_trying_to_mint.clone(),
             )?;
+
+            // okay, it's valid, prepend it with parent and start the show
+            let full_path = format!("{}::{}", parent_token_id, path);
+
+            // create the token
+            // this will fail if claimed
+            let token = TokenInfo {
+                owner: owner_address,
+                approvals: vec![],
+                token_uri: msg.token_uri,
+                extension: msg.extension,
+            };
+            contract
+                .tokens
+                .update(deps.storage, &full_path, |old| match old {
+                    Some(_) => Err(ContractError::Claimed {}),
+                    None => Ok(token),
+                })?;
+
+            contract.increment_tokens(deps.storage)?;
+
+            let res = Response::new()
+                .add_attribute("action", "mint")
+                .add_attribute("minter", address_trying_to_mint)
+                .add_attribute("token_id", full_path);
+            Ok(res)
         }
     } else {
-        return Err(ContractError::ParentNotFound {});
+        Err(ContractError::ParentNotFound {})
     }
-
-    // create the token
-    // this will fail if token_id (i.e. path)
-    // is already claimed
-    let token = TokenInfo {
-        owner: owner_address,
-        approvals: vec![],
-        token_uri: msg.token_uri,
-        extension: msg.extension,
-    };
-    contract
-        .tokens
-        .update(deps.storage, &path, |old| match old {
-            Some(_) => Err(ContractError::Claimed {}),
-            None => Ok(token),
-        })?;
-
-    contract.increment_tokens(deps.storage)?;
-
-    // if there is a fee, add a bank msg to send to the admin_address
-    // TODO - implement burn of 50%
-    let res = Response::new()
-        .add_attribute("action", "mint")
-        .add_attribute("minter", address_trying_to_mint)
-        .add_attribute("token_id", path);
-    Ok(res)
 }
 
 // updates the metadata on an NFT
