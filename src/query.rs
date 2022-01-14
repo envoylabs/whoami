@@ -86,9 +86,15 @@ pub fn is_contract(
     token_id: String,
 ) -> StdResult<IsContractResponse> {
     let token = contract.tokens.load(deps.storage, &token_id)?;
-    let is_contract = token.extension.is_contract.unwrap_or(false);
-
-    Ok(IsContractResponse { is_contract })
+    if let Some(addr) = token.extension.contract_address {
+        Ok(IsContractResponse {
+            contract_address: addr,
+        })
+    } else {
+        Err(StdError::NotFound {
+            kind: "No contract address".to_string(),
+        })
+    }
 }
 
 // looks up the actual token

@@ -343,6 +343,9 @@ pub fn transfer_nft(
     recipient: String,
     token_id: String,
 ) -> Result<Response, ContractError> {
+    let token = contract.tokens.load(deps.storage, &token_id)?;
+    contract.check_can_send(deps.as_ref(), &env, &info, &token)?;
+
     // clear aliases before transfer iif it is the one being xfrd
     clear_alias_if_primary(deps.branch(), token_id.to_string())?;
 
@@ -364,6 +367,9 @@ pub fn send_nft(
     token_id: String,
     msg: Binary,
 ) -> Result<Response, ContractError> {
+    let token = contract.tokens.load(deps.storage, &token_id)?;
+    contract.check_can_send(deps.as_ref(), &env, &info, &token)?;
+
     // clear aliases before send iif it is the one being sent
     clear_alias_if_primary(deps.branch(), token_id.to_string())?;
 

@@ -80,7 +80,7 @@ pub struct Metadata {
     pub telegram_id: Option<String>,
     pub keybase_id: Option<String>,
     pub validator_operator_address: Option<String>,
-    pub is_contract: Option<bool>,
+    pub contract_address: Option<String>,
     /// For future compatibility, we want to support
     /// a recursive lookup of tokens that constitutes a path
     /// somewhat like a DNS
@@ -369,7 +369,7 @@ pub struct MintingFeesResponse {
 /// given the top level Contract Response for the container Contract
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub struct IsContractResponse {
-    pub is_contract: bool,
+    pub contract_address: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]

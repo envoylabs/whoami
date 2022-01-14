@@ -1957,13 +1957,14 @@ mod tests {
         // that & MINTER do not need to be
         // as MINTER is the admin addr on the contract
         let token_id = "enterprise";
+        let contract_address = "contract-address".to_string();
         let mint_msg = MintMsg {
             token_id: token_id.to_string(),
             owner: CREATOR.to_string(),
             token_uri: Some("https://starships.example.com/Starship/Enterprise.json".into()),
             extension: Metadata {
                 twitter_id: Some(String::from("@jeff-vader")),
-                is_contract: Some(false),
+                contract_address: Some(contract_address.clone()),
                 ..Metadata::default()
             },
         };
@@ -1986,11 +1987,11 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(contract_query_res.is_contract, false);
+        assert_eq!(contract_query_res.contract_address, contract_address);
     }
 
     #[test]
-    fn is_contract_is_default_path() {
+    fn is_contract_default_path_errors() {
         let mut deps = mock_dependencies();
         let contract = Cw721MetadataContract::default();
 
@@ -2029,19 +2030,21 @@ mod tests {
         assert_eq!(res.token_uri, mint_msg.token_uri);
         assert_eq!(res.extension, mint_msg.extension);
 
-        let contract_query_res: IsContractResponse = from_binary(
-            &entry::query(
-                deps.as_ref(),
-                mock_env(),
-                QueryMsg::IsContract {
-                    token_id: token_id.to_string(),
-                },
-            )
-            .unwrap(),
+        let contract_query_res = entry::query(
+            deps.as_ref(),
+            mock_env(),
+            QueryMsg::IsContract {
+                token_id: token_id.to_string(),
+            },
         )
-        .unwrap();
+        .unwrap_err();
 
-        assert_eq!(contract_query_res.is_contract, false);
+        assert_eq!(
+            contract_query_res,
+            StdError::NotFound {
+                kind: "No contract address".to_string()
+            }
+        );
     }
 
     #[test]
@@ -2065,13 +2068,14 @@ mod tests {
 
         // let's imagine this is a contract that does something
         // to do with the enterprise
+        let contract_address = "contract-address".to_string();
         let token_id = "enterprise-contract";
         let mint_msg = MintMsg {
             token_id: token_id.to_string(),
             owner: CREATOR.to_string(),
             token_uri: Some("https://starships.example.com/Starship/Enterprise.json".into()),
             extension: Metadata {
-                is_contract: Some(true),
+                contract_address: Some(contract_address.clone()),
                 ..Metadata::default()
             },
         };
@@ -2093,6 +2097,6 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(contract_query_res.is_contract, true);
+        assert_eq!(contract_query_res.contract_address, contract_address);
     }
 }
