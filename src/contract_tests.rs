@@ -2,7 +2,10 @@
 mod tests {
     use crate::entry;
 
-    use crate::utils::{validate_path_characters, validate_username_characters};
+    use crate::utils::{
+        is_path, namespace_in_path, remove_namespace_from_path, validate_path_characters,
+        validate_username_characters,
+    };
 
     use crate::error::ContractError;
 
@@ -140,6 +143,77 @@ mod tests {
         let seventeenth_check =
             validate_path_characters("trying/his/best/it-is/jeff-vader", "jeff-vader");
         assert_eq!(seventeenth_check, false);
+    }
+
+    // reminder: a token_id (i.e. path) can only ever be namespaced under its parent
+    // so ids like jeff/vader::path/goes/here are not possible
+    // even if you _might_ see that as a fully-qualified path iif they own jeff & vader
+    // and have set jeff as the parent of vader. _phew_
+    #[test]
+    fn remove_namespace_from_path_test() {
+        // token id called is employment
+        let first_check = remove_namespace_from_path("jeffvader::employment", "jeffvader");
+        assert_eq!(first_check, "::employment");
+
+        // token id called is notable-works
+        let second_check = remove_namespace_from_path(
+            "jeffvader::notable-works/star-wars/a-new-hope",
+            "jeffvader",
+        );
+        assert_eq!(second_check, "::notable-works/star-wars/a-new-hope");
+
+        // token id called is employment
+        // should be no-op
+        let third_check = remove_namespace_from_path("employment", "vader");
+        assert_eq!(third_check, "employment");
+
+        let fourth_check =
+            remove_namespace_from_path("jeffvader::employment/death-star-1", "jeffvader");
+        assert_eq!(fourth_check, "::employment/death-star-1");
+    }
+
+    #[test]
+    fn is_path_test() {
+        // token id called is employment
+        let first_check = is_path("jeffvader::employment");
+        assert_eq!(first_check, true);
+
+        // token id called is notable-works
+        let second_check = is_path("jeffvader::notable-works/star-wars/a-new-hope");
+        assert_eq!(second_check, true);
+
+        // token id called is employment
+        let third_check = is_path("jeff/vader::employment");
+        assert_eq!(third_check, true);
+
+        let fourth_check = is_path("jeffvader/employment/death-star-1");
+        assert_eq!(fourth_check, false);
+    }
+
+    // reminder: a token_id (i.e. path) can only ever be namespaced under its parent
+    // so ids like jeff/vader::path/goes/here are not possible
+    // even if you _might_ see that as a fully-qualified path iif they own jeff & vader
+    // and have set jeff as the parent of vader. _phew_
+    #[test]
+    fn namespace_in_path_test() {
+        // token id called is employment
+        let first_check = namespace_in_path("jeffvader::employment", "jeffvader");
+        assert_eq!(first_check, true);
+
+        // token id called is notable-works
+        let second_check =
+            namespace_in_path("jeffvader::notable-works/star-wars/a-new-hope", "jeffvader");
+        assert_eq!(second_check, true);
+
+        // token id called is employment
+        let third_check = namespace_in_path("vader::employment", "vader");
+        assert_eq!(third_check, true);
+
+        let fourth_check = namespace_in_path("jeffvader::employment/death-star-1", "vader");
+        assert_eq!(fourth_check, false);
+
+        let fifth_check = namespace_in_path("jeffvader::employment/death-star-1", "yoda");
+        assert_eq!(fifth_check, false);
     }
 
     const CREATOR: &str = "creator";
@@ -1044,7 +1118,7 @@ mod tests {
             &entry::query(
                 deps.as_ref(),
                 mock_env(),
-                QueryMsg::GetPath {
+                QueryMsg::GetFullPath {
                     token_id: subdomain_id.clone(),
                 },
             )
@@ -1094,7 +1168,7 @@ mod tests {
             &entry::query(
                 deps.as_ref(),
                 mock_env(),
-                QueryMsg::GetPath {
+                QueryMsg::GetFullPath {
                     token_id: subdomain2_id,
                 },
             )

@@ -145,8 +145,8 @@ pub enum ExecuteMsg {
     /// they could mint the paths
     /// construction-projects/past/death-star-1
     /// construction-projects/current/death-star-2
-    /// and both could be resolved by GetPath to
-    /// jeffvader/construction-projects/...
+    /// and both could be resolved by GetFullPath to
+    /// jeffvader::construction-projects/...
     MintPath(MintMsg),
 
     // Standard CW721 ExecuteMsg
@@ -270,6 +270,15 @@ pub enum QueryMsg {
         limit: Option<u32>,
     },
     /// With Enumerable extension.
+    /// Returns all namespace/base tokens owned by the given address,
+    /// [] if unset.
+    /// Return type: TokensResponse.
+    BaseTokens {
+        owner: String,
+        start_after: Option<String>,
+        limit: Option<u32>,
+    },
+    /// With Enumerable extension.
     /// Requires pagination. Lists all token_ids controlled by the contract.
     /// Return type: TokensResponse.
     AllTokens {
@@ -291,7 +300,28 @@ pub enum QueryMsg {
 
     /// Return complete path to token_id
     /// recurses through parent_token_ids
-    GetPath { token_id: String },
+    GetFullPath { token_id: String },
+
+    /// Analogous to Tokens {}
+    /// Returns all paths owned by the given address, [] if unset.
+    /// Return type: TokensResponse.
+    Paths {
+        owner: String,
+        start_after: Option<String>,
+        limit: Option<u32>,
+    },
+
+    /// Analogous to Tokens {}
+    /// Returns all paths owned by the given address,
+    /// where the namespace/parent is token_id
+    /// [] if unset.
+    /// Return type: TokensResponse.
+    PathsForToken {
+        owner: String,
+        token_id: String,
+        start_after: Option<String>,
+        limit: Option<u32>,
+    },
 }
 
 impl From<QueryMsg> for CW721QueryMsg {

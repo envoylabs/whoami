@@ -100,6 +100,25 @@ pub fn path_is_valid(path: &str, parent_token_id: &str) -> bool {
     path_characters_valid && path_length_valid
 }
 
+pub fn is_path(token_id: &str) -> bool {
+    let has_namespace: Regex = Regex::new(r"::").unwrap();
+    has_namespace.is_match(token_id)
+}
+
+// check whether the offered token id matches the namespace
+pub fn namespace_in_path(token_id: &str, parent_token_id: &str) -> bool {
+    let namespace_regex = format!("^{}", parent_token_id);
+    let has_namespace: Regex = Regex::new(&namespace_regex).unwrap();
+    has_namespace.is_match(token_id)
+}
+
+// if it is a path, removes the namespace
+// otherwise leaves it untouched
+pub fn remove_namespace_from_path(path: &str, parent_token_id: &str) -> String {
+    let parent_id_regex = Regex::new(parent_token_id).unwrap();
+    parent_id_regex.replace_all(path, "").to_string()
+}
+
 pub fn get_mint_fee(minting_fees: MintingFeesResponse, username_length: u32) -> Option<Uint128> {
     // is token name short enough to trigger a surcharge?
     let surcharge_is_owed = match minting_fees.short_name_surcharge {
