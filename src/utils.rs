@@ -101,8 +101,7 @@ pub fn path_is_valid(path: &str, parent_token_id: &str) -> bool {
 }
 
 pub fn is_path(token_id: &str) -> bool {
-    let has_namespace: Regex = Regex::new(r"::").unwrap();
-    has_namespace.is_match(token_id)
+    token_id.contains("::")
 }
 
 // check whether the offered token id matches the namespace
