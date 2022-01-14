@@ -15,7 +15,7 @@ use crate::msg::{
 use crate::state::{CONTRACT_INFO, MINTING_FEES_INFO, PRIMARY_ALIASES, USERNAME_LENGTH_CAP};
 use crate::utils::{
     get_mint_fee, get_mint_response, get_number_of_owned_tokens, get_username_length,
-    username_is_valid, validate_subdomain, verify_logo,
+    path_is_valid, username_is_valid, validate_subdomain, verify_logo,
 };
 use crate::Cw721MetadataContract;
 
@@ -288,6 +288,87 @@ pub fn mint(
         minting_fees.burn_percentage,
         msg.token_id,
     );
+    Ok(res)
+}
+
+// mint a PATH
+// essentially what we call a reified subdomain/namespace
+// where the whole slug is a single item
+// paths are different from names
+// they are free to mint, and have no cap
+pub fn mint_path(
+    contract: Cw721MetadataContract,
+    deps: DepsMut,
+    _env: Env,
+    info: MessageInfo,
+    msg: MintMsg,
+) -> Result<Response, ContractError> {
+    // any address can mint
+    // sender of the execute
+    let address_trying_to_mint = info.sender;
+
+    // can only mint NFTs belonging to yourself
+    if address_trying_to_mint != msg.owner {
+        return Err(ContractError::Unauthorized {});
+    }
+
+    // validate any embedded logo or image
+    if let Some(ref pfp_data) = msg.extension.image_data {
+        verify_logo(&pfp_data)?
+    }
+
+    // validate owner addr
+    let owner_address = deps.api.addr_validate(&msg.owner)?;
+
+    // path == token_id
+    // normalize it to lowercase
+    let path = &msg.token_id.to_lowercase();
+    if !path_is_valid(path) {
+        return Err(ContractError::TokenNameInvalid {});
+    }
+
+    // if parent_token_id is set,
+    // this is a subdomain
+    // we also check for cycles
+    if let Some(ref parent_token_id) = msg.extension.parent_token_id {
+        if parent_token_id == path {
+            return Err(ContractError::CycleDetected {});
+        } else {
+            validate_subdomain(
+                &contract,
+                &deps,
+                parent_token_id.to_string(),
+                address_trying_to_mint.clone(),
+            )?;
+        }
+    } else {
+        return Err(ContractError::ParentNotFound {});
+    }
+
+    // create the token
+    // this will fail if token_id (i.e. path)
+    // is already claimed
+    let token = TokenInfo {
+        owner: owner_address,
+        approvals: vec![],
+        token_uri: msg.token_uri,
+        extension: msg.extension,
+    };
+    contract
+        .tokens
+        .update(deps.storage, &path, |old| match old {
+            Some(_) => Err(ContractError::Claimed {}),
+            None => Ok(token),
+        })?;
+
+    contract.increment_tokens(deps.storage)?;
+
+    // if there is a fee, add a bank msg to send to the admin_address
+    // TODO - implement burn of 50%
+    let res = Response::new()
+        .add_attribute("action", "mint")
+        .add_attribute("minter", address_trying_to_mint)
+        .add_attribute("token_id", path);
     Ok(res)
 }
 

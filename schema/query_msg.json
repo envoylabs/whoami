@@ -52,7 +52,7 @@
       "additionalProperties": false
     },
     {
-      "description": "Query address of a name",
+      "description": "Query address of a name - should this return contract address if contract?",
       "type": "object",
       "required": [
         "address_of"

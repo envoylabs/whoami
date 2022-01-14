@@ -25,6 +25,9 @@ pub enum ContractError {
     #[error("Token Name Invalid")]
     TokenNameInvalid {},
 
+    #[error("Required Parent Not Found")]
+    ParentNotFound {},
+
     #[error("Unauthorized")]
     CycleDetected {},
 

@@ -2,7 +2,7 @@
 mod tests {
     use crate::entry;
 
-    use crate::utils::validate_username_characters;
+    use crate::utils::{validate_path_characters, validate_username_characters};
 
     use crate::error::ContractError;
 
@@ -68,6 +68,60 @@ mod tests {
 
         let fourteenth_check = validate_username_characters("Jeff");
         assert_eq!(fourteenth_check, false);
+    }
+
+    #[test]
+    fn path_validator() {
+        let first_check = validate_path_characters("jeff/vader");
+        assert_eq!(first_check, true);
+
+        let second_check = validate_path_characters("jeff/vader/notable-works");
+        assert_eq!(second_check, true);
+
+        let third_check = validate_path_characters("jeff//vader");
+        assert_eq!(third_check, false);
+
+        let fourth_check = validate_path_characters("/jeff-vader");
+        assert_eq!(fourth_check, false);
+
+        let fifth_check = validate_path_characters("jeff_vader");
+        assert_eq!(fifth_check, true);
+
+        // no two special chars together
+        let sixth_check = validate_path_characters("_jeff_vader/_past_employment");
+        assert_eq!(sixth_check, false);
+
+        // no leading, as it will result in same error case
+        let seventh_check = validate_path_characters("-jeff_vader");
+        assert_eq!(seventh_check, false);
+
+        let eighth_check =
+            validate_path_characters("jeffvader/past-construction-projects//death-star-one");
+        assert_eq!(eighth_check, false);
+
+        let ninth_check = validate_path_characters("j3ffv4d3r");
+        assert_eq!(ninth_check, true);
+
+        let tenth_check = validate_path_characters("j3ff_v4d3r");
+        assert_eq!(tenth_check, true);
+
+        let eleventh_check = validate_path_characters("j3ff__v4d3r");
+        assert_eq!(eleventh_check, false);
+
+        let twelfth_check = validate_path_characters("jeff_-vader");
+        assert_eq!(twelfth_check, false);
+
+        // strictly speaking these are invalid
+        // but we should normalize before we even hit these
+        let thirteenth_check = validate_path_characters("JeffVader");
+        assert_eq!(thirteenth_check, false);
+
+        // no trailing
+        let fourteenth_check = validate_path_characters("jeff/vader-");
+        assert_eq!(fourteenth_check, false);
+
+        let fifteenth_check = validate_path_characters("jeff/vader/trying/to/screw/up/parsing/");
+        assert_eq!(fifteenth_check, false);
     }
 
     const CREATOR: &str = "creator";
@@ -2186,13 +2240,14 @@ mod tests {
         // that & MINTER do not need to be
         // as MINTER is the admin addr on the contract
         let token_id = "enterprise";
+        let contract_address = "contract-address".to_string();
         let mint_msg = MintMsg {
             token_id: token_id.to_string(),
             owner: CREATOR.to_string(),
             token_uri: Some("https://starships.example.com/Starship/Enterprise.json".into()),
             extension: Metadata {
                 twitter_id: Some(String::from("@jeff-vader")),
-                is_contract: Some(false),
+                contract_address: Some(contract_address.clone()),
                 ..Metadata::default()
             },
         };
@@ -2215,11 +2270,11 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(contract_query_res.is_contract, false);
+        assert_eq!(contract_query_res.contract_address, contract_address);
     }
 
     #[test]
-    fn is_contract_is_default_path() {
+    fn is_contract_default_path_errors() {
         let mut deps = mock_dependencies();
         let contract = Cw721MetadataContract::default();
 
@@ -2259,19 +2314,21 @@ mod tests {
         assert_eq!(res.token_uri, mint_msg.token_uri);
         assert_eq!(res.extension, mint_msg.extension);
 
-        let contract_query_res: IsContractResponse = from_binary(
-            &entry::query(
-                deps.as_ref(),
-                mock_env(),
-                QueryMsg::IsContract {
-                    token_id: token_id.to_string(),
-                },
-            )
-            .unwrap(),
+        let contract_query_res = entry::query(
+            deps.as_ref(),
+            mock_env(),
+            QueryMsg::IsContract {
+                token_id: token_id.to_string(),
+            },
         )
-        .unwrap();
+        .unwrap_err();
 
-        assert_eq!(contract_query_res.is_contract, false);
+        assert_eq!(
+            contract_query_res,
+            StdError::NotFound {
+                kind: "No contract address".to_string()
+            }
+        );
     }
 
     #[test]
@@ -2296,13 +2353,14 @@ mod tests {
 
         // let's imagine this is a contract that does something
         // to do with the enterprise
+        let contract_address = "contract-address".to_string();
         let token_id = "enterprise-contract";
         let mint_msg = MintMsg {
             token_id: token_id.to_string(),
             owner: CREATOR.to_string(),
             token_uri: Some("https://starships.example.com/Starship/Enterprise.json".into()),
             extension: Metadata {
-                is_contract: Some(true),
+                contract_address: Some(contract_address.clone()),
                 ..Metadata::default()
             },
         };
@@ -2324,6 +2382,6 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(contract_query_res.is_contract, true);
+        assert_eq!(contract_query_res.contract_address, contract_address);
     }
 }

@@ -92,6 +92,12 @@
     "Metadata": {
       "type": "object",
       "properties": {
+        "contract_address": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "discord_id": {
           "type": [
             "string",
@@ -124,12 +130,6 @@
             {
               "type": "null"
             }
-          ]
-        },
-        "is_contract": {
-          "type": [
-            "boolean",
-            "null"
           ]
         },
         "keybase_id": {

@@ -128,6 +128,19 @@
       "additionalProperties": false
     },
     {
+      "description": "Mint a new path NFT e.g a user has jeffvader they could mint the paths construction-projects/past/death-star-1 construction-projects/current/death-star-2 and both could be resolved by GetPath to jeffvader/construction-projects/...",
+      "type": "object",
+      "required": [
+        "mint_path"
+      ],
+      "properties": {
+        "mint_path": {
+          "$ref": "#/definitions/MintMsg_for_Metadata"
+        }
+      },
+      "additionalProperties": false
+    },
+    {
       "description": "Transfer is a base message to move a token to another account without triggering actions",
       "type": "object",
       "required": [
@@ -410,6 +423,12 @@
     "Metadata": {
       "type": "object",
       "properties": {
+        "contract_address": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "discord_id": {
           "type": [
             "string",
@@ -442,12 +461,6 @@
             {
               "type": "null"
             }
-          ]
-        },
-        "is_contract": {
-          "type": [
-            "boolean",
-            "null"
           ]
         },
         "keybase_id": {

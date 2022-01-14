@@ -84,7 +84,7 @@ pub struct Metadata {
     pub telegram_id: Option<String>,
     pub keybase_id: Option<String>,
     pub validator_operator_address: Option<String>,
-    pub is_contract: Option<bool>,
+    pub contract_address: Option<String>,
     /// For future compatibility, we want to support
     /// a recursive lookup of tokens that constitutes a path
     /// somewhat like a DNS
@@ -139,6 +139,15 @@ pub enum ExecuteMsg {
 
     /// Mint a new NFT
     Mint(MintMsg),
+
+    /// Mint a new path NFT
+    /// e.g a user has jeffvader
+    /// they could mint the paths
+    /// construction-projects/past/death-star-1
+    /// construction-projects/current/death-star-2
+    /// and both could be resolved by GetPath to
+    /// jeffvader/construction-projects/...
+    MintPath(MintMsg),
 
     // Standard CW721 ExecuteMsg
     /// Transfer is a base message to move a token to another account without triggering actions
@@ -222,7 +231,7 @@ pub enum QueryMsg {
         /// unset or false will filter out expired approvals, you must set to true to see them
         include_expired: Option<bool>,
     },
-    /// Query address of a name
+    /// Query address of a name - should this return contract address if contract?
     AddressOf { token_id: String },
     /// List all operators that can access all of the owner's tokens.
     /// Return type: `OperatorsResponse`
@@ -376,7 +385,7 @@ pub struct MintingFeesResponse {
 /// given the top level Contract Response for the container Contract
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub struct IsContractResponse {
-    pub is_contract: bool,
+    pub contract_address: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]

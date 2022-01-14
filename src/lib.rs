@@ -54,6 +54,7 @@ pub mod entry {
                 set_username_length_cap(tract, deps, env, info, new_length)
             }
             ExecuteMsg::Mint(msg) => mint(tract, deps, env, info, msg),
+            ExecuteMsg::MintPath(msg) => mint(tract, deps, env, info, msg),
             ExecuteMsg::UpdateMetadata(msg) => update_metadata(tract, deps, env, info, msg),
             ExecuteMsg::UpdatePrimaryAlias { token_id } => {
                 update_primary_alias(tract, deps, env, info, token_id)

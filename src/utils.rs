@@ -66,6 +66,32 @@ pub fn username_is_valid(deps: Deps, username: &str) -> bool {
     username_characters_valid && username_length_valid
 }
 
+pub fn validate_path_characters(username: &str) -> bool {
+    // first check for any characters _other than_ allowed characters
+    let invalid_characters: Regex = Regex::new(r"[^a-z0-9_\-/]").unwrap();
+    let first_check_passed = !invalid_characters.is_match(username);
+
+    // then check for invalid sequence of hyphens or underscores
+    // if is_match returns true, it is invalid
+    let invalid_hyphens_underscores: Regex = Regex::new(r"[_\-/]{2,}").unwrap();
+    let second_check_passed = !invalid_hyphens_underscores.is_match(username);
+
+    let leading_forward_slash: Regex = Regex::new(r"^[_\-/]").unwrap();
+    let third_check_passed = !leading_forward_slash.is_match(username);
+
+    let trailing_forward_slash: Regex = Regex::new(r"[_\-/]$").unwrap();
+    let fourth_check_passed = !trailing_forward_slash.is_match(username);
+
+    first_check_passed && second_check_passed && third_check_passed && fourth_check_passed
+}
+
+pub fn path_is_valid(path: &str) -> bool {
+    let path_length = u32::try_from(path.chars().count()).unwrap();
+    let path_length_valid = path_length <= 2048;
+    let path_characters_valid = validate_path_characters(path);
+    path_characters_valid && path_length_valid
+}
+
 pub fn get_mint_fee(minting_fees: MintingFeesResponse, username_length: u32) -> Option<Uint128> {
     // is token name short enough to trigger a surcharge?
     let surcharge_is_owed = match minting_fees.short_name_surcharge {
