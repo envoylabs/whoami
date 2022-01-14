@@ -8,7 +8,7 @@ use cw_utils::must_pay;
 use std::convert::TryInto;
 
 use crate::msg::{
-    ContractInfo, InstantiateMsg, MintMsg, MintingFeesResponse, UpdateMetadataMsg,
+    ContractInfo, InstantiateMsg, Metadata, MintMsg, MintingFeesResponse, UpdateMetadataMsg,
     UpdateMintingFeesMsg,
 };
 
@@ -323,6 +323,25 @@ pub fn update_primary_alias(
 //     Ok(res)
 // }
 
+pub fn clear_metadata(deps: DepsMut, token_id: String) -> Result<(), ContractError> {
+    let contract = Cw721MetadataContract::default();
+    let username_nft = contract.tokens.load(deps.storage, &token_id)?;
+    contract
+        .tokens
+        .update(deps.storage, &token_id, |token| -> StdResult<_> {
+            match token {
+                Some(mut nft) => {
+                    nft.extension = Metadata {
+                        ..Metadata::default()
+                    };
+                    Ok(nft)
+                }
+                None => Ok(username_nft),
+            }
+        })?;
+    Ok(())
+}
+
 pub fn clear_alias_if_primary(deps: DepsMut, token_id: String) -> Result<(), ContractError> {
     let contract = Cw721MetadataContract::default();
     let username_nft = contract.tokens.load(deps.storage, &token_id)?;
@@ -348,6 +367,9 @@ pub fn transfer_nft(
 
     // clear aliases before transfer iif it is the one being xfrd
     clear_alias_if_primary(deps.branch(), token_id.to_string())?;
+
+    // clear meta
+    clear_metadata(deps.branch(), token_id.to_string())?;
 
     contract._transfer_nft(deps, &env, &info, &recipient, &token_id)?;
 
@@ -403,6 +425,9 @@ pub fn burn(
 
     // clear aliases before delete iif it is the one being burned
     clear_alias_if_primary(deps.branch(), token_id.to_string())?;
+
+    // clear meta
+    clear_metadata(deps.branch(), token_id.to_string())?;
 
     contract.tokens.remove(deps.storage, &token_id)?;
     contract.decrement_tokens(deps.storage)?;
