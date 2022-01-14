@@ -19,14 +19,14 @@ use std::convert::TryFrom;
 pub fn validate_subdomain(
     contract: &Cw721MetadataContract,
     deps: &DepsMut,
-    token_id: String,
+    parent_token_id: String,
     minter: Addr,
 ) -> Result<(), ContractError> {
     // check one - load
-    let token = contract.tokens.load(deps.storage, &token_id)?;
+    let parent_token = contract.tokens.load(deps.storage, &parent_token_id)?;
 
     // check two
-    if minter != token.owner {
+    if minter != parent_token.owner {
         return Err(ContractError::Unauthorized {});
     }
 

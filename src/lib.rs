@@ -9,8 +9,9 @@ pub mod utils;
 use cosmwasm_std::{to_binary, Empty};
 
 use execute::{
-    burn, execute_instantiate, mint, send_nft, set_admin_address, set_username_length_cap,
-    transfer_nft, update_metadata, update_minting_fees, update_primary_alias,
+    burn, execute_instantiate, mint, mint_path, send_nft, set_admin_address,
+    set_username_length_cap, transfer_nft, update_metadata, update_minting_fees,
+    update_primary_alias,
 };
 use query::{
     contract_info, get_base_tokens_for_owner, get_parent_id, get_parent_nft_info, get_path,
@@ -55,7 +56,7 @@ pub mod entry {
                 set_username_length_cap(tract, deps, env, info, new_length)
             }
             ExecuteMsg::Mint(msg) => mint(tract, deps, env, info, msg),
-            ExecuteMsg::MintPath(msg) => mint(tract, deps, env, info, msg),
+            ExecuteMsg::MintPath(msg) => mint_path(tract, deps, env, info, msg),
             ExecuteMsg::UpdateMetadata(msg) => update_metadata(tract, deps, env, info, msg),
             ExecuteMsg::UpdatePrimaryAlias { token_id } => {
                 update_primary_alias(tract, deps, env, info, token_id)

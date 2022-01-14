@@ -247,6 +247,8 @@ pub fn get_path(
         current_parent_token_id = parent_token.extension.parent_token_id;
     }
 
-    let path = parents.join("/");
+    // finally, ensure we have no instances of /:: after join
+    let joined = parents.join("/");
+    let path = joined.replace("/::", "::");
     Ok(GetPathResponse { path })
 }
