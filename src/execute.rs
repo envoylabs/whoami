@@ -12,6 +12,7 @@ use crate::msg::{
     UpdateMintingFeesMsg,
 };
 
+use crate::query::get_paths_for_owner_and_token;
 use crate::state::{CONTRACT_INFO, MINTING_FEES_INFO, PRIMARY_ALIASES, USERNAME_LENGTH_CAP};
 use crate::utils::{
     get_mint_fee, get_mint_response, get_number_of_owned_tokens, get_username_length,
@@ -451,15 +452,8 @@ pub fn update_primary_alias(
 }
 
 //
-// --- we override these purely so we can clear any preferred aliases on transfer or burn
+// --- we override these purely so we can clear any preferred aliases and sub paths on transfer or burn
 //
-
-// fn clear_aliases(deps: DepsMut, token_id: String) -> Result<(), ContractError> {
-//     let contract = Cw721MetadataContract::default();
-//     let username_nft = contract.tokens.load(deps.storage, &token_id)?;
-//     let res = PRIMARY_ALIASES.remove(deps.storage, &username_nft.owner);
-//     Ok(res)
-// }
 
 pub fn clear_alias_if_primary(deps: DepsMut, token_id: String) -> Result<(), ContractError> {
     let contract = Cw721MetadataContract::default();
@@ -496,6 +490,25 @@ pub fn clear_metadata(deps: DepsMut, token_id: String) -> Result<(), ContractErr
     Ok(())
 }
 
+// this function burns all paths
+// that sit under a token
+pub fn burn_paths(deps: DepsMut, token_id: String) -> Result<(), ContractError> {
+    let contract = Cw721MetadataContract::default();
+    let base_nft = contract.tokens.load(deps.storage, &token_id)?;
+    let owner_addr = base_nft.owner;
+
+    let paths =
+        get_paths_for_owner_and_token(deps.as_ref(), owner_addr.to_string(), token_id, None, None)?
+            .tokens;
+
+    for path_id in paths {
+        contract.tokens.remove(deps.storage, &path_id)?;
+        contract.decrement_tokens(deps.storage)?;
+    }
+
+    Ok(())
+}
+
 pub fn transfer_nft(
     contract: Cw721MetadataContract,
     mut deps: DepsMut,
@@ -504,11 +517,18 @@ pub fn transfer_nft(
     recipient: String,
     token_id: String,
 ) -> Result<Response, ContractError> {
+    // check permissions before proceeding
+    let token = contract.tokens.load(deps.storage, &token_id)?;
+    contract.check_can_send(deps.as_ref(), &env, &info, &token)?;
+
     // clear aliases before transfer iif it is the one being xfrd
     clear_alias_if_primary(deps.branch(), token_id.to_string())?;
 
     // blank meta before xfer
     clear_metadata(deps.branch(), token_id.to_string())?;
+
+    // clear paths
+    burn_paths(deps.branch(), token_id.to_string())?;
 
     contract._transfer_nft(deps, &env, &info, &recipient, &token_id)?;
 
@@ -528,11 +548,18 @@ pub fn send_nft(
     token_id: String,
     msg: Binary,
 ) -> Result<Response, ContractError> {
+    // check permissions before proceeding
+    let token = contract.tokens.load(deps.storage, &token_id)?;
+    contract.check_can_send(deps.as_ref(), &env, &info, &token)?;
+
     // clear aliases before send iif it is the one being sent
     clear_alias_if_primary(deps.branch(), token_id.to_string())?;
 
     // blank meta before send
     clear_metadata(deps.branch(), token_id.to_string())?;
+
+    // clear paths
+    burn_paths(deps.branch(), token_id.to_string())?;
 
     // Transfer token
     contract._transfer_nft(deps, &env, &info, &receiving_contract, &token_id)?;
@@ -564,6 +591,9 @@ pub fn burn(
 
     // clear aliases before delete iif it is the one being burned
     clear_alias_if_primary(deps.branch(), token_id.to_string())?;
+
+    // clear paths
+    burn_paths(deps.branch(), token_id.to_string())?;
 
     contract.tokens.remove(deps.storage, &token_id)?;
     contract.decrement_tokens(deps.storage)?;

@@ -91,13 +91,13 @@ pub fn get_paths_for_owner(
 
 // get only those namespaced under token_id
 pub fn get_paths_for_owner_and_token(
-    contract: Cw721MetadataContract,
     deps: Deps,
     owner: String,
     token_id: String,
     start_after: Option<String>,
     limit: Option<u32>,
 ) -> StdResult<TokensResponse> {
+    let contract = Cw721MetadataContract::default();
     let tokens = get_tokens(contract, deps, owner, start_after, limit)?;
 
     let paths = tokens

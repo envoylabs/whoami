@@ -128,7 +128,6 @@ pub mod entry {
                 start_after,
                 limit,
             } => to_binary(&get_paths_for_owner_and_token(
-                tract,
                 deps,
                 owner,
                 token_id,

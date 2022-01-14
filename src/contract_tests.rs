@@ -2017,14 +2017,33 @@ mod tests {
     }
 
     #[test]
-    fn alias_cleared_on_send() {
-        let mut deps = mock_dependencies();
-        let contract = setup_contract(deps.as_mut());
-
+    fn alias_and_paths_cleared_on_send() {
         // init a plausible username
         let token_id = "thebestguy".to_string();
         let token_uri = "https://example.com/jeff-vader".to_string();
         let jeff_address = String::from("jeff-vader");
+
+        let mut deps = mock_dependencies();
+        let contract = Cw721MetadataContract::default();
+
+        let init_msg = InstantiateMsg {
+            name: CONTRACT_NAME.to_string(),
+            symbol: SYMBOL.to_string(),
+            native_denom: "uatom".to_string(),
+            native_decimals: 6,
+            token_cap: Some(6),
+            base_mint_fee: None,
+            burn_percentage: Some(50),
+            short_name_surcharge: Some(SurchargeInfo {
+                surcharge_max_characters: 5, // small enough that "jeff" will be caught
+                surcharge_fee: Uint128::new(1_500_000),
+            }),
+            admin_address: jeff_address.clone(),
+            username_length_cap: None,
+        };
+
+        let allowed = mock_info(&jeff_address, &[]);
+        let _ = entry::instantiate(deps.as_mut(), mock_env(), allowed, init_msg);
 
         let meta = Metadata {
             twitter_id: Some(String::from("@jeff-vader")),
@@ -2065,6 +2084,61 @@ mod tests {
 
         assert_eq!(alias_query_res.username, token_id);
 
+        // CHECK: mint a path
+        let path_id = "secret-plans/death-star-1".to_string();
+
+        let path_meta = Metadata {
+            parent_token_id: Some(token_id.clone()),
+            ..Metadata::default()
+        };
+
+        let path_mint_msg = ExecuteMsg::MintPath(MintMsg {
+            token_id: path_id.clone(),
+            owner: String::from("jeff-vader"),
+            token_uri: Some(token_uri.clone()),
+            extension: path_meta.clone(),
+        });
+
+        let _ = entry::execute(deps.as_mut(), mock_env(), allowed.clone(), path_mint_msg).unwrap();
+
+        let prepended_path_id = format!("{}::{}", token_id, path_id);
+
+        // CHECK: this path info is correct
+        let path_info = contract
+            .nft_info(deps.as_ref(), prepended_path_id.clone())
+            .unwrap();
+        assert_eq!(
+            path_info,
+            NftInfoResponse::<Extension> {
+                token_uri: Some(token_uri.clone()),
+                extension: path_meta,
+            }
+        );
+
+        // CHECK: 1 path under base token minted
+        let jeffvader_paths_query_res: TokensResponse = from_binary(
+            &entry::query(
+                deps.as_ref(),
+                mock_env(),
+                QueryMsg::PathsForToken {
+                    owner: jeff_address.clone(),
+                    token_id: token_id.clone(),
+                    start_after: None,
+                    limit: None,
+                },
+            )
+            .unwrap(),
+        )
+        .unwrap();
+
+        // expect response to be ["thebestguy::secret-plans/death-star-1"]
+        assert_eq!(
+            jeffvader_paths_query_res,
+            TokensResponse {
+                tokens: [prepended_path_id.clone()].to_vec()
+            }
+        );
+
         // CHECK: can mint second NFT
         let token_id_2 = "jeffisbetterthanjohn".to_string();
         let mint_msg2 = ExecuteMsg::Mint(MintMsg {
@@ -2078,7 +2152,7 @@ mod tests {
 
         // CHECK: ensure num tokens increases to 2
         let count_2 = contract.num_tokens(deps.as_ref()).unwrap();
-        assert_eq!(2, count_2.count);
+        assert_eq!(3, count_2.count);
 
         // default will be that last in is returned
         // CHECK: jeff alias will default to token_id_2
@@ -2139,7 +2213,7 @@ mod tests {
                 deps.as_ref(),
                 mock_env(),
                 QueryMsg::PrimaryAlias {
-                    address: jeff_address,
+                    address: jeff_address.clone(),
                 },
             )
             .unwrap(),
@@ -2150,7 +2224,7 @@ mod tests {
 
         // CHECK: this nft info META is correct
         // i.e. it has been reset to the default
-        let info = contract.nft_info(deps.as_ref(), token_id).unwrap();
+        let info = contract.nft_info(deps.as_ref(), token_id.clone()).unwrap();
         assert_eq!(
             info,
             NftInfoResponse::<Extension> {
@@ -2158,17 +2232,70 @@ mod tests {
                 extension: default_meta,
             }
         );
+
+        // CHECK: no path
+        let path_info_after_send = contract
+            .nft_info(deps.as_ref(), prepended_path_id)
+            .unwrap_err();
+        assert_eq!(
+            path_info_after_send,
+            StdError::NotFound {
+                kind: "cw721_base::state::TokenInfo<whoami::msg::Metadata>".to_string()
+            }
+        );
+
+        // CHECK: no path under base token
+        let jeffvader_paths_query_res_after_send: TokensResponse = from_binary(
+            &entry::query(
+                deps.as_ref(),
+                mock_env(),
+                QueryMsg::PathsForToken {
+                    owner: jeff_address,
+                    token_id,
+                    start_after: None,
+                    limit: None,
+                },
+            )
+            .unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(
+            jeffvader_paths_query_res_after_send,
+            TokensResponse {
+                tokens: [].to_vec()
+            }
+        );
     }
 
     #[test]
-    fn alias_cleared_on_transfer() {
-        let mut deps = mock_dependencies();
-        let contract = setup_contract(deps.as_mut());
-
+    fn alias_and_paths_cleared_on_transfer() {
         // init a plausible username
         let token_id = "thebestguy".to_string();
         let token_uri = "https://example.com/jeff-vader".to_string();
         let jeff_address = String::from("jeff-vader");
+
+        let mut deps = mock_dependencies();
+        let contract = Cw721MetadataContract::default();
+
+        let init_msg = InstantiateMsg {
+            name: CONTRACT_NAME.to_string(),
+            symbol: SYMBOL.to_string(),
+            native_denom: "uatom".to_string(),
+            native_decimals: 6,
+            token_cap: Some(6),
+            base_mint_fee: None,
+            burn_percentage: Some(50),
+            short_name_surcharge: Some(SurchargeInfo {
+                surcharge_max_characters: 5, // small enough that "jeff" will be caught
+                surcharge_fee: Uint128::new(1_500_000),
+            }),
+            admin_address: jeff_address.clone(),
+            username_length_cap: None,
+        };
+
+        let allowed = mock_info(&jeff_address, &[]);
+        entry::instantiate(deps.as_mut(), mock_env(), allowed.clone(), init_msg).unwrap();
 
         let meta = Metadata {
             twitter_id: Some(String::from("@jeff-vader")),
@@ -2187,7 +2314,6 @@ mod tests {
         });
 
         // CHECK: jeff can mint
-        let allowed = mock_info(&jeff_address, &[]);
         let _ = entry::execute(deps.as_mut(), mock_env(), allowed.clone(), mint_msg).unwrap();
 
         // CHECK: ensure num tokens increases
@@ -2209,6 +2335,61 @@ mod tests {
 
         assert_eq!(alias_query_res.username, token_id);
 
+        // CHECK: mint a path
+        let path_id = "secret-plans/death-star-1".to_string();
+
+        let path_meta = Metadata {
+            parent_token_id: Some(token_id.clone()),
+            ..Metadata::default()
+        };
+
+        let path_mint_msg = ExecuteMsg::MintPath(MintMsg {
+            token_id: path_id.clone(),
+            owner: String::from("jeff-vader"),
+            token_uri: Some(token_uri.clone()),
+            extension: path_meta.clone(),
+        });
+
+        let _ = entry::execute(deps.as_mut(), mock_env(), allowed.clone(), path_mint_msg).unwrap();
+
+        let prepended_path_id = format!("{}::{}", token_id, path_id);
+
+        // CHECK: this path info is correct
+        let path_info = contract
+            .nft_info(deps.as_ref(), prepended_path_id.clone())
+            .unwrap();
+        assert_eq!(
+            path_info,
+            NftInfoResponse::<Extension> {
+                token_uri: Some(token_uri.clone()),
+                extension: path_meta,
+            }
+        );
+
+        // CHECK: 1 path under base token minted
+        let jeffvader_paths_query_res: TokensResponse = from_binary(
+            &entry::query(
+                deps.as_ref(),
+                mock_env(),
+                QueryMsg::PathsForToken {
+                    owner: jeff_address.clone(),
+                    token_id: token_id.clone(),
+                    start_after: None,
+                    limit: None,
+                },
+            )
+            .unwrap(),
+        )
+        .unwrap();
+
+        // expect response to be ["thebestguy::secret-plans/death-star-1"]
+        assert_eq!(
+            jeffvader_paths_query_res,
+            TokensResponse {
+                tokens: [prepended_path_id.clone()].to_vec()
+            }
+        );
+
         // CHECK: can mint second NFT
         let token_id_2 = "jeffisbetterthanjohn".to_string();
         let mint_msg2 = ExecuteMsg::Mint(MintMsg {
@@ -2222,7 +2403,7 @@ mod tests {
 
         // CHECK: ensure num tokens increases to 2
         let count_2 = contract.num_tokens(deps.as_ref()).unwrap();
-        assert_eq!(2, count_2.count);
+        assert_eq!(3, count_2.count);
 
         // default will be that last in is returned
         // CHECK: jeff alias will default to token_id_2
@@ -2268,7 +2449,67 @@ mod tests {
         // okay time to move NFT 1
         let john_q_rando_address = "random-guy";
 
-        // he wants to be thebestguy so he buys the NFT off of jeff
+        // first he tries to pinch it
+        let failed_john_transfer_msg = ExecuteMsg::TransferNft {
+            recipient: john_q_rando_address.to_string(),
+            token_id: token_id.clone(),
+        };
+
+        let not_allowed = mock_info(&john_q_rando_address, &[]);
+
+        let failed_transfer = entry::execute(
+            deps.as_mut(),
+            mock_env(),
+            not_allowed,
+            failed_john_transfer_msg,
+        )
+        .unwrap_err();
+        assert_eq!(
+            failed_transfer,
+            ContractError::Base(cw721_base::ContractError::Unauthorized {})
+        );
+
+        // CHECK: despite the error, paths etc are untouched
+        // first check alias
+        let after_failure_query_res: PrimaryAliasResponse = from_binary(
+            &entry::query(
+                deps.as_ref(),
+                mock_env(),
+                QueryMsg::PrimaryAlias {
+                    address: jeff_address.clone(),
+                },
+            )
+            .unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(after_failure_query_res.username, token_id);
+
+        // CHECK: 1 path STILL under base token minted
+        let after_failure_paths_query_res: TokensResponse = from_binary(
+            &entry::query(
+                deps.as_ref(),
+                mock_env(),
+                QueryMsg::PathsForToken {
+                    owner: jeff_address.clone(),
+                    token_id: token_id.clone(),
+                    start_after: None,
+                    limit: None,
+                },
+            )
+            .unwrap(),
+        )
+        .unwrap();
+
+        // expect response to be ["thebestguy::secret-plans/death-star-1"]
+        assert_eq!(
+            after_failure_paths_query_res,
+            TokensResponse {
+                tokens: [prepended_path_id.clone()].to_vec()
+            }
+        );
+
+        // he still really wants to be thebestguy so he buys the NFT off of jeff
         // and then jeff transfers the token
         let transfer_msg = ExecuteMsg::TransferNft {
             recipient: john_q_rando_address.to_string(),
@@ -2297,7 +2538,7 @@ mod tests {
                 deps.as_ref(),
                 mock_env(),
                 QueryMsg::PrimaryAlias {
-                    address: jeff_address,
+                    address: jeff_address.clone(),
                 },
             )
             .unwrap(),
@@ -2322,12 +2563,46 @@ mod tests {
 
         // CHECK: this nft info META is correct
         // i.e. it has been reset to the default
-        let info = contract.nft_info(deps.as_ref(), token_id).unwrap();
+        let info = contract.nft_info(deps.as_ref(), token_id.clone()).unwrap();
         assert_eq!(
             info,
             NftInfoResponse::<Extension> {
                 token_uri: Some(token_uri),
                 extension: default_meta,
+            }
+        );
+
+        // CHECK: no path
+        let path_info_after_transfer = contract
+            .nft_info(deps.as_ref(), prepended_path_id)
+            .unwrap_err();
+        assert_eq!(
+            path_info_after_transfer,
+            StdError::NotFound {
+                kind: "cw721_base::state::TokenInfo<whoami::msg::Metadata>".to_string()
+            }
+        );
+
+        // CHECK: no path under base token
+        let jeffvader_paths_query_res_after_transfer: TokensResponse = from_binary(
+            &entry::query(
+                deps.as_ref(),
+                mock_env(),
+                QueryMsg::PathsForToken {
+                    owner: jeff_address,
+                    token_id,
+                    start_after: None,
+                    limit: None,
+                },
+            )
+            .unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(
+            jeffvader_paths_query_res_after_transfer,
+            TokensResponse {
+                tokens: [].to_vec()
             }
         );
     }
@@ -2448,7 +2723,7 @@ mod tests {
 
         assert_eq!(alias_query_res_3.username, token_id);
 
-        // CHECK: can mint third NFT
+        // CHECK: can mint third top level NFT
         let token_id_3 = "third-username".to_string();
         let mint_msg3 = ExecuteMsg::Mint(MintMsg {
             token_id: token_id_3,
@@ -2525,14 +2800,33 @@ mod tests {
     }
 
     #[test]
-    fn alias_cleared_on_burn() {
-        let mut deps = mock_dependencies();
-        let contract = setup_contract(deps.as_mut());
-
+    fn alias_and_paths_cleared_on_burn() {
         // init a plausible username
-        let token_id = "jeffisthebest".to_string();
+        let token_id = "thebestguy".to_string();
         let token_uri = "https://example.com/jeff-vader".to_string();
         let jeff_address = String::from("jeff-vader");
+
+        let mut deps = mock_dependencies();
+        let contract = Cw721MetadataContract::default();
+
+        let init_msg = InstantiateMsg {
+            name: CONTRACT_NAME.to_string(),
+            symbol: SYMBOL.to_string(),
+            native_denom: "uatom".to_string(),
+            native_decimals: 6,
+            token_cap: Some(6),
+            base_mint_fee: None,
+            burn_percentage: Some(50),
+            short_name_surcharge: Some(SurchargeInfo {
+                surcharge_max_characters: 5, // small enough that "jeff" will be caught
+                surcharge_fee: Uint128::new(1_500_000),
+            }),
+            admin_address: jeff_address.clone(),
+            username_length_cap: None,
+        };
+
+        let allowed = mock_info(&jeff_address, &[]);
+        entry::instantiate(deps.as_mut(), mock_env(), allowed, init_msg).unwrap();
 
         let meta = Metadata {
             twitter_id: Some(String::from("@jeff-vader")),
@@ -2542,7 +2836,7 @@ mod tests {
         let mint_msg = ExecuteMsg::Mint(MintMsg {
             token_id: token_id.clone(),
             owner: jeff_address.clone(),
-            token_uri: Some(token_uri),
+            token_uri: Some(token_uri.clone()),
             extension: meta.clone(),
         });
 
@@ -2569,20 +2863,75 @@ mod tests {
 
         assert_eq!(alias_query_res.username, token_id);
 
+        // CHECK: mint a path
+        let path_id = "secret-plans/death-star-1".to_string();
+
+        let path_meta = Metadata {
+            parent_token_id: Some(token_id.clone()),
+            ..Metadata::default()
+        };
+
+        let path_mint_msg = ExecuteMsg::MintPath(MintMsg {
+            token_id: path_id.clone(),
+            owner: String::from("jeff-vader"),
+            token_uri: Some(token_uri.clone()),
+            extension: path_meta.clone(),
+        });
+
+        let _ = entry::execute(deps.as_mut(), mock_env(), allowed.clone(), path_mint_msg).unwrap();
+
+        let prepended_path_id = format!("{}::{}", token_id, path_id);
+
+        // CHECK: this path info is correct
+        let path_info = contract
+            .nft_info(deps.as_ref(), prepended_path_id.clone())
+            .unwrap();
+        assert_eq!(
+            path_info,
+            NftInfoResponse::<Extension> {
+                token_uri: Some(token_uri.clone()),
+                extension: path_meta,
+            }
+        );
+
+        // CHECK: 1 path under base token minted
+        let jeffvader_paths_query_res: TokensResponse = from_binary(
+            &entry::query(
+                deps.as_ref(),
+                mock_env(),
+                QueryMsg::PathsForToken {
+                    owner: jeff_address.clone(),
+                    token_id: token_id.clone(),
+                    start_after: None,
+                    limit: None,
+                },
+            )
+            .unwrap(),
+        )
+        .unwrap();
+
+        // expect response to be ["thebestguy::secret-plans/death-star-1"]
+        assert_eq!(
+            jeffvader_paths_query_res,
+            TokensResponse {
+                tokens: [prepended_path_id.clone()].to_vec()
+            }
+        );
+
         // CHECK: can mint second NFT
         let token_id_2 = "jeffisbetterthanjohn".to_string();
         let mint_msg2 = ExecuteMsg::Mint(MintMsg {
             token_id: token_id_2.clone(),
             owner: jeff_address.clone(),
             token_uri: None,
-            extension: meta,
+            extension: meta.clone(),
         });
 
         let _ = entry::execute(deps.as_mut(), mock_env(), allowed.clone(), mint_msg2).unwrap();
 
-        // CHECK: ensure num tokens increases to 2
+        // CHECK: ensure num tokens increases to 3
         let count_2 = contract.num_tokens(deps.as_ref()).unwrap();
-        assert_eq!(2, count_2.count);
+        assert_eq!(3, count_2.count);
 
         // CHECK: default will be that last in is returned
         let alias_query_res_2: PrimaryAliasResponse = from_binary(
@@ -2625,7 +2974,9 @@ mod tests {
         assert_eq!(alias_query_res_3.username, token_id);
 
         // let's burn
-        let burn_msg = ExecuteMsg::Burn { token_id };
+        let burn_msg = ExecuteMsg::Burn {
+            token_id: token_id.clone(),
+        };
 
         // CHECK: random cannot burn
         let john_q_rando = "random-guy";
@@ -2644,10 +2995,46 @@ mod tests {
             ContractError::Base(cw721_base::ContractError::Unauthorized {})
         );
 
-        // then check jeff can
+        // CHECK: still 1 path under base token minted
+        let jeffvader_paths_query_res_after_failed_burn: TokensResponse = from_binary(
+            &entry::query(
+                deps.as_ref(),
+                mock_env(),
+                QueryMsg::PathsForToken {
+                    owner: jeff_address.clone(),
+                    token_id: token_id.clone(),
+                    start_after: None,
+                    limit: None,
+                },
+            )
+            .unwrap(),
+        )
+        .unwrap();
+
+        // expect response to be ["thebestguy::secret-plans/death-star-1"]
+        assert_eq!(
+            jeffvader_paths_query_res_after_failed_burn,
+            TokensResponse {
+                tokens: [prepended_path_id.clone()].to_vec()
+            }
+        );
+
+        // CHECK: NFT info intact after failed burn
+        let nft_info_john_tried_to_burn =
+            contract.nft_info(deps.as_ref(), token_id.clone()).unwrap();
+        assert_eq!(
+            nft_info_john_tried_to_burn,
+            NftInfoResponse::<Extension> {
+                token_uri: Some(token_uri),
+                extension: meta,
+            }
+        );
+
+        // then check jeff can burn
         let _ = entry::execute(deps.as_mut(), mock_env(), allowed, burn_msg).unwrap();
 
         // ensure num tokens decreases
+        // it decreases by 2 as we are burning the token and the path
         let count = contract.num_tokens(deps.as_ref()).unwrap();
         assert_eq!(1, count.count);
 
@@ -2657,7 +3044,7 @@ mod tests {
                 deps.as_ref(),
                 mock_env(),
                 QueryMsg::PrimaryAlias {
-                    address: jeff_address,
+                    address: jeff_address.clone(),
                 },
             )
             .unwrap(),
@@ -2665,6 +3052,40 @@ mod tests {
         .unwrap();
 
         assert_eq!(alias_query_res_4.username, token_id_2);
+
+        // CHECK: no path
+        let path_info_after_burn = contract
+            .nft_info(deps.as_ref(), prepended_path_id)
+            .unwrap_err();
+        assert_eq!(
+            path_info_after_burn,
+            StdError::NotFound {
+                kind: "cw721_base::state::TokenInfo<whoami::msg::Metadata>".to_string()
+            }
+        );
+
+        // CHECK: no path under base token
+        let jeffvader_paths_query_res_after_burn: TokensResponse = from_binary(
+            &entry::query(
+                deps.as_ref(),
+                mock_env(),
+                QueryMsg::PathsForToken {
+                    owner: jeff_address,
+                    token_id,
+                    start_after: None,
+                    limit: None,
+                },
+            )
+            .unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(
+            jeffvader_paths_query_res_after_burn,
+            TokensResponse {
+                tokens: [].to_vec()
+            }
+        );
     }
 
     #[test]
