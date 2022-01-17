@@ -210,6 +210,10 @@ pub fn get_parent_nft_info(
 }
 
 // get full path by heading up through the parents
+// paths for top level names would be jeffvader/anothertoken::some-nested-path
+// paths for nested paths would be like anothertoken::some-nested-path::second-nest
+// now in the case of that second-nest path, its parent is anothertoken::some-nested-path
+// essentially once you get into :: land you are into super fun recursive times
 pub fn get_path(
     contract: Cw721MetadataContract,
     deps: Deps,
@@ -232,7 +236,7 @@ pub fn get_path(
         let parent_token = contract.tokens.load(deps.storage, &cpti)?;
 
         // clip off the front if this is a path
-        // i.e. jeffvader::employment/death-star-1 will resolve
+        // i.e. jeffvader::employment will resolve
         // so we clip off jeffvader
         // not even sure this case _can_ happen, but still
         let sanitized_parent_token_id = match parent_token.extension.parent_token_id {

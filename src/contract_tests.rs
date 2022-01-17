@@ -75,18 +75,18 @@ mod tests {
 
     #[test]
     fn path_validator() {
-        let first_check = validate_path_characters("jeff/vader", "death-star-employees");
+        let first_check = validate_path_characters("jeffvader", "death-star-employees");
         assert_eq!(first_check, true);
 
         let second_check =
-            validate_path_characters("jeff/vader/notable-works", "death-star-employees");
-        assert_eq!(second_check, false);
+            validate_path_characters("jeffvadernotable-works", "death-star-employees");
+        assert_eq!(second_check, true);
 
-        let third_check = validate_path_characters("jeff//vader", "death-star-employees");
-        assert_eq!(third_check, false);
+        let third_check = validate_path_characters("jeffvader", "death-star-employees");
+        assert_eq!(third_check, true);
 
-        let fourth_check = validate_path_characters("/jeff-vader", "death-star-employees");
-        assert_eq!(fourth_check, false);
+        let fourth_check = validate_path_characters("jeff-vader", "death-star-employees");
+        assert_eq!(fourth_check, true);
 
         let fifth_check = validate_path_characters("jeff_vader", "death-star-employees");
         assert_eq!(fifth_check, true);
@@ -124,7 +124,7 @@ mod tests {
         assert_eq!(thirteenth_check, false);
 
         // no trailing
-        let fourteenth_check = validate_path_characters("jeff/vader-", "death-star-employees");
+        let fourteenth_check = validate_path_characters("jeffvader-", "death-star-employees");
         assert_eq!(fourteenth_check, false);
 
         let fifteenth_check = validate_path_characters(
@@ -137,11 +137,11 @@ mod tests {
         // there will be no - well
         // maybe deviation and hesitation
         // but no repetition
-        let sixteenth_check = validate_path_characters("jeff-vader/trying/his/best", "jeff-vader");
+        let sixteenth_check = validate_path_characters("jeff-vader-trying-his-best", "jeff-vader");
         assert_eq!(sixteenth_check, false);
 
         let seventeenth_check =
-            validate_path_characters("trying/his/best/it-is/jeff-vader", "jeff-vader");
+            validate_path_characters("trying-his-best-it-is-jeff-vader", "jeff-vader");
         assert_eq!(seventeenth_check, false);
     }
 
@@ -1230,7 +1230,7 @@ mod tests {
         );
 
         // CHECK: mint a path
-        let path_id = "secret-plans/death-star-1".to_string();
+        let path_id = "secret-plans".to_string();
 
         let path_meta = Metadata {
             parent_token_id: Some(subdomain2_id.clone()),
@@ -1244,9 +1244,10 @@ mod tests {
             extension: path_meta.clone(),
         });
 
-        let _ = entry::execute(deps.as_mut(), mock_env(), allowed, path_mint_msg).unwrap();
+        let _ = entry::execute(deps.as_mut(), mock_env(), allowed.clone(), path_mint_msg).unwrap();
 
         let prepended_path_id = format!("{}::{}", subdomain2_id, path_id);
+        assert_eq!(prepended_path_id, "deeper::secret-plans");
 
         // CHECK: this path info is correct
         let path_info = contract
@@ -1255,17 +1256,50 @@ mod tests {
         assert_eq!(
             path_info,
             NftInfoResponse::<Extension> {
-                token_uri: Some(token_uri),
+                token_uri: Some(token_uri.clone()),
                 extension: path_meta,
             }
         );
 
+        // CHECK: mint a second path
+        let path_id_2 = "death-star-1".to_string();
+
+        let path_meta_2 = Metadata {
+            parent_token_id: Some(prepended_path_id.clone()),
+            ..Metadata::default()
+        };
+
+        let path_mint_msg_2 = ExecuteMsg::MintPath(MintMsg {
+            token_id: path_id_2.clone(),
+            owner: String::from("jeff-vader"),
+            token_uri: Some(token_uri.clone()),
+            extension: path_meta_2.clone(),
+        });
+
+        let _ = entry::execute(deps.as_mut(), mock_env(), allowed, path_mint_msg_2).unwrap();
+
+        let prepended_path_id_2 = format!("{}::{}", prepended_path_id, path_id_2);
+        assert_eq!(prepended_path_id_2, "deeper::secret-plans::death-star-1");
+
+        // CHECK: this path info is correct
+        let path_info_2 = contract
+            .nft_info(deps.as_ref(), prepended_path_id_2.clone())
+            .unwrap();
+        assert_eq!(
+            path_info_2,
+            NftInfoResponse::<Extension> {
+                token_uri: Some(token_uri),
+                extension: path_meta_2,
+            }
+        );
+
+        // CHECK: finally, check the whole path
         let secret_plans_path_query: GetPathResponse = from_binary(
             &entry::query(
                 deps.as_ref(),
                 mock_env(),
                 QueryMsg::GetFullPath {
-                    token_id: prepended_path_id,
+                    token_id: prepended_path_id_2,
                 },
             )
             .unwrap(),
@@ -1274,7 +1308,7 @@ mod tests {
         assert_eq!(
             secret_plans_path_query,
             GetPathResponse {
-                path: String::from("jeffvader/subdomain/deeper::secret-plans/death-star-1")
+                path: String::from("jeffvader/subdomain/deeper::secret-plans::death-star-1")
             }
         );
     }
@@ -1369,7 +1403,7 @@ mod tests {
         );
 
         // CHECK: mint a path
-        let path_id = "employment/death-star-1".to_string();
+        let path_id = "employment".to_string();
 
         let path_meta = Metadata {
             parent_token_id: Some(token_id.clone()),
@@ -1400,10 +1434,10 @@ mod tests {
         );
 
         // CHECK: mint another path
-        let path_id_2 = "employment/death-star-2".to_string();
+        let path_id_2 = "death-star-1".to_string();
 
         let path_meta_2 = Metadata {
-            parent_token_id: Some(token_id.clone()),
+            parent_token_id: Some(prepended_path_id.clone()),
             ..Metadata::default()
         };
 
@@ -1414,9 +1448,10 @@ mod tests {
             extension: path_meta_2.clone(),
         });
 
-        let _ = entry::execute(deps.as_mut(), mock_env(), allowed, path_mint_msg_2).unwrap();
+        let _ =
+            entry::execute(deps.as_mut(), mock_env(), allowed.clone(), path_mint_msg_2).unwrap();
 
-        let prepended_path_id_2 = format!("{}::{}", token_id, path_id_2);
+        let prepended_path_id_2 = format!("{}::{}", prepended_path_id, path_id_2);
 
         // CHECK: this path info is correct
         let path_2_info = contract
@@ -1425,12 +1460,43 @@ mod tests {
         assert_eq!(
             path_2_info,
             NftInfoResponse::<Extension> {
-                token_uri: Some(token_uri),
+                token_uri: Some(token_uri.clone()),
                 extension: path_meta_2,
             }
         );
 
-        // CHECK: 2 paths minted
+        // CHECK: mint another path
+        let path_id_3 = "death-star-2".to_string();
+
+        let path_meta_3 = Metadata {
+            parent_token_id: Some(prepended_path_id.clone()),
+            ..Metadata::default()
+        };
+
+        let path_mint_msg_3 = ExecuteMsg::MintPath(MintMsg {
+            token_id: path_id_3.clone(),
+            owner: jeff_address.clone(),
+            token_uri: Some(token_uri.clone()),
+            extension: path_meta_3.clone(),
+        });
+
+        let _ = entry::execute(deps.as_mut(), mock_env(), allowed, path_mint_msg_3).unwrap();
+
+        let prepended_path_id_3 = format!("{}::{}", prepended_path_id, path_id_3);
+
+        // CHECK: this path info is correct
+        let path_3_info = contract
+            .nft_info(deps.as_ref(), prepended_path_id_3.clone())
+            .unwrap();
+        assert_eq!(
+            path_3_info,
+            NftInfoResponse::<Extension> {
+                token_uri: Some(token_uri),
+                extension: path_meta_3,
+            }
+        );
+
+        // CHECK: 3 paths minted
         let paths_query_res: TokensResponse = from_binary(
             &entry::query(
                 deps.as_ref(),
@@ -1445,15 +1511,20 @@ mod tests {
         )
         .unwrap();
 
-        // expect response to be ["jeffvader::employment/death-star-1", "jeffvader::employment/death-star-2"]
+        // expect response to be ["jeffvader::employment::death-star-1", "jeffvader::employment::death-star-2"]
         assert_eq!(
             paths_query_res,
             TokensResponse {
-                tokens: [prepended_path_id.clone(), prepended_path_id_2.clone()].to_vec()
+                tokens: [
+                    prepended_path_id.clone(),
+                    prepended_path_id_2.clone(),
+                    prepended_path_id_3.clone()
+                ]
+                .to_vec()
             }
         );
 
-        // CHECK: 2 paths under base token minted
+        // CHECK: 3 direct subpaths under base token minted
         let jeffvader_paths_query_res: TokensResponse = from_binary(
             &entry::query(
                 deps.as_ref(),
@@ -1469,11 +1540,16 @@ mod tests {
         )
         .unwrap();
 
-        // expect response to be ["jeffvader::employment/death-star-1", "jeffvader::employment/death-star-2"]
+        // expect response to be ["jeffvader::employment", "jeffvader::employment::death-star-1", "jeffvader::employment::death-star-2"]
         assert_eq!(
             jeffvader_paths_query_res,
             TokensResponse {
-                tokens: [prepended_path_id.clone(), prepended_path_id_2].to_vec()
+                tokens: [
+                    prepended_path_id,
+                    prepended_path_id_2.clone(),
+                    prepended_path_id_3
+                ]
+                .to_vec()
             }
         );
 
@@ -1493,7 +1569,7 @@ mod tests {
         )
         .unwrap();
 
-        // expect response to be ["jeffvader::employment/death-star-1", "jeffvader::employment/death-star-2"]
+        // expect response to be []
         assert_eq!(
             lordvader_paths_query_res,
             TokensResponse {
@@ -1529,7 +1605,7 @@ mod tests {
                 deps.as_ref(),
                 mock_env(),
                 QueryMsg::GetFullPath {
-                    token_id: prepended_path_id,
+                    token_id: prepended_path_id_2,
                 },
             )
             .unwrap(),
@@ -1538,7 +1614,7 @@ mod tests {
         assert_eq!(
             full_path_query,
             GetPathResponse {
-                path: String::from("jeffvader::employment/death-star-1")
+                path: String::from("jeffvader::employment::death-star-1")
             }
         );
     }
@@ -2085,7 +2161,7 @@ mod tests {
         assert_eq!(alias_query_res.username, token_id);
 
         // CHECK: mint a path
-        let path_id = "secret-plans/death-star-1".to_string();
+        let path_id = "secret-plans".to_string();
 
         let path_meta = Metadata {
             parent_token_id: Some(token_id.clone()),
@@ -2131,7 +2207,7 @@ mod tests {
         )
         .unwrap();
 
-        // expect response to be ["thebestguy::secret-plans/death-star-1"]
+        // expect response to be ["thebestguy::secret-plans"]
         assert_eq!(
             jeffvader_paths_query_res,
             TokensResponse {
@@ -2336,7 +2412,7 @@ mod tests {
         assert_eq!(alias_query_res.username, token_id);
 
         // CHECK: mint a path
-        let path_id = "secret-plans/death-star-1".to_string();
+        let path_id = "secret-plans".to_string();
 
         let path_meta = Metadata {
             parent_token_id: Some(token_id.clone()),
@@ -2382,11 +2458,70 @@ mod tests {
         )
         .unwrap();
 
-        // expect response to be ["thebestguy::secret-plans/death-star-1"]
+        // expect response to be ["thebestguy::secret-plans"]
         assert_eq!(
             jeffvader_paths_query_res,
             TokensResponse {
                 tokens: [prepended_path_id.clone()].to_vec()
+            }
+        );
+
+        // CHECK: mint a second path
+        let path_id_2 = "death-star-1".to_string();
+
+        let path_meta_2 = Metadata {
+            parent_token_id: Some(prepended_path_id.clone()),
+            ..Metadata::default()
+        };
+
+        let path_mint_msg = ExecuteMsg::MintPath(MintMsg {
+            token_id: path_id_2.clone(),
+            owner: String::from("jeff-vader"),
+            token_uri: Some(token_uri.clone()),
+            extension: path_meta_2.clone(),
+        });
+
+        let _ = entry::execute(deps.as_mut(), mock_env(), allowed.clone(), path_mint_msg).unwrap();
+
+        let prepended_path_id_2 = format!("{}::{}", prepended_path_id, path_id_2);
+        assert_eq!(
+            prepended_path_id_2,
+            "thebestguy::secret-plans::death-star-1"
+        );
+
+        // CHECK: this path info is correct
+        let path_info_2 = contract
+            .nft_info(deps.as_ref(), prepended_path_id_2.clone())
+            .unwrap();
+        assert_eq!(
+            path_info_2,
+            NftInfoResponse::<Extension> {
+                token_uri: Some(token_uri.clone()),
+                extension: path_meta_2,
+            }
+        );
+
+        // CHECK: 2 paths under base token minted
+        let jeffvader_paths_query_res: TokensResponse = from_binary(
+            &entry::query(
+                deps.as_ref(),
+                mock_env(),
+                QueryMsg::PathsForToken {
+                    owner: jeff_address.clone(),
+                    token_id: token_id.clone(),
+                    start_after: None,
+                    limit: None,
+                },
+            )
+            .unwrap(),
+        )
+        .unwrap();
+
+        // expect response to be ["thebestguy::secret-plans"]
+        assert_eq!(
+            jeffvader_paths_query_res,
+            TokensResponse {
+                tokens: [prepended_path_id.clone(), prepended_path_id_2.clone()].to_vec()
             }
         );
 
@@ -2401,9 +2536,9 @@ mod tests {
 
         let _ = entry::execute(deps.as_mut(), mock_env(), allowed.clone(), mint_msg2).unwrap();
 
-        // CHECK: ensure num tokens increases to 2
+        // CHECK: ensure num tokens increases to 4 (i.e. 2 paths, 2 tokens)
         let count_2 = contract.num_tokens(deps.as_ref()).unwrap();
-        assert_eq!(3, count_2.count);
+        assert_eq!(4, count_2.count);
 
         // default will be that last in is returned
         // CHECK: jeff alias will default to token_id_2
@@ -2485,7 +2620,7 @@ mod tests {
 
         assert_eq!(after_failure_query_res.username, token_id);
 
-        // CHECK: 1 path STILL under base token minted
+        // CHECK: 2 paths STILL under base token minted
         let after_failure_paths_query_res: TokensResponse = from_binary(
             &entry::query(
                 deps.as_ref(),
@@ -2501,11 +2636,11 @@ mod tests {
         )
         .unwrap();
 
-        // expect response to be ["thebestguy::secret-plans/death-star-1"]
+        // expect response to be ["thebestguy::secret-plans", "thebestguy::secret-plans::death-star-1"]
         assert_eq!(
             after_failure_paths_query_res,
             TokensResponse {
-                tokens: [prepended_path_id.clone()].to_vec()
+                tokens: [prepended_path_id.clone(), prepended_path_id_2.clone()].to_vec()
             }
         );
 
@@ -2583,13 +2718,24 @@ mod tests {
             }
         );
 
+        // CHECK: no nested path (thebestguy::secret-plans::death-star-1) either
+        let nested_path_info_after_transfer = contract
+            .nft_info(deps.as_ref(), prepended_path_id_2)
+            .unwrap_err();
+        assert_eq!(
+            nested_path_info_after_transfer,
+            StdError::NotFound {
+                kind: "cw721_base::state::TokenInfo<whoami::msg::Metadata>".to_string()
+            }
+        );
+
         // CHECK: no path under base token
-        let jeffvader_paths_query_res_after_transfer: TokensResponse = from_binary(
+        let jeffvader_basetoken_paths_query_res_after_transfer: TokensResponse = from_binary(
             &entry::query(
                 deps.as_ref(),
                 mock_env(),
                 QueryMsg::PathsForToken {
-                    owner: jeff_address,
+                    owner: jeff_address.clone(),
                     token_id,
                     start_after: None,
                     limit: None,
@@ -2600,7 +2746,29 @@ mod tests {
         .unwrap();
 
         assert_eq!(
-            jeffvader_paths_query_res_after_transfer,
+            jeffvader_basetoken_paths_query_res_after_transfer,
+            TokensResponse {
+                tokens: [].to_vec()
+            }
+        );
+
+        // CHECK: jeff should actually have no paths left
+        let jeffvader_all_paths_query_res_after_transfer: TokensResponse = from_binary(
+            &entry::query(
+                deps.as_ref(),
+                mock_env(),
+                QueryMsg::Paths {
+                    owner: jeff_address,
+                    start_after: None,
+                    limit: None,
+                },
+            )
+            .unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(
+            jeffvader_all_paths_query_res_after_transfer,
             TokensResponse {
                 tokens: [].to_vec()
             }
@@ -2864,7 +3032,7 @@ mod tests {
         assert_eq!(alias_query_res.username, token_id);
 
         // CHECK: mint a path
-        let path_id = "secret-plans/death-star-1".to_string();
+        let path_id = "secret-plans".to_string();
 
         let path_meta = Metadata {
             parent_token_id: Some(token_id.clone()),
@@ -2910,7 +3078,7 @@ mod tests {
         )
         .unwrap();
 
-        // expect response to be ["thebestguy::secret-plans/death-star-1"]
+        // expect response to be ["thebestguy::secret-plans"]
         assert_eq!(
             jeffvader_paths_query_res,
             TokensResponse {
@@ -3011,7 +3179,7 @@ mod tests {
         )
         .unwrap();
 
-        // expect response to be ["thebestguy::secret-plans/death-star-1"]
+        // expect response to be ["thebestguy::secret-plans"]
         assert_eq!(
             jeffvader_paths_query_res_after_failed_burn,
             TokensResponse {
