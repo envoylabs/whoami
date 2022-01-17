@@ -143,10 +143,11 @@ pub enum ExecuteMsg {
     /// Mint a new path NFT
     /// e.g a user has jeffvader
     /// they could mint the paths
-    /// construction-projects/past/death-star-1
-    /// construction-projects/current/death-star-2
-    /// and both could be resolved by GetFullPath to
-    /// jeffvader::construction-projects/...
+    /// construction-projects::death-star-1
+    /// construction-projects::current
+    /// construction-projects::current::death-star-2
+    /// and all could be resolved by GetFullPath to
+    /// jeffvader::construction-projects::...
     MintPath(MintMsg),
 
     // Standard CW721 ExecuteMsg

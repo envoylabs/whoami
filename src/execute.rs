@@ -378,6 +378,8 @@ pub fn mint_path(
 
 // updates the metadata on an NFT
 // only accessible to the NFT owner
+// note that the parent_token_id field
+// is immutable and cannot be updated
 pub fn update_metadata(
     contract: Cw721MetadataContract,
     deps: DepsMut,
@@ -390,6 +392,9 @@ pub fn update_metadata(
     let username_nft = contract.tokens.load(deps.storage, &token_id)?;
 
     let username_owner = username_nft.owner.clone();
+
+    // this is immutable
+    let existing_parent_id = username_nft.extension.parent_token_id.clone();
 
     // check it's the owner of the NFT updating meta
     if username_owner != address_trying_to_update {
@@ -409,6 +414,7 @@ pub fn update_metadata(
             match token {
                 Some(mut nft) => {
                     nft.extension = msg.metadata;
+                    nft.extension.parent_token_id = existing_parent_id;
                     Ok(nft)
                 }
                 None => Ok(username_nft),
