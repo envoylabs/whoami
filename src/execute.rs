@@ -15,7 +15,7 @@ use crate::msg::{
 use crate::query::get_paths_for_owner_and_token;
 use crate::state::{CONTRACT_INFO, MINTING_FEES_INFO, PRIMARY_ALIASES, USERNAME_LENGTH_CAP};
 use crate::utils::{
-    get_mint_fee, get_mint_response, get_number_of_owned_tokens, get_username_length,
+    get_mint_fee, get_mint_response, get_number_of_owned_tokens, get_username_length, is_path,
     path_is_valid, username_is_valid, validate_subdomain, verify_logo,
 };
 use crate::Cw721MetadataContract;
@@ -242,7 +242,7 @@ pub fn mint(
     // this is a subdomain
     // we also check for cycles
     if let Some(ref parent_token_id) = msg.extension.parent_token_id {
-        if parent_token_id == username {
+        if parent_token_id == username || is_path(parent_token_id) {
             return Err(ContractError::CycleDetected {});
         } else {
             validate_subdomain(
@@ -325,7 +325,7 @@ pub fn mint_path(
     let path = &msg.token_id.to_lowercase();
 
     // if parent_token_id is set,
-    // this is a subdomain
+    // this is a path (if not, it's invalid)
     // we also check for cycles
     // we also check that parent token isn't repeated in the path
     if let Some(ref parent_token_id) = msg.extension.parent_token_id {

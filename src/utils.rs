@@ -66,9 +66,12 @@ pub fn username_is_valid(deps: Deps, username: &str) -> bool {
     username_characters_valid && username_length_valid
 }
 
+// initially we allowed paths like employment/death-star-1
+// but it makes more sense to use the fact we use :: to namespace paths
+// to always resolve the parent
 pub fn validate_path_characters(path: &str, parent_token_id: &str) -> bool {
     // first check for any characters _other than_ allowed characters
-    let invalid_characters: Regex = Regex::new(r"[^a-z0-9_\-/]").unwrap();
+    let invalid_characters: Regex = Regex::new(r"[^a-z0-9_\-]").unwrap();
     let first_check_passed = !invalid_characters.is_match(path);
 
     // then check for invalid sequence of hyphens or underscores
@@ -76,15 +79,15 @@ pub fn validate_path_characters(path: &str, parent_token_id: &str) -> bool {
     let invalid_hyphens_underscores: Regex = Regex::new(r"[_\-/]{2,}").unwrap();
     let second_check_passed = !invalid_hyphens_underscores.is_match(path);
 
-    let leading_forward_slash: Regex = Regex::new(r"^[_\-/]").unwrap();
-    let third_check_passed = !leading_forward_slash.is_match(path);
-
-    let trailing_forward_slash: Regex = Regex::new(r"[_\-/]$").unwrap();
-    let fourth_check_passed = !trailing_forward_slash.is_match(path);
-
     // check parent token isn't in there
     let parent_token_id_present: Regex = Regex::new(parent_token_id).unwrap();
-    let fifth_check_passed = !parent_token_id_present.is_match(path);
+    let third_check_passed = !parent_token_id_present.is_match(path);
+
+    let leading_special_chars: Regex = Regex::new(r"^[_\-]").unwrap();
+    let fourth_check_passed = !leading_special_chars.is_match(path);
+
+    let trailing_special_chars: Regex = Regex::new(r"[_\-]$").unwrap();
+    let fifth_check_passed = !trailing_special_chars.is_match(path);
 
     first_check_passed
         && second_check_passed
@@ -105,6 +108,9 @@ pub fn is_path(token_id: &str) -> bool {
 }
 
 // check whether the offered token id matches the namespace
+// this specifically checks if it is at the beginning of the string
+// however note we actually do not allow the parent id anywhere in
+// the substring thanks to the validator fn - this prevents cycles
 pub fn namespace_in_path(token_id: &str, parent_token_id: &str) -> bool {
     let namespace_regex = format!("^{}", parent_token_id);
     let has_namespace: Regex = Regex::new(&namespace_regex).unwrap();
