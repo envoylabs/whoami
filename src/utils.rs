@@ -86,11 +86,18 @@ pub fn validate_path_characters(path: &str, parent_token_id: &str) -> bool {
     let parent_token_id_present: Regex = Regex::new(parent_token_id).unwrap();
     let fifth_check_passed = !parent_token_id_present.is_match(path);
 
+    // validity is [^\/]+[\/]{1}[^\/]+
+    // more than one slash is no bueno
+    let forward_slash_regex: Regex = Regex::new(r"/").unwrap();
+    let matches = forward_slash_regex.captures_iter(path);
+    let sixth_check_passed = matches.count() <= 1;
+
     first_check_passed
         && second_check_passed
         && third_check_passed
         && fourth_check_passed
         && fifth_check_passed
+        && sixth_check_passed
 }
 
 pub fn path_is_valid(path: &str, parent_token_id: &str) -> bool {

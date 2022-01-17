@@ -80,7 +80,7 @@ mod tests {
 
         let second_check =
             validate_path_characters("jeff/vader/notable-works", "death-star-employees");
-        assert_eq!(second_check, true);
+        assert_eq!(second_check, false);
 
         let third_check = validate_path_characters("jeff//vader", "death-star-employees");
         assert_eq!(third_check, false);
