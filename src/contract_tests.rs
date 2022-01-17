@@ -637,17 +637,31 @@ mod tests {
     }
 
     #[test]
-    fn base_minting_unhappy_path() {
+    fn base_minting_underneath_path() {
+        let jeff_address = String::from("jeff-vader");
+        let allowed = mock_info(&jeff_address, &[]);
         let mut deps = mock_dependencies();
+
         let contract = setup_contract(deps.as_mut());
+        let init_msg = InstantiateMsg {
+            name: CONTRACT_NAME.to_string(),
+            symbol: SYMBOL.to_string(),
+            native_denom: "uatom".to_string(),
+            native_decimals: 6,
+            token_cap: Some(5),
+            base_mint_fee: None,
+            burn_percentage: Some(50),
+            short_name_surcharge: None,
+            admin_address: String::from(MINTER),
+            username_length_cap: None,
+        };
+        entry::instantiate(deps.as_mut(), mock_env(), allowed.clone(), init_msg).unwrap();
 
         // init a plausible username
-        let token_id = "jeffisthebest".to_string();
+        let token_id = "jeff".to_string();
         let token_uri = "https://example.com/jeff-vader".to_string();
-        let jeff_address = String::from("jeff-vader");
 
         let meta = Metadata {
-            twitter_id: Some(String::from("@jeff-vader")),
             ..Metadata::default()
         };
 
@@ -658,8 +672,7 @@ mod tests {
             extension: meta.clone(),
         });
 
-        // jeff can mint
-        let allowed = mock_info(&jeff_address, &[]);
+        // CHECK: jeff can mint
         let _ = entry::execute(deps.as_mut(), mock_env(), allowed.clone(), mint_msg).unwrap();
 
         // CHECK: ensure num tokens increases
@@ -672,7 +685,7 @@ mod tests {
             info,
             NftInfoResponse::<Extension> {
                 token_uri: Some(token_uri),
-                extension: meta.clone(),
+                extension: meta,
             }
         );
 
@@ -688,22 +701,58 @@ mod tests {
             }
         );
 
-        // CHECK: everything different apart from token_id
-        // minting should fail
+        // CHECK: mint a path
+        let path_id = "vehicles".to_string();
+        let path_uri = "https://example.com/jeff-vader/vehicles".to_string();
+
+        let path_meta = Metadata {
+            parent_token_id: Some(token_id.clone()),
+            ..Metadata::default()
+        };
+
+        let path_mint_msg = ExecuteMsg::MintPath(MintMsg {
+            token_id: path_id.clone(),
+            owner: String::from("jeff-vader"),
+            token_uri: Some(path_uri.clone()),
+            extension: path_meta.clone(),
+        });
+
+        let _ = entry::execute(deps.as_mut(), mock_env(), allowed.clone(), path_mint_msg).unwrap();
+
+        let prepended_path_id = format!("{}::{}", token_id, path_id);
+        assert_eq!(prepended_path_id, "jeff::vehicles");
+
+        // CHECK: this path info is correct
+        let path_info = contract
+            .nft_info(deps.as_ref(), prepended_path_id.clone())
+            .unwrap();
+        assert_eq!(
+            path_info,
+            NftInfoResponse::<Extension> {
+                token_uri: Some(path_uri),
+                extension: path_meta,
+            }
+        );
+
+        // CHECK: cannot mint token under path
+        let meta_2 = Metadata {
+            parent_token_id: Some(prepended_path_id),
+            ..Metadata::default()
+        };
         let mint_msg2 = ExecuteMsg::Mint(MintMsg {
-            token_id,
+            token_id: "tie-fighter".to_string(),
             owner: jeff_address,
             token_uri: Some("https://example.com/tie-fighter".to_string()),
-            extension: meta,
+            extension: meta_2,
         });
 
         // CHECK: result is an err
         let err = entry::execute(deps.as_mut(), mock_env(), allowed, mint_msg2).unwrap_err();
-        assert_eq!(err, ContractError::Claimed {});
+        assert_eq!(err, ContractError::CycleDetected {});
 
         // CHECK: ensure num tokens does not increase
         let count = contract.num_tokens(deps.as_ref()).unwrap();
-        assert_eq!(1, count.count);
+        assert_eq!(2, count.count);
     }
 
     #[test]
