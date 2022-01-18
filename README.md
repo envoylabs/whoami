@@ -126,6 +126,8 @@ Although it is complex to do UI for, and most users don't seem to need it, subdo
 It is important to note that while minting is governed by a fee, Paths can be minted for free (other than gas etc) by the owner of the Base Token.
 
 - Minting is done via `MintPath`
+    - When minting, _only pass in the token_id you want to mint as a Path_. The parent is automatically resolved and prepended by the contract.
+    - i.e. for `jeffvader` as `parent_token_id` pass in `projects` as a `token_id` to `mint_path`. You will get back `jeffvader::projects`.
 - Base name tokens that are _not_ Paths can be queried with `BaseTokens`
 - Paths (and not Base tokens) can be queried with `Paths`
 - Paths nested under a token can be queried with `PathsForToken`
@@ -149,7 +151,19 @@ pub struct GetPathResponse {
 }
 ```
 
-Where `path` will likely be `something/like/this` made up of nested tokens delimited by slashes.
+Where `path` will likely be `something::like::this` made up of nested tokens delimited by slashes.
+Although it is _very_ unlikely people will do so other than as a flex, normal tokens can be nested.
+They are delineated by `/`, such that `jeffvader/vehicles::tie-fighter` is:
+
+- `jeffvader` (Base Token)
+- `vehicles` (Base Token)
+- `vehicles::tie-fighter` (Path)
+
+Note that only these three are resolvable without any recursive lookups. `jeffvader/vehicles::tie-fighter` would require the UI to recurse, as it is a compound name.
+
+This is why in general, UIs should probably _not_ allow Base Tokens to be nested, unless there's some amazing use case we've not thought of.
+
+Make sense? Cool.
 
 ### Getting the Token ID for a parent
 
