@@ -71,8 +71,15 @@ fn get_first_token_for_owner(
     owner: String,
 ) -> StdResult<String> {
     let tokens_response = get_base_tokens_for_owner(contract, deps, owner, None, Some(1))?;
-    let first_token = tokens_response.tokens[0].clone();
-    Ok(first_token)
+
+    if tokens_response.tokens.is_empty() {
+        Err(StdError::NotFound {
+            kind: "Primary alias not found".to_string(),
+        })
+    } else {
+        let first_token = &tokens_response.tokens[0];
+        Ok(first_token.to_string())
+    }
 }
 
 pub fn get_paths_for_owner(
