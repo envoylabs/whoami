@@ -51,6 +51,10 @@ in `./scripts/test-user.env` into your keplr wallet.
 There is an additional query message that allows for an owner set
 alias to be returned.
 
+This will return `StdError::NotFound` if there is no Primary Alias.
+Generally speaking, this error condition will only be hit if a user has only Paths, but no Base Tokens.
+This is an edge case that can happen if a user has had a token transferred to them (e.g. after a sale).
+
 ```rust
 PrimaryAlias { address: String }
 ```
