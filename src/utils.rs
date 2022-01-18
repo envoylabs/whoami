@@ -112,7 +112,11 @@ pub fn is_path(token_id: &str) -> bool {
 // however note we actually do not allow the parent id anywhere in
 // the substring thanks to the validator fn - this prevents cycles
 pub fn namespace_in_path(token_id: &str, parent_token_id: &str) -> bool {
-    let namespace_regex = format!("^{}", parent_token_id);
+    // okay so this is meant to identify a namespace
+    // as part of a longer path
+    // as such there must be _at least_ one more character
+    // after the namespace. moreover, it _should be a separator_, '::'
+    let namespace_regex = format!("^{}::", parent_token_id);
     let has_namespace: Regex = Regex::new(&namespace_regex).unwrap();
     has_namespace.is_match(token_id)
 }
