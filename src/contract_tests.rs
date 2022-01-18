@@ -79,11 +79,12 @@ mod tests {
         assert_eq!(first_check, true);
 
         let second_check =
-            validate_path_characters("jeffvadernotable-works", "death-star-employees");
+            validate_path_characters("jeffvader-notable-works", "death-star-employees");
         assert_eq!(second_check, true);
 
-        let third_check = validate_path_characters("jeffvader", "death-star-employees");
-        assert_eq!(third_check, true);
+        // if this were let through it would really screw things up
+        let third_check = validate_path_characters("jeff::vader", "death-star-employees");
+        assert_eq!(third_check, false);
 
         let fourth_check = validate_path_characters("jeff-vader", "death-star-employees");
         assert_eq!(fourth_check, true);
@@ -2122,11 +2123,18 @@ mod tests {
         // CHECK jeff can update
         let new_meta = Metadata {
             twitter_id: Some(String::from("@jeff-vader-2")),
+            parent_token_id: Some("this-token-id-should-be-ignored".to_string()),
+            ..Metadata::default()
+        };
+
+        let expected_meta = Metadata {
+            twitter_id: Some(String::from("@jeff-vader-2")),
+            parent_token_id: None, // i.e. as it was
             ..Metadata::default()
         };
         let update_msg = ExecuteMsg::UpdateMetadata(UpdateMetadataMsg {
             token_id: token_id.clone(),
-            metadata: new_meta.clone(),
+            metadata: new_meta,
         });
 
         let _ = entry::execute(deps.as_mut(), mock_env(), allowed, update_msg).unwrap();
@@ -2136,7 +2144,108 @@ mod tests {
             info,
             NftInfoResponse::<Extension> {
                 token_uri: Some(token_uri),
-                extension: new_meta,
+                extension: expected_meta,
+            }
+        );
+    }
+
+    #[test]
+    fn update_metadata_does_not_clear_parent() {
+        let mut deps = mock_dependencies();
+        let contract = setup_contract(deps.as_mut());
+
+        // init a plausible username
+        let token_id = "jeffvader".to_string();
+        let token_uri = "https://example.com/jeff-vader".to_string();
+        let jeff_address = String::from("jeff-vader");
+
+        let meta = Metadata {
+            twitter_id: Some(String::from("@jeff-vader")),
+            ..Metadata::default()
+        };
+
+        let mint_msg = ExecuteMsg::Mint(MintMsg {
+            token_id: token_id.clone(),
+            owner: jeff_address.clone(),
+            token_uri: Some(token_uri.clone()),
+            extension: meta.clone(),
+        });
+
+        // CHECK: jeff can mint
+        let allowed = mock_info(&jeff_address, &[]);
+        let _ = entry::execute(deps.as_mut(), mock_env(), allowed.clone(), mint_msg).unwrap();
+
+        // CHECK: ensure num tokens increases
+        let count = contract.num_tokens(deps.as_ref()).unwrap();
+        assert_eq!(1, count.count);
+
+        // CHECK: this nft info is correct
+        let info = contract.nft_info(deps.as_ref(), token_id.clone()).unwrap();
+        assert_eq!(
+            info,
+            NftInfoResponse::<Extension> {
+                token_uri: Some(token_uri),
+                extension: meta,
+            }
+        );
+
+        // CHECK: mint a path
+        let path_id = "vehicles".to_string();
+        let path_uri = "https://example.com/jeff-vader/vehicles".to_string();
+
+        let path_meta = Metadata {
+            parent_token_id: Some(token_id.clone()),
+            ..Metadata::default()
+        };
+
+        let path_mint_msg = ExecuteMsg::MintPath(MintMsg {
+            token_id: path_id.clone(),
+            owner: String::from("jeff-vader"),
+            token_uri: Some(path_uri.clone()),
+            extension: path_meta.clone(),
+        });
+
+        let _ = entry::execute(deps.as_mut(), mock_env(), allowed.clone(), path_mint_msg).unwrap();
+
+        let prepended_path_id = format!("{}::{}", token_id, path_id);
+        assert_eq!(prepended_path_id, "jeffvader::vehicles");
+
+        // CHECK: this path info is correct
+        let path_info = contract
+            .nft_info(deps.as_ref(), prepended_path_id.clone())
+            .unwrap();
+        assert_eq!(
+            path_info,
+            NftInfoResponse::<Extension> {
+                token_uri: Some(path_uri.clone()),
+                extension: path_meta,
+            }
+        );
+
+        // CHECK jeff can update path meta
+        // but parent cannot be changed
+        let new_meta = Metadata {
+            parent_token_id: Some("this-token-id-should-be-ignored".to_string()),
+            ..Metadata::default()
+        };
+
+        let expected_meta = Metadata {
+            parent_token_id: Some(token_id), // i.e. as it was
+            ..Metadata::default()
+        };
+        let update_msg = ExecuteMsg::UpdateMetadata(UpdateMetadataMsg {
+            token_id: prepended_path_id.clone(),
+            metadata: new_meta,
+        });
+
+        let _ = entry::execute(deps.as_mut(), mock_env(), allowed, update_msg).unwrap();
+
+        let info = contract.nft_info(deps.as_ref(), prepended_path_id).unwrap();
+        assert_eq!(
+            info,
+            NftInfoResponse::<Extension> {
+                token_uri: Some(path_uri),
+                extension: expected_meta,
             }
         );
     }
