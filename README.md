@@ -119,18 +119,25 @@ between `token_id` (the string username) and the `owner`. As/when the
 username is transferred or sold, this is updated with no additional
 computation required.
 
-## Subdomains
+## Paths
 
-Although it is complex to do UI for, and most users don't seem to need it, subdomains are supported in this first version.
+Although it is complex to do UI for, and most users don't seem to need it, subdomains are supported in this first version. We call them Paths.
+
+It is important to note that while minting is governed by a fee, Paths can be minted for free (other than gas etc) by the owner of the Base Token.
+
+- Minting is done via `MintPath`
+- Base name tokens that are _not_ Paths can be queried with `BaseTokens`
+- Paths (and not Base tokens) can be queried with `Paths`
+- Paths nested under a token can be queried with `PathsForToken`
 
 ### Getting a full path
 
 For resolving a full path, selecting a parent, or working with subdomains, you will want to resolve the tree of `parent_token_id`s that a token has.
 
-The query for this is `GetPath`:
+The query for this is `GetFullPath`:
 
 ```rust
-GetPath { token_id: String }
+GetFullPath { token_id: String }
 ```
 
 This returns:

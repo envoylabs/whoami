@@ -1343,6 +1343,30 @@ mod tests {
             }
         );
 
+        // CHECK: 1 direct subpaths under deeper::secret-plans minted
+        let secret_plans_nested_token_query: TokensResponse = from_binary(
+            &entry::query(
+                deps.as_ref(),
+                mock_env(),
+                QueryMsg::PathsForToken {
+                    owner: String::from("jeff-vader"),
+                    token_id: prepended_path_id,
+                    start_after: None,
+                    limit: None,
+                },
+            )
+            .unwrap(),
+        )
+        .unwrap();
+
+        // expect response to be ["deeper::secret-plans::death-star-1"]
+        assert_eq!(
+            secret_plans_nested_token_query,
+            TokensResponse {
+                tokens: [prepended_path_id_2.clone()].to_vec()
+            }
+        );
+
         // CHECK: finally, check the whole path
         let secret_plans_path_query: GetPathResponse = from_binary(
             &entry::query(
