@@ -1,6 +1,6 @@
 use crate::msg::{
-    ContractInfoResponse, GetParentIdResponse, GetPathResponse, IsContractResponse,
-    PrimaryAliasResponse, WhoamiNftInfoResponse,
+    AddressOfResponse, ContractInfoResponse, GetParentIdResponse, GetPathResponse,
+    IsContractResponse, PrimaryAliasResponse, WhoamiNftInfoResponse,
 };
 use crate::state::{CONTRACT_INFO, MINTING_FEES_INFO, PRIMARY_ALIASES};
 use crate::utils::{is_path, namespace_in_path, remove_namespace_from_path};
@@ -166,6 +166,22 @@ pub fn is_contract(
             kind: "No contract address".to_string(),
         })
     }
+}
+
+// like owner_of
+// but returns owner
+// and contract address (or none)
+pub fn address_of(
+    contract: Cw721MetadataContract,
+    deps: Deps,
+    token_id: String,
+) -> StdResult<AddressOfResponse> {
+    let token = contract.tokens.load(deps.storage, &token_id)?;
+    Ok(AddressOfResponse {
+        owner: token.owner.to_string(),
+        contract_address: token.extension.contract_address,
+        validator_address: token.extension.validator_operator_address,
+    })
 }
 
 // looks up the actual token

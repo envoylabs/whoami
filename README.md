@@ -101,11 +101,15 @@ Tokens {
 
 ## Mapping username -> address
 
-Use `AddressOf` to get the address linked to a token. This is just an alias for `OwnerOf` with fewer requirements.
+Use `AddressOf` to get the address linked to a token. This can be used as an alias for `OwnerOf` with fewer requirements.
+
+Crucially, however, it also returns `contract_address` and `validator_address` from the meta fields. In some cases, it's likely that you actually want either the owner's address, _or_ a `contract_address`, if found.
 
 ```rust
 AddressOf {
     token_id: String,
+    contract_address: Option<String>,
+    validator_address: Option<String>,
 },
 ```
 
