@@ -10,9 +10,10 @@ mod tests {
     use crate::error::ContractError;
 
     use crate::msg::{
-        ContractInfoResponse, ExecuteMsg, Extension, GetParentIdResponse, GetPathResponse,
-        InstantiateMsg, IsContractResponse, Metadata, MintMsg, PrimaryAliasResponse, QueryMsg,
-        SurchargeInfo, UpdateMetadataMsg, UpdateMintingFeesMsg, WhoamiNftInfoResponse,
+        AddressOfResponse, ContractInfoResponse, ExecuteMsg, Extension, GetParentIdResponse,
+        GetPathResponse, InstantiateMsg, IsContractResponse, Metadata, MintMsg,
+        PrimaryAliasResponse, QueryMsg, SurchargeInfo, UpdateMetadataMsg, UpdateMintingFeesMsg,
+        WhoamiNftInfoResponse,
     };
     use crate::Cw721MetadataContract;
     use cosmwasm_std::{
@@ -1154,7 +1155,7 @@ mod tests {
         );
 
         // CHECK: address mapping is correct
-        let address_query_res: OwnerOfResponse = from_binary(
+        let address_query_res: AddressOfResponse = from_binary(
             &entry::query(
                 deps.as_ref(),
                 mock_env(),
@@ -1168,9 +1169,10 @@ mod tests {
 
         assert_eq!(
             address_query_res,
-            OwnerOfResponse {
+            AddressOfResponse {
                 owner: jeff_address,
-                approvals: vec![],
+                contract_address: None,
+                validator_address: None,
             }
         );
 
@@ -3753,6 +3755,7 @@ mod tests {
         // as MINTER is the admin addr on the contract
         let token_id = "enterprise";
         let contract_address = "contract-address".to_string();
+        let validator_address = "validator_address".to_string();
         let mint_msg = MintMsg {
             token_id: token_id.to_string(),
             owner: CREATOR.to_string(),
@@ -3760,6 +3763,7 @@ mod tests {
             extension: Metadata {
                 twitter_id: Some(String::from("@jeff-vader")),
                 contract_address: Some(contract_address.clone()),
+                validator_operator_address: Some(validator_address.clone()),
                 ..Metadata::default()
             },
         };
@@ -3783,6 +3787,28 @@ mod tests {
         .unwrap();
 
         assert_eq!(contract_query_res.contract_address, contract_address);
+
+        // CHECK: address_of returns the right thing
+        let address_of_res: AddressOfResponse = from_binary(
+            &entry::query(
+                deps.as_ref(),
+                mock_env(),
+                QueryMsg::AddressOf {
+                    token_id: token_id.to_string(),
+                },
+            )
+            .unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(
+            address_of_res,
+            AddressOfResponse {
+                owner: CREATOR.to_string(),
+                contract_address: Some(contract_address),
+                validator_address: Some(validator_address)
+            }
+        );
     }
 
     #[test]
@@ -3841,6 +3867,21 @@ mod tests {
                 kind: "No contract address".to_string()
             }
         );
+
+        // CHECK: address_of returns the right thing
+        let address_of_res: AddressOfResponse = from_binary(
+            &entry::query(
+                deps.as_ref(),
+                mock_env(),
+                QueryMsg::AddressOf {
+                    token_id: token_id.to_string(),
+                },
+            )
+            .unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(address_of_res.contract_address, None);
     }
 
     #[test]
@@ -3895,5 +3936,27 @@ mod tests {
         .unwrap();
 
         assert_eq!(contract_query_res.contract_address, contract_address);
+
+        // CHECK: address_of returns the right thing
+        let address_of_res: AddressOfResponse = from_binary(
+            &entry::query(
+                deps.as_ref(),
+                mock_env(),
+                QueryMsg::AddressOf {
+                    token_id: token_id.to_string(),
+                },
+            )
+            .unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(
+            address_of_res,
+            AddressOfResponse {
+                owner: CREATOR.to_string(),
+                contract_address: Some(contract_address),
+                validator_address: None
+            }
+        );
     }
 }

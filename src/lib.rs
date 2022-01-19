@@ -14,8 +14,8 @@ use execute::{
     update_primary_alias,
 };
 use query::{
-    contract_info, get_base_tokens_for_owner, get_parent_id, get_parent_nft_info, get_path,
-    get_paths_for_owner, get_paths_for_owner_and_token, is_contract, primary_alias,
+    address_of, contract_info, get_base_tokens_for_owner, get_parent_id, get_parent_nft_info,
+    get_path, get_paths_for_owner, get_paths_for_owner_and_token, is_contract, primary_alias,
 };
 
 pub use crate::msg::{ExecuteMsg, Extension, InstantiateMsg, QueryMsg};
@@ -106,6 +106,7 @@ pub mod entry {
             }
             QueryMsg::ContractInfo {} => to_binary(&contract_info(deps)?),
             QueryMsg::IsContract { token_id } => to_binary(&is_contract(tract, deps, token_id)?),
+            QueryMsg::AddressOf { token_id } => to_binary(&address_of(tract, deps, token_id)?),
             QueryMsg::GetParentId { token_id } => to_binary(&get_parent_id(tract, deps, token_id)?),
             QueryMsg::GetParentInfo { token_id } => {
                 to_binary(&get_parent_nft_info(tract, deps, token_id)?)

@@ -232,7 +232,8 @@ pub enum QueryMsg {
         /// unset or false will filter out expired approvals, you must set to true to see them
         include_expired: Option<bool>,
     },
-    /// Query address of a name - should this return contract address if contract?
+    /// Query address of a name
+    /// This returns contract address if contract
     AddressOf { token_id: String },
     /// List all operators that can access all of the owner's tokens.
     /// Return type: `OperatorsResponse`
@@ -336,10 +337,6 @@ impl From<QueryMsg> for CW721QueryMsg {
                 token_id,
                 include_expired,
             },
-            QueryMsg::AddressOf { token_id } => CW721QueryMsg::OwnerOf {
-                token_id,
-                include_expired: None,
-            },
             QueryMsg::AllOperators {
                 owner,
                 include_expired,
@@ -417,6 +414,13 @@ pub struct MintingFeesResponse {
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub struct IsContractResponse {
     pub contract_address: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+pub struct AddressOfResponse {
+    pub owner: String,
+    pub contract_address: Option<String>,
+    pub validator_address: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
