@@ -1,9 +1,9 @@
 use crate::error::ContractError;
-use cosmwasm_std::{Binary, DepsMut, Env, MessageInfo, Response, StdResult, Uint128};
+use cosmwasm_std::{ensure_eq, Binary, DepsMut, Env, MessageInfo, Response, StdResult, Uint128};
 use cw2::set_contract_version;
 use cw721::Cw721ReceiveMsg;
 use cw721_base::state::TokenInfo;
-use cw_utils::must_pay;
+use cw_utils::{must_pay, one_coin};
 
 use std::convert::TryInto;
 
@@ -71,9 +71,11 @@ pub fn update_minting_fees(
     let current_admin_address = contract.minter(deps.as_ref())?.minter;
 
     // check it's the admin of the contract updating
-    if current_admin_address != address_trying_to_update {
-        return Err(ContractError::Unauthorized {});
-    }
+    ensure_eq!(
+        current_admin_address,
+        address_trying_to_update,
+        ContractError::Unauthorized {}
+    );
 
     // get current fees
     let minting_fees_info = MINTING_FEES_INFO.load(deps.storage)?;
@@ -108,9 +110,11 @@ pub fn set_username_length_cap(
     let current_admin_address = contract.minter(deps.as_ref())?.minter;
 
     // check it's the admin of the contract updating
-    if current_admin_address != address_trying_to_update {
-        return Err(ContractError::Unauthorized {});
-    }
+    ensure_eq!(
+        current_admin_address,
+        address_trying_to_update,
+        ContractError::Unauthorized {}
+    );
 
     // init default
     let default_cap = 20;
@@ -160,9 +164,11 @@ pub fn set_admin_address(
     let current_admin_address = contract.minter(deps.as_ref())?.minter;
 
     // check it's the admin of the contract updating
-    if current_admin_address != address_trying_to_update {
-        return Err(ContractError::Unauthorized {});
-    }
+    ensure_eq!(
+        current_admin_address,
+        address_trying_to_update,
+        ContractError::Unauthorized {}
+    );
 
     // validate
     let validated_addr = deps.api.addr_validate(&admin_address)?;
@@ -189,9 +195,11 @@ pub fn mint(
     let address_trying_to_mint = info.sender.clone();
 
     // can only mint NFTs belonging to yourself
-    if address_trying_to_mint != msg.owner {
-        return Err(ContractError::Unauthorized {});
-    }
+    ensure_eq!(
+        msg.owner,
+        address_trying_to_mint,
+        ContractError::Unauthorized {}
+    );
 
     // validate any embedded logo
     if let Some(ref pfp_data) = msg.extension.image_data {
@@ -259,6 +267,14 @@ pub fn mint(
     // error out if this fee isn't covered in the msg
     if fee.is_some() {
         must_pay(&info, &minting_fees.native_denom)?;
+
+        // ensure atomicity
+        let coin = one_coin(&info)?;
+        if let Some(fee_amount) = fee {
+            if coin.amount < fee_amount {
+                return Err(ContractError::InsufficientFunds {});
+            }
+        }
     };
 
     // create the token
@@ -308,9 +324,11 @@ pub fn mint_path(
     let address_trying_to_mint = info.sender;
 
     // can only mint NFTs belonging to yourself
-    if address_trying_to_mint != msg.owner {
-        return Err(ContractError::Unauthorized {});
-    }
+    ensure_eq!(
+        msg.owner,
+        address_trying_to_mint,
+        ContractError::Unauthorized {}
+    );
 
     // validate any embedded logo or image
     if let Some(ref pfp_data) = msg.extension.image_data {
@@ -397,9 +415,11 @@ pub fn update_metadata(
     let existing_parent_id = username_nft.extension.parent_token_id.clone();
 
     // check it's the owner of the NFT updating meta
-    if username_owner != address_trying_to_update {
-        return Err(ContractError::Unauthorized {});
-    }
+    ensure_eq!(
+        username_owner,
+        address_trying_to_update,
+        ContractError::Unauthorized {}
+    );
 
     // validate any embedded logo
     if let Some(ref pfp_data) = msg.metadata.image_data {
@@ -443,9 +463,11 @@ pub fn update_primary_alias(
     let username_owner = username_nft.owner;
 
     // check it's the owner of the NFT updating the mapping
-    if username_owner != address_trying_to_update {
-        return Err(ContractError::Unauthorized {});
-    }
+    ensure_eq!(
+        username_owner,
+        address_trying_to_update,
+        ContractError::Unauthorized {}
+    );
 
     // always overwrite
     PRIMARY_ALIASES.save(deps.storage, &address_trying_to_update, &token_id)?;

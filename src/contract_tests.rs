@@ -1740,6 +1740,22 @@ mod tests {
             token_uri: None,
             extension: meta,
         };
+
+        // CHECK: cannot mint with insufficient funds
+        let failing_msg = ExecuteMsg::Mint(mint_msg.clone());
+        let failing_mint_res = entry::execute(
+            deps.as_mut(),
+            mock_env(),
+            mock_info(
+                &jeff_address,
+                &coins(Uint128::new(500_000).u128(), native_denom.clone()),
+            ),
+            failing_msg,
+        )
+        .unwrap_err();
+        assert_eq!(failing_mint_res, ContractError::InsufficientFunds {});
+
+        // CHECK: can successfully mint
         let exec_msg = ExecuteMsg::Mint(mint_msg.clone());
         let mint_res = entry::execute(
             deps.as_mut(),
@@ -1831,6 +1847,23 @@ mod tests {
             token_uri: None,
             extension: meta.clone(),
         };
+
+        // CHECK: cannot mint with insufficient funds
+        // if they cover base but not surcharge
+        let failing_msg = ExecuteMsg::Mint(mint_msg.clone());
+        let failing_mint_res = entry::execute(
+            deps.as_mut(),
+            mock_env(),
+            mock_info(
+                &jeff_address,
+                &coins(Uint128::new(1_500_000).u128(), native_denom.clone()),
+            ),
+            failing_msg,
+        )
+        .unwrap_err();
+        assert_eq!(failing_mint_res, ContractError::InsufficientFunds {});
+
+        // CHECK: can mint
         let exec_msg = ExecuteMsg::Mint(mint_msg.clone());
         let mint_res = entry::execute(
             deps.as_mut(),
@@ -1955,6 +1988,25 @@ mod tests {
             token_uri: None,
             extension: meta,
         };
+
+        // CHECK: cannot mint with insufficient funds
+        // if they cover base but not surcharge + burn
+        // 2_000_000 covers all the mint fee
+        // but not all the burn fee
+        let failing_msg = ExecuteMsg::Mint(mint_msg.clone());
+        let failing_mint_res = entry::execute(
+            deps.as_mut(),
+            mock_env(),
+            mock_info(
+                &jeff_address,
+                &coins(Uint128::new(2_000_000).u128(), native_denom.clone()),
+            ),
+            failing_msg,
+        )
+        .unwrap_err();
+        assert_eq!(failing_mint_res, ContractError::InsufficientFunds {});
+
+        // CHECK: CAN MINT
         let exec_msg = ExecuteMsg::Mint(mint_msg.clone());
         let mint_res = entry::execute(
             deps.as_mut(),
