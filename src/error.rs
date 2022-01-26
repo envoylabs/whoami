@@ -13,6 +13,9 @@ pub enum ContractError {
     #[error("{0}")]
     Payment(#[from] PaymentError),
 
+    #[error("Insufficient Funds")]
+    InsufficientFunds {},
+
     #[error("Claimed")]
     Claimed {},
 
