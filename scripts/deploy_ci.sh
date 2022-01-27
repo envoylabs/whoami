@@ -17,7 +17,7 @@ TXFLAG="--gas-prices 0.1$DENOM --gas auto --gas-adjustment 1.5 -y -b block --cha
 docker run --rm -v "$(pwd)":/code \
   --mount type=volume,source="$(basename "$(pwd)")_cache",target=/code/target \
   --mount type=volume,source=registry_cache,target=/usr/local/cargo/registry \
-  cosmwasm/rust-optimizer:0.12.3
+  cosmwasm/rust-optimizer:0.12.4
 
 # copy wasm to docker container
 docker cp artifacts/whoami.wasm $CONTAINER_NAME:/whoami.wasm
@@ -59,10 +59,11 @@ WHOAMI_INIT='{
   "short_name_surcharge": {
     "surcharge_max_characters": 5,
     "surcharge_fee": "1000000"
-  }
+  },
+  "username_length_cap": 20
 }'
 echo "$WHOAMI_INIT" | jq .
-$BINARY tx wasm instantiate $CONTRACT_CODE "$WHOAMI_INIT" --from "validator" --label "whoami NFT nameservice" $TXFLAG
+$BINARY tx wasm instantiate $CONTRACT_CODE "$WHOAMI_INIT" --from "validator" --label "whoami NFT nameservice" $TXFLAG --no-admin
 RES=$?
 
 # get contract addr
