@@ -36,4 +36,7 @@ pub enum ContractError {
 
     #[error("No Links Permitted for Embedded Field")]
     NoLinksPermitted {},
+
+    #[error("Format is incorrect for PGP Public Key")]
+    InvalidPgpPublicKey,
 }

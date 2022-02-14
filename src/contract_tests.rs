@@ -3,8 +3,8 @@ mod tests {
     use crate::entry;
 
     use crate::utils::{
-        is_path, namespace_in_path, remove_namespace_from_path, validate_path_characters,
-        validate_username_characters,
+        is_path, namespace_in_path, pgp_pubkey_format_is_valid, remove_namespace_from_path,
+        validate_path_characters, validate_username_characters,
     };
 
     use crate::error::ContractError;
@@ -27,6 +27,38 @@ mod tests {
     use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
 
     // test some utils first
+    #[test]
+    fn pgp_pubkey_validator() {
+        // obviously this is not valid, but
+        // we only check a very naive format
+        let mock_pgp_key_format = "-----BEGIN PGP PUBLIC KEY BLOCK-----
+
+mQINBFRUAGoBEACuk6ze2V2pZtScf1Ul25N2CX19AeL7sVYwnyrTYuWdG2FmJx4x
+DLTLVUazp2AEm/JhskulL/7VCZPyg7ynf+o20Tu9/6zUD7p0rnQA2k3Dz+7dKHHh
+eEsIl5EZyFy1XodhUnEIjel2nGe6f1OO7Dr3UIEQw5JnkZyqMcbLCu9sM2twFyfa
+a8JNghfjltLJs3/UjJ8ZnGGByMmWxrWQUItMpQjGr99nZf4L+IPxy2i8O8WQewB5
+fvfidBGruUYC+mTw7CusaCOQbBuZBiYduFgH8hRW97KLmHn0xzB1FV++KI7syo8q
+XGo8Un24WP40IT78XjKO
+=nUop
+-----END PGP PUBLIC KEY BLOCK-----";
+
+        let invalid_pubkey_format = "
+mQINBFRUAGoBEACuk6ze2V2pZtScf1Ul25N2CX19AeL7sVYwnyrTYuWdG2FmJx4x
+DLTLVUazp2AEm/JhskulL/7VCZPyg7ynf+o20Tu9/6zUD7p0rnQA2k3Dz+7dKHHh
+eEsIl5EZyFy1XodhUnEIjel2nGe6f1OO7Dr3UIEQw5JnkZyqMcbLCu9sM2twFyfa
+a8JNghfjltLJs3/UjJ8ZnGGByMmWxrWQUItMpQjGr99nZf4L+IPxy2i8O8WQewB5
+fvfidBGruUYC+mTw7CusaCOQbBuZBiYduFgH8hRW97KLmHn0xzB1FV++KI7syo8q
+XGo8Un24WP40IT78XjKO
+=nUop
+-----END PGP PUBLIC KEY BLOCK-----";
+
+        let first_check = pgp_pubkey_format_is_valid(mock_pgp_key_format);
+        assert_eq!(first_check, true);
+
+        let second_check = pgp_pubkey_format_is_valid(invalid_pubkey_format);
+        assert_eq!(second_check, false);
+    }
+
     #[test]
     fn username_validator() {
         let first_check = validate_username_characters("jeffvader");

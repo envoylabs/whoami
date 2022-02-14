@@ -16,7 +16,7 @@ use crate::query::get_paths_for_owner_and_token;
 use crate::state::{CONTRACT_INFO, MINTING_FEES_INFO, PRIMARY_ALIASES, USERNAME_LENGTH_CAP};
 use crate::utils::{
     get_mint_fee, get_mint_response, get_number_of_owned_tokens, get_username_length, is_path,
-    path_is_valid, username_is_valid, validate_subdomain, verify_logo,
+    path_is_valid, pgp_pubkey_format_is_valid, username_is_valid, validate_subdomain, verify_logo,
 };
 use crate::Cw721MetadataContract;
 
@@ -206,6 +206,13 @@ pub fn mint(
         verify_logo(&pfp_data)?
     }
 
+    // validate PGP pubkey format
+    if let Some(ref pgp_public_key) = msg.extension.pgp_public_key {
+        if !pgp_pubkey_format_is_valid(pgp_public_key) {
+            return Err(ContractError::InvalidPgpPublicKey {});
+        }
+    }
+
     // get minting fees and minter (i.e. admin)
     let minting_fees = MINTING_FEES_INFO.load(deps.storage)?;
     let minter = contract.minter(deps.as_ref())?.minter;
@@ -333,6 +340,14 @@ pub fn mint_path(
     // validate any embedded logo or image
     if let Some(ref pfp_data) = msg.extension.image_data {
         verify_logo(&pfp_data)?
+    }
+
+    // validate PGP public key format
+    // or return an error
+    if let Some(ref pgp_public_key) = msg.extension.pgp_public_key {
+        if !pgp_pubkey_format_is_valid(pgp_public_key) {
+            return Err(ContractError::InvalidPgpPublicKey {});
+        }
     }
 
     // validate owner addr
