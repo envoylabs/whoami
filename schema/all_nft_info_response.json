@@ -214,6 +214,13 @@
             "null"
           ]
         },
+        "pgp_public_key": {
+          "description": "A public key",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "public_bio": {
           "type": [
             "string",
