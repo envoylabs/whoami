@@ -90,6 +90,8 @@ pub struct Metadata {
     /// somewhat like a DNS
     /// if this is None then it is a base token
     pub parent_token_id: Option<String>,
+    /// A public key
+    pub pgp_public_key: Option<String>,
 }
 
 pub type Extension = Metadata;

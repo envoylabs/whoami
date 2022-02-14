@@ -18,6 +18,7 @@ pub struct Metadata {
     pub validator_operator_address: Option<String>,
     pub contract_address: Option<String>, // marks this as executable
     pub parent_token_id: Option<String>, // for paths/nested tokens
+    pub pgp_public_key: Option<String>, // exactly what you think it is
 }
 ```
 

@@ -11,6 +11,18 @@ use crate::Cw721MetadataContract;
 use regex::Regex;
 use std::convert::TryFrom;
 
+// dumb, granted
+// but a basic sense check
+// that clients don't submit something random
+// obviously if the key is the correct format
+// but still in some way incorrect it will error later
+pub fn pgp_pubkey_format_is_valid(pgp_pubkey: &str) -> bool {
+    let first_check_passed = str::starts_with(pgp_pubkey, "-----BEGIN PGP PUBLIC KEY BLOCK-----");
+    let second_check_passed = str::ends_with(pgp_pubkey, "-----END PGP PUBLIC KEY BLOCK-----");
+
+    first_check_passed && second_check_passed
+}
+
 // for a subdomain, we need to validate:
 // first, is the parent_token_id an actual token?
 // if it's not, throw an error

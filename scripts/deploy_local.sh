@@ -7,7 +7,7 @@ then
 fi
 
 # pinched and adapted from DA0DA0
-IMAGE_TAG=${2:-"v2.1.0"}
+IMAGE_TAG=${2:-"v2.3.0-beta"}
 CONTAINER_NAME="juno_whoami"
 BINARY="docker exec -i $CONTAINER_NAME junod"
 DENOM='ujunox'
@@ -97,7 +97,7 @@ WHOAMI_INIT='{
   "username_length_cap": 20
 }'
 echo "$WHOAMI_INIT" | jq .
-$BINARY tx wasm instantiate $CONTRACT_CODE "$WHOAMI_INIT" --from "validator" --label "whoami NFT nameservice" $TXFLAG
+$BINARY tx wasm instantiate $CONTRACT_CODE "$WHOAMI_INIT" --from "validator" --label "whoami NFT nameservice" $TXFLAG --no-admin
 RES=$?
 
 # get contract addr
