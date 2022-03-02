@@ -21,6 +21,13 @@ pub struct Metadata {
     pub pgp_public_key: Option<String>, // exactly what you think it is
 }
 ```
+## Disclaimer
+
+_WHOAMI IS PROVIDED “AS IS”, AT YOUR OWN RISK, AND WITHOUT WARRANTIES OF ANY KIND. No developer or entity involved in creating the WHOAMI UI or WHOAMI smart contracts will be liable for any claims or damages whatsoever associated with your use, inability to use, or your interaction with other users of WHOAMI, including any direct, indirect, incidental, special, exemplary, punitive or consequential damages, or loss of profits, cryptocurrencies, tokens, or anything else of value._
+
+## Developer documentation
+
+Below is an outline of the functionality in this contract.
 
 ### Minting
 
