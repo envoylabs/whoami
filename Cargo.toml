@@ -1,6 +1,6 @@
 [package]
 name = "whoami"
-version = "0.5.4"
+version = "0.5.5"
 authors = ["Alex Lynham <alex@lynh.am>"]
 edition = "2018"
 description = "NFT based metadata for PFP/user directory purposes"
@@ -30,7 +30,7 @@ cw2 = { version = "0.11.1" }
 cw20 = { version = "0.11.1" }
 cw721 = { version = "0.11" }
 cw721-base = { version = "0.11", features = ["library"] }
-cw-storage-plus = { version = "0.11.1" }
+cw-storage-plus = { version = "0.11.1", features = ["iterator"] }
 cosmwasm-std = { version = "1.0.0-beta4" }
 schemars = "0.8.6"
 serde = { version = "1.0.130", default-features = false, features = ["derive"] }

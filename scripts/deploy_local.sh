@@ -7,7 +7,7 @@ then
 fi
 
 # pinched and adapted from DA0DA0
-IMAGE_TAG=${2:-"v2.3.0-beta"}
+IMAGE_TAG=${2:-"v2.3.0-beta.1"}
 CONTAINER_NAME="juno_whoami"
 BINARY="docker exec -i $CONTAINER_NAME junod"
 DENOM='ujunox'
@@ -24,24 +24,14 @@ docker kill $CONTAINER_NAME
 docker volume rm -f junod_data
 
 # run junod setup script
-docker run --rm -it \
+docker run --rm -d --name $CONTAINER_NAME \
     -e PASSWORD=xxxxxxxxx \
     -e STAKE_TOKEN=$DENOM \
     -e GAS_LIMIT="$GAS_LIMIT" \
-    --mount type=volume,source=junod_data,target=/root \
-    ghcr.io/cosmoscontracts/juno:$IMAGE_TAG /opt/setup_junod.sh $1
-
-# we need app.toml and config.toml to enable CORS
-# this means config wrangling required
-docker run -v junod_data:/root --name helper busybox true
-docker cp docker/app.toml helper:/root/.juno/config/app.toml
-docker cp docker/config.toml helper:/root/.juno/config/config.toml
-docker rm helper
-
-docker run --rm -d --name $CONTAINER_NAME \
+    -e UNSAFE_CORS=true \
     -p 1317:1317 -p 26656:26656 -p 26657:26657 \
     --mount type=volume,source=junod_data,target=/root \
-    ghcr.io/cosmoscontracts/juno:$IMAGE_TAG ./run_junod.sh
+    ghcr.io/cosmoscontracts/juno:$IMAGE_TAG /opt/setup_and_run.sh $1
 
 # compile
 docker run --rm -v "$(pwd)":/code \
