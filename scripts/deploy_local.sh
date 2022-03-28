@@ -87,7 +87,7 @@ WHOAMI_INIT='{
   "username_length_cap": 20
 }'
 echo "$WHOAMI_INIT" | jq .
-$BINARY tx wasm instantiate $CONTRACT_CODE "$WHOAMI_INIT" --from "validator" --label "whoami NFT nameservice" $TXFLAG --no-admin
+$BINARY tx wasm instantiate $CONTRACT_CODE "$WHOAMI_INIT" --from "validator" --label "whoami NFT nameservice" $TXFLAG #--no-admin
 RES=$?
 
 # get contract addr
