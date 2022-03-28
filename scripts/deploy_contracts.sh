@@ -6,8 +6,6 @@ then
   exit
 fi
 
-# pinched and adapted from DA0DA0
-IMAGE_TAG=${2:-"v2.3.0-beta.1"}
 CONTAINER_NAME="juno_whoami"
 BINARY="docker exec -i $CONTAINER_NAME junod"
 DENOM='ujunox'
@@ -15,23 +13,6 @@ CHAIN_ID='testing'
 RPC='http://localhost:26657/'
 TXFLAG="--gas-prices 0.1$DENOM --gas auto --gas-adjustment 1.3 -y -b block --chain-id $CHAIN_ID --node $RPC"
 BLOCK_GAS_LIMIT=${GAS_LIMIT:-100000000} # should mirror mainnet
-
-echo "Building $IMAGE_TAG"
-echo "Configured Block Gas Limit: $BLOCK_GAS_LIMIT"
-
-# kill any orphans
-docker kill $CONTAINER_NAME
-docker volume rm -f junod_data
-
-# run junod setup script
-docker run --rm -d --name $CONTAINER_NAME \
-    -e PASSWORD=xxxxxxxxx \
-    -e STAKE_TOKEN=$DENOM \
-    -e GAS_LIMIT="$GAS_LIMIT" \
-    -e UNSAFE_CORS=true \
-    -p 1317:1317 -p 26656:26656 -p 26657:26657 \
-    --mount type=volume,source=junod_data,target=/root \
-    ghcr.io/cosmoscontracts/juno:$IMAGE_TAG /opt/setup_and_run.sh $1
 
 # compile
 docker run --rm -v "$(pwd)":/code \
@@ -92,33 +73,6 @@ RES=$?
 
 # get contract addr
 CONTRACT_ADDRESS=$($BINARY q wasm list-contract-by-code $CONTRACT_CODE --output json | jq -r '.contracts[-1]')
-
-# provision juno default user
-echo "clip hire initial neck maid actor venue client foam budget lock catalog sweet steak waste crater broccoli pipe steak sister coyote moment obvious choose" | $BINARY keys add test-user --recover --keyring-backend test
-
-# init name
-MINT='{
-  "mint": {
-    "owner": "'"$1"'",
-    "token_id": "nigeltufnel",
-    "token_uri": null,
-    "extension": {
-      "image": null,
-      "image_data": null,
-      "email": null,
-      "external_url": null,
-      "public_name": "Nigel Tufnel",
-      "public_bio": "Nigel Tufnel was born in Squatney, East London on February 5, 1948. He was given his first guitar, a Sunburst Rhythm King, by his father at age six. His life changed when he met David St. Hubbins who lived next door. They began jamming together in a toolshed in his garden, influenced by early blues artists like Honkin Bubba Fulton, Little Sassy Francis and particularly Big Little Daddy Coleman, a deaf guitar player.",
-      "twitter_id": null,
-      "discord_id": null,
-      "telegram_id": null,
-      "keybase_id": null,
-      "validator_operator_address": ""
-    }
-  }
-}'
-
-$BINARY tx wasm execute "$CONTRACT_ADDRESS" "$MINT" --from test-user $TXFLAG --amount 1000000ujunox
 
 # Print out config variables
 printf "\n ------------------------ \n"

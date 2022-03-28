@@ -6,8 +6,6 @@ then
   exit
 fi
 
-# pinched and adapted from DA0DA0
-IMAGE_TAG=${2:-"v2.3.0-beta.1"}
 CONTAINER_NAME="juno_whoami"
 BINARY="docker exec -i $CONTAINER_NAME junod"
 DENOM='ujunox'
@@ -15,23 +13,6 @@ CHAIN_ID='testing'
 RPC='http://localhost:26657/'
 TXFLAG="--gas-prices 0.1$DENOM --gas auto --gas-adjustment 1.3 -y -b block --chain-id $CHAIN_ID --node $RPC"
 BLOCK_GAS_LIMIT=${GAS_LIMIT:-100000000} # should mirror mainnet
-
-echo "Building $IMAGE_TAG"
-echo "Configured Block Gas Limit: $BLOCK_GAS_LIMIT"
-
-# kill any orphans
-docker kill $CONTAINER_NAME
-docker volume rm -f junod_data
-
-# run junod setup script
-docker run --rm -d --name $CONTAINER_NAME \
-    -e PASSWORD=xxxxxxxxx \
-    -e STAKE_TOKEN=$DENOM \
-    -e GAS_LIMIT="$GAS_LIMIT" \
-    -e UNSAFE_CORS=true \
-    -p 1317:1317 -p 26656:26656 -p 26657:26657 \
-    --mount type=volume,source=junod_data,target=/root \
-    ghcr.io/cosmoscontracts/juno:$IMAGE_TAG /opt/setup_and_run.sh $1
 
 # compile
 docker run --rm -v "$(pwd)":/code \
@@ -87,7 +68,7 @@ WHOAMI_INIT='{
   "username_length_cap": 20
 }'
 echo "$WHOAMI_INIT" | jq .
-$BINARY tx wasm instantiate $CONTRACT_CODE "$WHOAMI_INIT" --from "validator" --label "whoami NFT nameservice" $TXFLAG #--no-admin
+$BINARY tx wasm instantiate $CONTRACT_CODE "$WHOAMI_INIT" --from "validator" --label "whoami NFT nameservice" $TXFLAG --no-admin
 RES=$?
 
 # get contract addr
@@ -119,6 +100,7 @@ MINT='{
 }'
 
 $BINARY tx wasm execute "$CONTRACT_ADDRESS" "$MINT" --from test-user $TXFLAG --amount 1000000ujunox
+
 
 # Print out config variables
 printf "\n ------------------------ \n"
