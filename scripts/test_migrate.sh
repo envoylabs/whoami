@@ -129,17 +129,27 @@ NEW_CONTRACT_CODE=$($BINARY tx wasm store "/whoami.wasm" --from validator $TXFLA
 echo "Stored: $NEW_CONTRACT_CODE"
 
 echo "Attemping to migrate $CONTRACT_ADDRESS to contract code $NEW_CONTRACT_CODE"
-MIGRATE_RES=$(junod tx wasm migrate "$CONTRACT_ADDRESS" $NEW_CONTRACT_CODE '{"target_version": "0.5.5"}' $TXFLAG --output json)
-echo MIGRATE_RES | jq .
+
+MIGRATE='{
+  "target_version": "0.5.5"
+}'
+MIGRATE_RES=$(junod tx wasm migrate "$CONTRACT_ADDRESS" $NEW_CONTRACT_CODE "$MIGRATE" $TXFLAG --output json)
+RES_2=$?
+echo $MIGRATE_RES
+
+# get new contract address
+$BINARY q wasm list-contract-by-code $NEW_CONTRACT_CODE --output json
+NEW_CONTRACT_ADDRESS=$($BINARY q wasm list-contract-by-code $NEW_CONTRACT_CODE --output json | jq -r '.contracts[-1]')
 
 # Print out config variables
 printf "\n ------------------------ \n"
 printf "Config Variables \n\n"
 
-echo "NEXT_PUBLIC_WHOAMI_CODE_ID=$CONTRACT_CODE"
-echo "NEXT_PUBLIC_WHOAMI_ADDRESS=$CONTRACT_ADDRESS"
+echo "NEXT_PUBLIC_WHOAMI_CODE_ID=$NEW_CONTRACT_CODE"
+echo "NEXT_PUBLIC_WHOAMI_ADDRESS=$NEW_CONTRACT_ADDRESS"
 echo "NEXT_PUBLIC_BASE_MINT_FEE=$BASE_MINT_FEE"
 echo "NEXT_PUBLIC_SURCHARGE_FEE=$SURCHARGE_FEE"
 
 echo $RES
-exit $RES
+echo $RES_2
+exit $RES_2
