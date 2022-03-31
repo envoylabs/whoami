@@ -33,14 +33,11 @@ docker run --rm -d --name $CONTAINER_NAME \
     --mount type=volume,source=junod_data,target=/root \
     ghcr.io/cosmoscontracts/juno:$IMAGE_TAG /opt/setup_and_run.sh $1
 
-# compile
-docker run --rm -v "$(pwd)":/code \
-  --mount type=volume,source="$(basename "$(pwd)")_cache",target=/code/target \
-  --mount type=volume,source=registry_cache,target=/usr/local/cargo/registry \
-  cosmwasm/rust-optimizer:0.12.5
-
 # copy wasm to docker container
-docker cp artifacts/whoami.wasm $CONTAINER_NAME:/whoami.wasm
+docker cp versioned_builds/whoami_0_5_1.wasm $CONTAINER_NAME:/whoami_0_5_1.wasm
+
+# wait for chain to start
+sleep 5
 
 # validator addr
 VALIDATOR_ADDR=$($BINARY keys show validator --address)
@@ -57,9 +54,7 @@ echo "Address to deploy contracts: $1"
 echo "TX Flags: $TXFLAG"
 
 # upload whoami wasm
-# CONTRACT_RES=$($BINARY tx wasm store "/whoami.wasm" --from validator $TXFLAG --output json)
-# echo $CONTRACT_RES
-CONTRACT_CODE=$($BINARY tx wasm store "/whoami.wasm" --from validator $TXFLAG --output json | jq -r '.logs[0].events[-1].attributes[0].value')
+CONTRACT_CODE=$($BINARY tx wasm store "/whoami_0_5_1.wasm" --from validator $TXFLAG --output json | jq -r '.logs[0].events[-1].attributes[0].value')
 echo "Stored: $CONTRACT_CODE"
 
 BALANCE_2=$($BINARY q bank balances $VALIDATOR_ADDR)
@@ -119,6 +114,23 @@ MINT='{
 }'
 
 $BINARY tx wasm execute "$CONTRACT_ADDRESS" "$MINT" --from test-user $TXFLAG --amount 1000000ujunox
+
+# compile current
+docker run --rm -v "$(pwd)":/code \
+  --mount type=volume,source="$(basename "$(pwd)")_cache",target=/code/target \
+  --mount type=volume,source=registry_cache,target=/usr/local/cargo/registry \
+  cosmwasm/rust-optimizer:0.12.5
+
+# copy new
+docker cp artifacts/whoami.wasm $CONTAINER_NAME:/whoami.wasm
+
+# upload new wasm
+NEW_CONTRACT_CODE=$($BINARY tx wasm store "/whoami.wasm" --from validator $TXFLAG --output json | jq -r '.logs[0].events[-1].attributes[0].value')
+echo "Stored: $NEW_CONTRACT_CODE"
+
+echo "Attemping to migrate $CONTRACT_ADDRESS to contract code $NEW_CONTRACT_CODE"
+MIGRATE_RES=$(junod tx wasm migrate "$CONTRACT_ADDRESS" $NEW_CONTRACT_CODE '{"target_version": "0.5.5"}' $TXFLAG --output json)
+echo MIGRATE_RES | jq .
 
 # Print out config variables
 printf "\n ------------------------ \n"

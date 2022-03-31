@@ -1,4 +1,5 @@
 #[cfg(test)]
+#[allow(clippy::bool_assert_comparison)]
 mod tests {
     use crate::entry;
 
@@ -3147,7 +3148,7 @@ XGo8Un24WP40IT78XjKO
             token_id: token_id.clone(),
         };
 
-        let not_allowed = mock_info(&john_q_rando_address, &[]);
+        let not_allowed = mock_info(john_q_rando_address, &[]);
 
         let failed_transfer = entry::execute(
             deps.as_mut(),

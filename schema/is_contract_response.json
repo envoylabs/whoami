@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "IsContractResponse",
+  "description": "Is this a contract? Can it be executed? potentially confusing given the top level Contract Response for the container Contract",
+  "type": "object",
+  "required": [
+    "contract_address"
+  ],
+  "properties": {
+    "contract_address": {
+      "type": "string"
+    }
+  }
+}
