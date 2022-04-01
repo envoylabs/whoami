@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -o errexit -o nounset -o pipefail
+
 if [ "$1" = "" ]
 then
   echo "Usage: $0 1 arg required - juno address"

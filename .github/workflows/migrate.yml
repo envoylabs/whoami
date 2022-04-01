@@ -7,7 +7,7 @@ name: Migrate
 jobs:
 
   test:
-    name: Test Suite
+    name: Test Migrate
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
@@ -22,6 +22,4 @@ jobs:
           override: true
 
       - name: Test migration
-        uses: actions-rs/cargo@v1
-        with:
-          command: ./scripts/test_migrate.sh juno16g2rahf5846rxzp3fwlswy08fz8ccuwk03k57y
+        run: ./scripts/test_migrate.sh juno16g2rahf5846rxzp3fwlswy08fz8ccuwk03k57y

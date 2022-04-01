@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 DEFAULT_DEV_ADDRESS="juno16g2rahf5846rxzp3fwlswy08fz8ccuwk03k57y"
 
 CONTAINER_NAME="juno_node_1"
