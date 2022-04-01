@@ -115,6 +115,9 @@ MINT='{
 
 $BINARY tx wasm execute "$CONTRACT_ADDRESS" "$MINT" --from test-user $TXFLAG --amount 1000000ujunox
 
+OLD_NFT_INFO=$(junod q wasm contract-state smart $CONTRACT_ADDRESS '{"all_nft_info": {"token_id": "nigeltufnel"}}' --output json)
+echo $OLD_NFT_INFO | jq .
+
 # compile current
 docker run --rm -v "$(pwd)":/code \
   --mount type=volume,source="$(basename "$(pwd)")_cache",target=/code/target \
@@ -133,7 +136,7 @@ echo "Attemping to migrate $CONTRACT_ADDRESS to contract code $NEW_CONTRACT_CODE
 MIGRATE='{
   "target_version": "0.5.5"
 }'
-MIGRATE_RES=$(junod tx wasm migrate "$CONTRACT_ADDRESS" $NEW_CONTRACT_CODE "$MIGRATE" --from test-user $TXFLAG --output json)
+MIGRATE_RES=$($BINARY tx wasm migrate "$CONTRACT_ADDRESS" $NEW_CONTRACT_CODE "$MIGRATE" --from test-user $TXFLAG --output json)
 RES_2=$?
 echo $MIGRATE_RES
 
