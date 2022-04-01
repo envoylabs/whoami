@@ -133,13 +133,18 @@ echo "Attemping to migrate $CONTRACT_ADDRESS to contract code $NEW_CONTRACT_CODE
 MIGRATE='{
   "target_version": "0.5.5"
 }'
-MIGRATE_RES=$(junod tx wasm migrate "$CONTRACT_ADDRESS" $NEW_CONTRACT_CODE "$MIGRATE" $TXFLAG --output json)
+MIGRATE_RES=$(junod tx wasm migrate "$CONTRACT_ADDRESS" $NEW_CONTRACT_CODE "$MIGRATE" --from test-user $TXFLAG --output json)
 RES_2=$?
 echo $MIGRATE_RES
 
 # get new contract address
+# (should be the same address)
 $BINARY q wasm list-contract-by-code $NEW_CONTRACT_CODE --output json
 NEW_CONTRACT_ADDRESS=$($BINARY q wasm list-contract-by-code $NEW_CONTRACT_CODE --output json | jq -r '.contracts[-1]')
+
+# should have new fields in it
+NFT_INFO=$(junod q wasm contract-state smart $NEW_CONTRACT_ADDRESS '{"all_nft_info": {"token_id": "nigeltufnel"}}' --output json)
+echo $NFT_INFO | jq .
 
 # Print out config variables
 printf "\n ------------------------ \n"
