@@ -21,6 +21,12 @@ pub struct SurchargeInfo {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct MigrateMsg {
+    /// Specify the version that we are migrating up to
+    pub target_version: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct InstantiateMsg {
     /// Name of the NFT contract
     pub name: String,

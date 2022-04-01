@@ -21,8 +21,8 @@ use crate::utils::{
 use crate::Cw721MetadataContract;
 
 // version info for migration info
-const CONTRACT_NAME: &str = "crates.io:whoami";
-const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
+pub const CONTRACT_NAME: &str = "crates.io:whoami";
+pub const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub fn execute_instantiate(
     contract: Cw721MetadataContract,
@@ -203,7 +203,7 @@ pub fn mint(
 
     // validate any embedded logo
     if let Some(ref pfp_data) = msg.extension.image_data {
-        verify_logo(&pfp_data)?
+        verify_logo(pfp_data)?
     }
 
     // validate PGP pubkey format
@@ -295,7 +295,7 @@ pub fn mint(
     };
     contract
         .tokens
-        .update(deps.storage, &username, |old| match old {
+        .update(deps.storage, username, |old| match old {
             Some(_) => Err(ContractError::Claimed {}),
             None => Ok(token),
         })?;
@@ -339,7 +339,7 @@ pub fn mint_path(
 
     // validate any embedded logo or image
     if let Some(ref pfp_data) = msg.extension.image_data {
-        verify_logo(&pfp_data)?
+        verify_logo(pfp_data)?
     }
 
     // validate PGP public key format
@@ -438,7 +438,7 @@ pub fn update_metadata(
 
     // validate any embedded logo
     if let Some(ref pfp_data) = msg.metadata.image_data {
-        verify_logo(&pfp_data)?
+        verify_logo(pfp_data)?
     }
 
     // arrrrre you ready to rrrrrumb-

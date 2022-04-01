@@ -8,8 +8,11 @@ use cw721::{
     TokensResponse,
 };
 use cw721_base::MinterResponse;
-use whoami::msg::ContractInfoResponse;
-use whoami::{ExecuteMsg, Extension, InstantiateMsg, QueryMsg};
+use whoami::msg::{
+    AddressOfResponse, ContractInfoResponse, GetParentIdResponse, GetPathResponse,
+    IsContractResponse, MintingFeesResponse, PrimaryAliasResponse,
+};
+use whoami::{ExecuteMsg, Extension, InstantiateMsg, MigrateMsg, QueryMsg};
 
 fn main() {
     let mut out_dir = current_dir().unwrap();
@@ -17,6 +20,7 @@ fn main() {
     create_dir_all(&out_dir).unwrap();
     remove_schemas(&out_dir).unwrap();
 
+    export_schema(&schema_for!(MigrateMsg), &out_dir);
     export_schema(&schema_for!(InstantiateMsg), &out_dir);
     export_schema_with_title(&schema_for!(ExecuteMsg), &out_dir, "ExecuteMsg");
     export_schema(&schema_for!(QueryMsg), &out_dir);
@@ -36,4 +40,10 @@ fn main() {
     export_schema(&schema_for!(NumTokensResponse), &out_dir);
     export_schema(&schema_for!(OwnerOfResponse), &out_dir);
     export_schema(&schema_for!(TokensResponse), &out_dir);
+    export_schema(&schema_for!(PrimaryAliasResponse), &out_dir);
+    export_schema(&schema_for!(MintingFeesResponse), &out_dir);
+    export_schema(&schema_for!(IsContractResponse), &out_dir);
+    export_schema(&schema_for!(AddressOfResponse), &out_dir);
+    export_schema(&schema_for!(GetParentIdResponse), &out_dir);
+    export_schema(&schema_for!(GetPathResponse), &out_dir);
 }

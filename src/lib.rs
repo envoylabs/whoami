@@ -6,19 +6,20 @@ pub mod query;
 pub mod state;
 pub mod utils;
 
-use cosmwasm_std::{to_binary, Empty};
+use cosmwasm_std::{ensure_eq, to_binary, Empty};
 
+use cw2::set_contract_version;
 use execute::{
     burn, execute_instantiate, mint, mint_path, send_nft, set_admin_address,
     set_username_length_cap, transfer_nft, update_metadata, update_minting_fees,
-    update_primary_alias,
+    update_primary_alias, CONTRACT_NAME, CONTRACT_VERSION,
 };
 use query::{
     address_of, contract_info, get_base_tokens_for_owner, get_parent_id, get_parent_nft_info,
     get_path, get_paths_for_owner, get_paths_for_owner_and_token, is_contract, primary_alias,
 };
 
-pub use crate::msg::{ExecuteMsg, Extension, InstantiateMsg, QueryMsg};
+pub use crate::msg::{ExecuteMsg, Extension, InstantiateMsg, MigrateMsg, QueryMsg};
 
 pub use crate::error::ContractError;
 
@@ -137,5 +138,16 @@ pub mod entry {
             )?),
             _ => tract.query(deps, env, msg.into()).map_err(|err| err),
         }
+    }
+
+    #[entry_point]
+    pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, ContractError> {
+        ensure_eq!(
+            msg.target_version,
+            CONTRACT_VERSION,
+            ContractError::Unauthorized {}
+        );
+        set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
+        Ok(Response::new().add_attribute("action", "migrate"))
     }
 }
