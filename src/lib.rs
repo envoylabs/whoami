@@ -25,14 +25,13 @@ pub use crate::error::ContractError;
 
 pub type Cw721MetadataContract<'a> = cw721_base::Cw721Contract<'a, Extension, Empty>;
 
-#[cfg(not(feature = "library"))]
 pub mod entry {
     use super::*;
 
     use cosmwasm_std::entry_point;
     use cosmwasm_std::{Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult};
 
-    #[entry_point]
+    #[cfg_attr(not(feature = "library"), entry_point)]
     pub fn instantiate(
         deps: DepsMut,
         env: Env,
@@ -43,7 +42,7 @@ pub mod entry {
         execute_instantiate(tract, deps, env, info, msg)
     }
 
-    #[entry_point]
+    #[cfg_attr(not(feature = "library"), entry_point)]
     pub fn execute(
         deps: DepsMut,
         env: Env,
@@ -86,7 +85,7 @@ pub mod entry {
         }
     }
 
-    #[entry_point]
+    #[cfg_attr(not(feature = "library"), entry_point)]
     pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
         let tract = Cw721MetadataContract::default();
 
@@ -140,7 +139,7 @@ pub mod entry {
         }
     }
 
-    #[entry_point]
+    #[cfg_attr(not(feature = "library"), entry_point)]
     pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, ContractError> {
         ensure_eq!(
             msg.target_version,
