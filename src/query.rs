@@ -20,7 +20,7 @@ fn get_tokens(
     limit: Option<u32>,
 ) -> StdResult<Vec<String>> {
     let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
-    let start = start_after.map(Bound::exclusive);
+    let start = start_after.map(|s| Bound::ExclusiveRaw(s.into()));
 
     let owner_addr = deps.api.addr_validate(&owner)?;
     let tokens: Vec<String> = contract
