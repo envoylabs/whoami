@@ -134,7 +134,7 @@ echo "Stored: $NEW_CONTRACT_CODE"
 echo "Attemping to migrate $CONTRACT_ADDRESS to contract code $NEW_CONTRACT_CODE"
 
 MIGRATE='{
-  "target_version": "0.5.7"
+  "target_version": "0.5.8"
 }'
 MIGRATE_RES=$($BINARY tx wasm migrate "$CONTRACT_ADDRESS" $NEW_CONTRACT_CODE "$MIGRATE" --from test-user $TXFLAG --output json)
 RES_2=$?
