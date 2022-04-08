@@ -1,0 +1,27 @@
+name: release binary
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  release-alpine-static:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build optimised
+        run: ./scripts/build_optimised_release.sh
+      - name: Get release ID
+        id: get_release
+        uses: bruceadams/get-release@v1.2.3
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+      - name: Upload release binary
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          upload_url: ${{ steps.get_release.outputs.upload_url }}
+          asset_path: ./artifacts/whoami.wasm
+          asset_name: whoami
+          asset_content_type: application/octet-stream
