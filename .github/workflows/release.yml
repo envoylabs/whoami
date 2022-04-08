@@ -16,12 +16,12 @@ jobs:
         uses: bruceadams/get-release@v1.2.3
         env:
           GITHUB_TOKEN: ${{ github.token }}
-      - name: Upload release binary
+      - name: Upload release wasm
         uses: actions/upload-release-asset@v1.0.2
         env:
           GITHUB_TOKEN: ${{ github.token }}
         with:
           upload_url: ${{ steps.get_release.outputs.upload_url }}
           asset_path: ./artifacts/whoami.wasm
-          asset_name: whoami
+          asset_name: whoami.wasm
           asset_content_type: application/octet-stream
