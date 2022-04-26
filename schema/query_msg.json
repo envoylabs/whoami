@@ -458,6 +458,30 @@
         }
       },
       "additionalProperties": false
+    },
+    {
+      "description": "Returns token info for a list of token IDs Includes owner and token metadata",
+      "type": "object",
+      "required": [
+        "list_info_by_alias"
+      ],
+      "properties": {
+        "list_info_by_alias": {
+          "type": "object",
+          "required": [
+            "aliases"
+          ],
+          "properties": {
+            "aliases": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "additionalProperties": false
     }
   ]
 }

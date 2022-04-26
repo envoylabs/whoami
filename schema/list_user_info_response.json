@@ -1,0 +1,198 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ListUserInfoResponse",
+  "type": "object",
+  "required": [
+    "users"
+  ],
+  "properties": {
+    "users": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/UserInfo"
+      }
+    }
+  },
+  "definitions": {
+    "Binary": {
+      "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>",
+      "type": "string"
+    },
+    "EmbeddedLogo": {
+      "description": "This is used to store the logo on the blockchain in an accepted format. Enforce maximum size of 5KB on all variants.",
+      "oneOf": [
+        {
+          "description": "Store the Logo as an SVG file. The content must conform to the spec at https://en.wikipedia.org/wiki/Scalable_Vector_Graphics (The contract should do some light-weight sanity-check validation)",
+          "type": "object",
+          "required": [
+            "svg"
+          ],
+          "properties": {
+            "svg": {
+              "$ref": "#/definitions/Binary"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "description": "Store the Logo as a PNG file. This will likely only support up to 64x64 or so within the 5KB limit.",
+          "type": "object",
+          "required": [
+            "png"
+          ],
+          "properties": {
+            "png": {
+              "$ref": "#/definitions/Binary"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "Logo": {
+      "description": "This is used for uploading logo data, or setting it in InstantiateData",
+      "oneOf": [
+        {
+          "description": "A reference to an externally hosted logo. Must be a valid HTTP or HTTPS URL.",
+          "type": "object",
+          "required": [
+            "url"
+          ],
+          "properties": {
+            "url": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "description": "Logo content stored on the blockchain. Enforce maximum size of 5KB on all variants",
+          "type": "object",
+          "required": [
+            "embedded"
+          ],
+          "properties": {
+            "embedded": {
+              "$ref": "#/definitions/EmbeddedLogo"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "Metadata": {
+      "type": "object",
+      "properties": {
+        "contract_address": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "discord_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "email": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "external_url": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "image": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "image_data": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Logo"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "keybase_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "parent_token_id": {
+          "description": "For future compatibility, we want to support a recursive lookup of tokens that constitutes a path somewhat like a DNS if this is None then it is a base token",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "pgp_public_key": {
+          "description": "A public key",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "public_bio": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "public_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "telegram_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "twitter_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "validator_operator_address": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "UserInfo": {
+      "type": "object",
+      "required": [
+        "alias",
+        "metadata",
+        "owner"
+      ],
+      "properties": {
+        "alias": {
+          "type": "string"
+        },
+        "metadata": {
+          "$ref": "#/definitions/Metadata"
+        },
+        "owner": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}
