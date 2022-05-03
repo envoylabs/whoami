@@ -1,12 +1,13 @@
 use crate::msg::{
     AddressOfResponse, ContractInfoResponse, GetParentIdResponse, GetPathResponse,
-    IsContractResponse, PrimaryAliasResponse, WhoamiNftInfoResponse, ListUserInfoResponse, UserInfo
+    IsContractResponse, ListUserInfoResponse, PrimaryAliasResponse, UserInfo,
+    WhoamiNftInfoResponse,
 };
 use crate::state::{CONTRACT_INFO, MINTING_FEES_INFO, PRIMARY_ALIASES};
 use crate::utils::{is_path, namespace_in_path, remove_namespace_from_path};
 use crate::Cw721MetadataContract;
 use cosmwasm_std::{Deps, Env, Order, StdError, StdResult};
-use cw721::{TokensResponse};
+use cw721::TokensResponse;
 use cw_storage_plus::Bound;
 
 const DEFAULT_LIMIT: u32 = 10;
@@ -57,9 +58,13 @@ pub fn list_info_by_alias(
         .into_iter()
         .map(|alias| -> StdResult<UserInfo> {
             let info = contract.tokens.load(deps.storage, &alias)?;
-            Ok(UserInfo { alias, owner: info.owner.to_string(), metadata: info.extension })
+            Ok(UserInfo {
+                alias,
+                owner: info.owner.to_string(),
+                metadata: info.extension,
+            })
         })
-            .collect::<StdResult<Vec<_>>>()?;
+        .collect::<StdResult<Vec<_>>>()?;
 
     Ok(ListUserInfoResponse { users })
 }

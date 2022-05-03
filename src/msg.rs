@@ -335,9 +335,7 @@ pub enum QueryMsg {
 
     /// Returns token info for a list of token IDs
     /// Includes owner and token metadata
-    ListInfoByAlias {
-        aliases: Vec<String>,
-    },
+    ListInfoByAlias { aliases: Vec<String> },
 }
 
 impl From<QueryMsg> for CW721QueryMsg {

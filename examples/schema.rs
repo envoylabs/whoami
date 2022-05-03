@@ -8,7 +8,10 @@ use cw721::{
     TokensResponse,
 };
 use cw721_base::MinterResponse;
-use whoami::msg::{ContractInfoResponse, PrimaryAliasResponse, MintingFeesResponse, IsContractResponse, AddressOfResponse, GetParentIdResponse, GetPathResponse, ListUserInfoResponse};
+use whoami::msg::{
+    AddressOfResponse, ContractInfoResponse, GetParentIdResponse, GetPathResponse,
+    IsContractResponse, ListUserInfoResponse, MintingFeesResponse, PrimaryAliasResponse,
+};
 use whoami::{ExecuteMsg, Extension, InstantiateMsg, MigrateMsg, QueryMsg};
 
 fn main() {
