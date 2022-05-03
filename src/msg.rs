@@ -332,6 +332,10 @@ pub enum QueryMsg {
         start_after: Option<String>,
         limit: Option<u32>,
     },
+
+    /// Returns token info for a list of token IDs
+    /// Includes owner and token metadata
+    ListInfoByAlias { aliases: Vec<String> },
 }
 
 impl From<QueryMsg> for CW721QueryMsg {
@@ -439,4 +443,16 @@ pub struct GetParentIdResponse {
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub struct GetPathResponse {
     pub path: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+pub struct UserInfo {
+    pub alias: String,
+    pub owner: String,
+    pub metadata: Metadata,
+}
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+pub struct ListUserInfoResponse {
+    pub users: Vec<UserInfo>,
 }

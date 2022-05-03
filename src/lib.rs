@@ -16,7 +16,8 @@ use execute::{
 };
 use query::{
     address_of, contract_info, get_base_tokens_for_owner, get_parent_id, get_parent_nft_info,
-    get_path, get_paths_for_owner, get_paths_for_owner_and_token, is_contract, primary_alias,
+    get_path, get_paths_for_owner, get_paths_for_owner_and_token, is_contract, list_info_by_alias,
+    primary_alias,
 };
 
 pub use crate::msg::{ExecuteMsg, Extension, InstantiateMsg, MigrateMsg, QueryMsg};
@@ -26,6 +27,7 @@ pub use crate::error::ContractError;
 pub type Cw721MetadataContract<'a> = cw721_base::Cw721Contract<'a, Extension, Empty>;
 
 pub mod entry {
+
     use super::*;
 
     use cosmwasm_std::entry_point;
@@ -135,6 +137,9 @@ pub mod entry {
                 start_after,
                 limit,
             )?),
+            QueryMsg::ListInfoByAlias { aliases } => {
+                to_binary(&list_info_by_alias(tract, deps, aliases)?)
+            }
             _ => tract.query(deps, env, msg.into()).map_err(|err| err),
         }
     }

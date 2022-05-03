@@ -10,7 +10,7 @@ use cw721::{
 use cw721_base::MinterResponse;
 use whoami::msg::{
     AddressOfResponse, ContractInfoResponse, GetParentIdResponse, GetPathResponse,
-    IsContractResponse, MintingFeesResponse, PrimaryAliasResponse,
+    IsContractResponse, ListUserInfoResponse, MintingFeesResponse, PrimaryAliasResponse,
 };
 use whoami::{ExecuteMsg, Extension, InstantiateMsg, MigrateMsg, QueryMsg};
 
@@ -46,4 +46,5 @@ fn main() {
     export_schema(&schema_for!(AddressOfResponse), &out_dir);
     export_schema(&schema_for!(GetParentIdResponse), &out_dir);
     export_schema(&schema_for!(GetPathResponse), &out_dir);
+    export_schema(&schema_for!(ListUserInfoResponse), &out_dir);
 }

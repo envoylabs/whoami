@@ -1,6 +1,7 @@
 use crate::msg::{
     AddressOfResponse, ContractInfoResponse, GetParentIdResponse, GetPathResponse,
-    IsContractResponse, PrimaryAliasResponse, WhoamiNftInfoResponse,
+    IsContractResponse, ListUserInfoResponse, PrimaryAliasResponse, UserInfo,
+    WhoamiNftInfoResponse,
 };
 use crate::state::{CONTRACT_INFO, MINTING_FEES_INFO, PRIMARY_ALIASES};
 use crate::utils::{is_path, namespace_in_path, remove_namespace_from_path};
@@ -46,6 +47,26 @@ fn get_tokens_for_owner(
     let tokens = get_tokens(contract, deps, owner, start_after, limit)?;
 
     Ok(TokensResponse { tokens })
+}
+
+pub fn list_info_by_alias(
+    contract: Cw721MetadataContract,
+    deps: Deps,
+    aliases: Vec<String>,
+) -> StdResult<ListUserInfoResponse> {
+    let users: Vec<UserInfo> = aliases
+        .into_iter()
+        .map(|alias| -> StdResult<UserInfo> {
+            let info = contract.tokens.load(deps.storage, &alias)?;
+            Ok(UserInfo {
+                alias,
+                owner: info.owner.to_string(),
+                metadata: info.extension,
+            })
+        })
+        .collect::<StdResult<Vec<_>>>()?;
+
+    Ok(ListUserInfoResponse { users })
 }
 
 pub fn get_base_tokens_for_owner(
