@@ -7,7 +7,7 @@ then
 fi
 
 # pinched and adapted from DA0DA0
-IMAGE_TAG=${2:-"v4.0.0"}
+IMAGE_TAG=${2:-"v6.0.0-alpha"}
 CONTAINER_NAME="juno_whoami"
 BINARY="docker exec -i $CONTAINER_NAME junod"
 DENOM='ujunox'
