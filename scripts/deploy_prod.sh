@@ -16,7 +16,7 @@ TXFLAG="--gas-prices auto --gas auto --gas-adjustment 2 -y -b block --chain-id $
 docker run --rm -v "$(pwd)":/code \
   --mount type=volume,source="$(basename "$(pwd)")_cache",target=/code/target \
   --mount type=volume,source=registry_cache,target=/usr/local/cargo/registry \
-  cosmwasm/rust-optimizer:0.12.3
+  cosmwasm/rust-optimizer:0.12.6
 
 # presumably you know the addr you want to use already
 echo "Address to deploy contracts: $1"
