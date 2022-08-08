@@ -7,7 +7,7 @@ then
 fi
 
 # pinched and adapted from DA0DA0
-IMAGE_TAG=${2:-"v6.0.0"}
+IMAGE_TAG=${2:-"v9.0.0"}
 CONTAINER_NAME="juno_whoami"
 BINARY="docker exec -i $CONTAINER_NAME junod"
 DENOM='ujunox'
@@ -147,6 +147,34 @@ NEW_CONTRACT_ADDRESS=$($BINARY q wasm list-contract-by-code $NEW_CONTRACT_CODE -
 
 # should have new fields in it
 NFT_INFO=$($BINARY q wasm contract-state smart $NEW_CONTRACT_ADDRESS '{"all_nft_info": {"token_id": "nigeltufnel"}}' --output json)
+echo $NFT_INFO | jq .
+
+# init name 2
+MINT2='{
+  "mint": {
+    "owner": "juno16g2rahf5846rxzp3fwlswy08fz8ccuwk03k57y",
+    "token_id": "jeffvader",
+    "token_uri": null,
+    "extension": {
+      "image": null,
+      "image_data": null,
+      "email": null,
+      "external_url": null,
+      "public_name": "Jeff Vader",
+      "public_bio": "Jeff Vader runs the Death Star",
+      "twitter_id": null,
+      "discord_id": null,
+      "telegram_id": null,
+      "keybase_id": null,
+      "validator_operator_address": ""
+    }
+  }
+}'
+
+$BINARY tx wasm execute "$CONTRACT_ADDRESS" "$MINT2" --from test-user $TXFLAG --amount 1000000ujunox
+
+# should have new fields in it
+NFT_INFO=$($BINARY q wasm contract-state smart $NEW_CONTRACT_ADDRESS '{"all_nft_info": {"token_id": "jeffvader"}}' --output json)
 echo $NFT_INFO | jq .
 
 # Print out config variables
