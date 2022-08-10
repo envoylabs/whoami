@@ -177,6 +177,10 @@ $BINARY tx wasm execute "$CONTRACT_ADDRESS" "$MINT2" --from test-user $TXFLAG --
 NFT_INFO=$($BINARY q wasm contract-state smart $NEW_CONTRACT_ADDRESS '{"all_nft_info": {"token_id": "jeffvader"}}' --output json)
 echo $NFT_INFO | jq .
 
+# should have new version
+CONTRACT_INFO=$($BINARY q wasm contract-state smart $NEW_CONTRACT_ADDRESS '{"contract_info": {}}' --output json)
+echo $CONTRACT_INFO | jq .
+
 # Print out config variables
 printf "\n ------------------------ \n"
 printf "Config Variables \n\n"
