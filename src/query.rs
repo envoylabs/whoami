@@ -31,7 +31,6 @@ fn get_tokens(
         .prefix(owner_addr)
         .keys(deps.storage, start, None, Order::Ascending)
         .take(limit)
-        .map(|x| x.map(|addr| addr.to_string()))
         .collect::<StdResult<Vec<_>>>()?;
 
     Ok(tokens)

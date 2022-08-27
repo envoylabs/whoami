@@ -186,7 +186,6 @@ pub fn get_number_of_owned_tokens(
         .prefix(address)
         .keys(deps.storage, None, None, Order::Ascending)
         .take(default_limit) // set default big limit
-        .map(|x| x.map(|addr| addr.to_string()))
         .collect::<StdResult<Vec<_>>>()?;
 
     let number_of_tokens_owned = owned_tokens.len();
