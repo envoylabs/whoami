@@ -29,6 +29,7 @@ pub type Cw721MetadataContract<'a> = cw721_base::Cw721Contract<'a, Extension, Em
 pub mod entry {
 
     use super::*;
+    use crate::state::CONTRACT_INFO;
 
     use cosmwasm_std::entry_point;
     use cosmwasm_std::{Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult};
@@ -152,7 +153,14 @@ pub mod entry {
             ContractError::Unauthorized {}
         );
 
+        let contract_info = CONTRACT_INFO.load(deps.storage)?;
+        let info = ContractInfo {
+            name: contract_info.name,
+            symbol: contract_info.symbol,
+        };
+
         set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
+        CONTRACT_INFO.save(deps.storage, &info)?;
         Ok(Response::new().add_attribute("action", "migrate"))
     }
 }
