@@ -156,7 +156,7 @@ pub fn primary_alias(
 pub fn contract_info(deps: Deps) -> StdResult<ContractInfoResponse> {
     let contract_info = CONTRACT_INFO.load(deps.storage)?;
     let minting_fees = MINTING_FEES_INFO.load(deps.storage)?;
-    println!("{}", "test");
+    println!("test");
     println!("{}", contract_info.name);
     println!("{}", contract_info.symbol);
 
