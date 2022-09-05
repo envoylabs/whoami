@@ -156,7 +156,7 @@ pub mod entry {
         let contract_info = LEGACY_CONTRACT_INFO.load(deps.storage)?;
         let info = ContractInfo {
             name: contract_info.name,
-            symbol: contract_info.symbol,
+            symbol: "DENS".to_string(),
         };
         // in this version of the code
         // the storage key has been changed
