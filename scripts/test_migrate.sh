@@ -93,6 +93,7 @@ CONTRACT_ADDRESS=$($BINARY q wasm list-contract-by-code $CONTRACT_CODE --output 
 
 # should have info
 OLD_CONTRACT_INFO=$($BINARY q wasm contract-state smart $CONTRACT_ADDRESS '{"contract_info": {}}' --output json)
+echo "OLD CONTRACT INFO"
 echo $OLD_CONTRACT_INFO | jq .
 
 # init name
@@ -120,6 +121,7 @@ MINT='{
 $BINARY tx wasm execute "$CONTRACT_ADDRESS" "$MINT" --from test-user $TXFLAG --amount 1000000ujunox
 
 OLD_NFT_INFO=$($BINARY q wasm contract-state smart $CONTRACT_ADDRESS '{"all_nft_info": {"token_id": "nigeltufnel"}}' --output json)
+echo "OLD NFT INFO:"
 echo $OLD_NFT_INFO | jq .
 
 # compile current
@@ -179,10 +181,12 @@ $BINARY tx wasm execute "$CONTRACT_ADDRESS" "$MINT2" --from test-user $TXFLAG --
 
 # should have new fields in it
 NFT_INFO=$($BINARY q wasm contract-state smart $NEW_CONTRACT_ADDRESS '{"all_nft_info": {"token_id": "jeffvader"}}' --output json)
+echo "NEW NFT INFO"
 echo $NFT_INFO | jq .
 
 # should have new version
 CONTRACT_INFO=$($BINARY q wasm contract-state smart $NEW_CONTRACT_ADDRESS '{"contract_info": {}}' --output json)
+echo "NEW CONTRACT INFO"
 echo $CONTRACT_INFO | jq .
 
 # Print out config variables
