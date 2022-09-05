@@ -153,14 +153,14 @@ pub mod entry {
             ContractError::Unauthorized {}
         );
 
-        let contract_info = CONTRACT_INFO.load(deps.storage)?;
-        let info = ContractInfo {
-            name: contract_info.name,
-            symbol: contract_info.symbol,
+        let _contract_info = CONTRACT_INFO.load(deps.storage)?;
+        let _info = ContractInfo {
+            name: _contract_info.name,
+            symbol: _contract_info.symbol,
         };
 
         set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
-        CONTRACT_INFO.save(deps.storage, &info)?;
+        // CONTRACT_INFO.save(deps.storage, &info)?;
         Ok(Response::new().add_attribute("action", "migrate"))
     }
 }
