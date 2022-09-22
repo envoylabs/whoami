@@ -37,7 +37,7 @@ echo "TX Flags: $TXFLAG"
 # upload whoami wasm
 # CONTRACT_RES=$($BINARY tx wasm store "/whoami.wasm" --from validator $TXFLAG --output json)
 # echo $CONTRACT_RES
-CONTRACT_CODE=$($BINARY tx wasm store "/whoami.wasm" --from validator $TXFLAG --output json | jq -r '.logs[0].events[-1].attributes[0].value')
+CONTRACT_CODE=$($BINARY tx wasm store "/whoami.wasm" --from validator $TXFLAG --output json | jq -r '.logs[0].events[-1].attributes[-1].value')
 echo "Stored: $CONTRACT_CODE"
 
 BALANCE_2=$($BINARY q bank balances $VALIDATOR_ADDR)
