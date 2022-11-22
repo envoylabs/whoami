@@ -17,3 +17,6 @@ pub const USERNAME_LENGTH_CAP: Item<u32> = Item::new("username_length_cap");
 
 // this is fees info
 pub const MINTING_FEES_INFO: Item<MintingFeesResponse> = Item::new("minting_fees");
+
+// the did method (namespace)
+pub const DID_METHOD: Item<String> = Item::new("did_method");

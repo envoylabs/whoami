@@ -40,7 +40,7 @@ pub mod entry {
         env: Env,
         info: MessageInfo,
         msg: InstantiateMsg,
-    ) -> StdResult<Response> {
+    ) -> Result<Response, ContractError> {
         let tract = Cw721MetadataContract::default();
         execute_instantiate(tract, deps, env, info, msg)
     }

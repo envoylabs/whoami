@@ -68,14 +68,14 @@ pub struct InstantiateMsg {
     /// The cap for a username length
     /// can be updated later by the admin_address
     pub username_length_cap: Option<u32>,
+
+    /// The DID namespace
+    /// this should be set to 'dens' but hey, you do you
+    pub did_method: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug, Default)]
-pub struct Trait {
-    pub display_type: Option<String>,
-    pub trait_type: String,
-    pub value: String,
-}
+pub struct DidDocument {}
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug, Default)]
 pub struct Metadata {
@@ -98,6 +98,12 @@ pub struct Metadata {
     pub parent_token_id: Option<String>,
     /// A public key
     pub pgp_public_key: Option<String>,
+
+    /// The DID identifier for this id
+    /// this is auto-generated and cannot be edited
+    pub did_id: Option<String>,
+    /// the DID document
+    pub did_document: Option<DidDocument>,
 }
 
 pub type Extension = Metadata;

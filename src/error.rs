@@ -39,4 +39,7 @@ pub enum ContractError {
 
     #[error("Format is incorrect for PGP Public Key")]
     InvalidPgpPublicKey,
+
+    #[error("Format is incorrect for DID Method")]
+    InvalidDidMethod,
 }

@@ -13,10 +13,13 @@ use crate::msg::{
 };
 
 use crate::query::get_paths_for_owner_and_token;
-use crate::state::{CONTRACT_INFO, MINTING_FEES_INFO, PRIMARY_ALIASES, USERNAME_LENGTH_CAP};
+use crate::state::{
+    CONTRACT_INFO, DID_METHOD, MINTING_FEES_INFO, PRIMARY_ALIASES, USERNAME_LENGTH_CAP,
+};
 use crate::utils::{
     get_mint_fee, get_mint_response, get_number_of_owned_tokens, get_username_length, is_path,
-    path_is_valid, pgp_pubkey_format_is_valid, username_is_valid, validate_subdomain, verify_logo,
+    path_is_valid, pgp_pubkey_format_is_valid, username_is_valid, validate_did_method,
+    validate_subdomain, verify_logo,
 };
 use crate::Cw721MetadataContract;
 
@@ -30,7 +33,7 @@ pub fn execute_instantiate(
     _env: Env,
     _info: MessageInfo,
     msg: InstantiateMsg,
-) -> StdResult<Response> {
+) -> Result<Response, ContractError> {
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
 
     let info = ContractInfo {
@@ -42,6 +45,9 @@ pub fn execute_instantiate(
     if let Some(ulc) = msg.username_length_cap {
         USERNAME_LENGTH_CAP.save(deps.storage, &ulc)?;
     }
+
+    validate_did_method(msg.did_method.clone())?;
+    DID_METHOD.save(deps.storage, &msg.did_method)?;
 
     let minting_fees = MintingFeesResponse {
         native_denom: msg.native_denom,

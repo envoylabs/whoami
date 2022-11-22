@@ -1,9 +1,9 @@
 use crate::error::ContractError;
 use crate::msg::MintingFeesResponse;
-use crate::state::USERNAME_LENGTH_CAP;
+use crate::state::{DID_METHOD, USERNAME_LENGTH_CAP};
 use cosmwasm_std::{
-    coins, Addr, BankMsg, CosmosMsg, Decimal, Deps, DepsMut, Order, Response, StdError, StdResult,
-    Uint128,
+    coins, ensure_eq, Addr, BankMsg, CosmosMsg, Decimal, Deps, DepsMut, Order, Response, StdError,
+    StdResult, Uint128,
 };
 use cw20::{EmbeddedLogo, Logo};
 
@@ -314,4 +314,22 @@ pub fn verify_logo(logo: &Logo) -> Result<(), ContractError> {
         Logo::Embedded(EmbeddedLogo::Png(logo)) => verify_png_logo(logo),
         Logo::Url(_) => Err(ContractError::NoLinksPermitted {}), // this is an embedded field, we don't allow URLs like CW20
     }
+}
+
+/// Validate the DID method, or error
+pub fn validate_did_method(did_method: String) -> Result<(), ContractError> {
+    let invalid_characters: Regex = Regex::new(r"[^a-z0-9]").unwrap();
+    let check_passed = !invalid_characters.is_match(&did_method);
+
+    ensure_eq!(check_passed, true, ContractError::InvalidDidMethod {});
+
+    Ok(())
+}
+
+/// Does exactly what it says on the tin
+/// in this case the method_specific_identifier is essentially the DENS name
+pub fn prefix_did(deps: Deps, method_specific_identifier: String) -> StdResult<String> {
+    let did_method = DID_METHOD.load(deps.storage)?;
+    let prefix_did = format!("did:{did_method}:{method_specific_identifier}");
+    Ok(prefix_did)
 }
