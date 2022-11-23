@@ -253,10 +253,10 @@ pub fn get_parent_nft_info(
 }
 
 // get full path by heading up through the parents
-// paths for top level names would be jeffvader/anothertoken::some-nested-path
-// paths for nested paths would be like anothertoken::some-nested-path::second-nest
-// now in the case of that second-nest path, its parent is anothertoken::some-nested-path
-// essentially once you get into :: land you are into super fun recursive times
+// paths for top level names would be anothertoken.some-nested-path
+// paths for nested paths would be like anothertoken.some-nested-path.second-nest
+// now in the case of that second-nest path, its parent is anothertoken.some-nested-path
+// essentially once you get into . land you are into super fun recursive times
 pub fn get_path(
     contract: Cw721MetadataContract,
     deps: Deps,
@@ -279,7 +279,7 @@ pub fn get_path(
         let parent_token = contract.tokens.load(deps.storage, &cpti)?;
 
         // clip off the front if this is a path
-        // i.e. jeffvader::employment will resolve
+        // i.e. jeffvader.employment will resolve
         // so we clip off jeffvader
         // not even sure this case _can_ happen, but still
         let sanitized_parent_token_id = match parent_token.extension.parent_token_id {
@@ -294,8 +294,17 @@ pub fn get_path(
         current_parent_token_id = parent_token.extension.parent_token_id;
     }
 
-    // finally, ensure we have no instances of /:: after join
+    // finally, ensure we have no instances of /. after join
     let joined = parents.join("/");
-    let path = joined.replace("/::", "::");
+    let path = joined.replace("/.", ".");
     Ok(GetPathResponse { path })
+}
+
+pub fn resolve_did(
+    contract: Cw721MetadataContract,
+    deps: Deps,
+    did_id: String,
+) -> StdResult<AddressOfResponse> {
+    let token = contract.tokens.load(deps.storage, &did_id)?;
+    Ok(DidDocumentResponse {})
 }

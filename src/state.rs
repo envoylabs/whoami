@@ -1,4 +1,4 @@
-use crate::msg::{ContractInfo, MintingFeesResponse};
+use crate::msg::{ContractInfo, MintingFeesResponse, Service};
 use cosmwasm_std::Addr;
 use cw_storage_plus::{Item, Map};
 
@@ -20,3 +20,6 @@ pub const MINTING_FEES_INFO: Item<MintingFeesResponse> = Item::new("minting_fees
 
 // the did method (namespace)
 pub const DID_METHOD: Item<String> = Item::new("did_method");
+
+// the default service endpoint
+pub const DEFAULT_SERVICE: Item<Service> = Item::new("default_service");

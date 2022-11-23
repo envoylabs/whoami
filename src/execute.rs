@@ -385,7 +385,7 @@ pub fn mint_path(
             )?;
 
             // okay, it's valid, prepend it with parent and start the show
-            let full_path = format!("{}::{}", parent_token_id, path);
+            let full_path = format!("{}.{}", parent_token_id, path);
 
             // create the token
             // this will fail if claimed
