@@ -6,9 +6,17 @@ use serde::{Deserialize, Serialize};
 /// question: should it be updateable?
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub struct Service {
+    /// This id should be (for example) the instantiated address of either this
+    /// contract (if totally self-contained), or a calling contract if that is
+    /// simply using this one to create DID documents
+    pub id: String,
     /// Service type
     pub r#type: String,
     /// The endpoint to access this service
+    /// this could conceivably be an endpoint on a domain
+    /// or the smart contract itself
+    /// so in this case, the DID contract address would be the service_endpoint
+    /// and the address of the calling contract creating DIDs would be the ID
     pub service_endpoint: String,
 }
 
@@ -106,11 +114,16 @@ impl Default for VerificationMethod {
     }
 }
 
+/// This models a associative data structure defined in the spec
+/// where a DID is followed by a verification method
+/// so they're sort of pairs for some reason but in JSON
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug, Default)]
+pub enum DidToVerificationMapping {
+    String,
+    VerificationMethod,
+}
+
 /// The DID Document
-/// Note that for our case we always insist that the controller
-/// is the same thing as the subject
-/// another way of approaching this would be to make the controller
-/// the smart contract itself, or even a DAO
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug, Default)]
 pub struct DidDocument {
     /// The LD context. Will always be "https://www.w3.org/ns/did/v1"
@@ -119,34 +132,45 @@ pub struct DidDocument {
     /// This will be the did id
     /// it is auto-generated
     pub id: String,
+    /// Controller
+    /// Note that for our case in this first implementation 
+    /// we always insist that the controller
+    /// is the same thing as the subject
+    /// another way of approaching this would be to make the controller
+    /// the smart contract itself, or even a DAO
+    pub controller: Vec<String>,
     /// Verification Method
     /// at the very least, BlockchainAccountId is required
-    /// that is why this is not an Option type
-    pub verification_method: Vec<VerificationMethod>,
-    /// Services. Not optional as at least one should be set
+    /// this is an Option
+    /// but in the implementation we will insist on it
+    /// this does however mean it can be updated & removed
+    #[serde(rename = "verificationMethod")]
+    pub verification_method: Option<Vec<VerificationMethod>>,
+    /// Services. 
+    /// at least one should be set
     /// when the contract is instantiated
-    pub service: Vec<Service>,
+    /// so it is optional in name only
+    /// purely cos spec says so YOLO
+    pub service: Option<Vec<Service>>,
+    pub assertion_method: Option<Vec<DidToVerificationMapping>>,
+    pub key_agreement: Option<Vec<DidToVerificationMapping>>,
+    pub capability_invocation: Option<Vec<DidToVerificationMapping>>,
+    pub capability_delegation: Option<Vec<DidToVerificationMapping>>,
 }
 
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug, Default)]
 pub enum DidExecuteMsg {
     /// DID Method: Create
-    /// top level Metadata fields are automatically set;
-    /// this means that in practice
-    /// Create can be called and only pass in DID data.
-    /// Under the hood it is using mint
     Create { id: String },
 
     /// DID Method: Update
-    /// this is similar, but not identical
-    /// to UpdateMetadata
-    /// as it only operates on the DID document
     Update { id: String },
 
     /// DID Method: Deactivate
-    /// this is mapped to Burn
     Delete { id: String },
 }
 
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug, Default)]
 pub enum DidQueryMsg {
     /// Resolve takes a DID identifier and returns the DID
     Resolve { id: String },
@@ -156,5 +180,7 @@ pub enum DidQueryMsg {
     Read { id: String },
 }
 
+/// This is the same as a DID document but the authentication field
+/// potentially contains duplicate data of the verification methods
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub struct DidDocumentResponse {}

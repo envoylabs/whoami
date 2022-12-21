@@ -72,22 +72,36 @@ pub struct InstantiateMsg {
     /// The DID namespace
     /// this should be set to 'dens' but hey, you do you
     pub did_method: String,
+
+    /// The DID contract
+    /// this is required to create the DID document
+    pub did_contract_address: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug, Default)]
 pub struct Metadata {
-    /// Original meta fields
+    // Original meta fields
+
+    /// This is actually an image url
     pub image: Option<String>,
+    /// Raw image data for storing on-chain
     pub image_data: Option<Logo>,
-    pub email: Option<String>,
     pub external_url: Option<String>,
-    pub public_name: Option<String>,
-    pub public_bio: Option<String>,
-    pub twitter_id: Option<String>,
-    pub discord_id: Option<String>,
-    pub telegram_id: Option<String>,
-    pub keybase_id: Option<String>,
+
+    /// Danger zone! 
+    pub email: Option<String>,
+
+    // these fields are undesirable and have been removed
+    // pub public_name: Option<String>,
+    // pub public_bio: Option<String>,
+    // pub twitter_id: Option<String>,
+    // pub discord_id: Option<String>,
+    // pub telegram_id: Option<String>,
+    // pub keybase_id: Option<String>,
     pub validator_operator_address: Option<String>,
+
+    // this is questionably useful
+    // since we now insist on a pubkey
     pub contract_address: Option<String>,
 
     /// For future compatibility, we want to support
@@ -97,7 +111,9 @@ pub struct Metadata {
     pub parent_token_id: Option<String>,
 
     /// the DID document
-    pub did_document: DidDocument,
+    /// this is created on mint by calling the DID contract
+    /// it is required
+    pub did_document_id: String,
 }
 
 pub type Extension = Metadata;
@@ -152,11 +168,11 @@ pub enum ExecuteMsg {
     /// Mint a new path NFT
     /// e.g a user has jeffvader
     /// they could mint the paths
-    /// construction-projects::death-star-1
-    /// construction-projects::current
-    /// construction-projects::current::death-star-2
+    /// construction-projects.death-star-1
+    /// construction-projects.current
+    /// construction-projects.current.death-star-2
     /// and all could be resolved by GetFullPath to
-    /// jeffvader::construction-projects::...
+    /// jeffvader.construction-projects.etc
     MintPath(MintMsg),
 
     // Standard CW721 ExecuteMsg
