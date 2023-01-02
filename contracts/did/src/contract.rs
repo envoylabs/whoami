@@ -40,12 +40,8 @@ pub fn execute(
 ) -> Result<Response, ContractError> {
     match msg {
         DidExecuteMsg::Create { id } => create_did_document(deps, env, info, id),
-        DidExecuteMsg::Update { id } => {
-            unimplemented!()
-        }
-        DidExecuteMsg::Delete { id } => {
-            unimplemented!()
-        }
+        DidExecuteMsg::Update { id } => update_did_document(deps, env, info, id),
+        DidExecuteMsg::Delete { id } => delete_did_document(deps, env, info, id),
     }
 }
 
@@ -75,6 +71,24 @@ fn create_did_document(
     Ok(Response::new()
         .add_attribute("action", "create_did")
         .add_attribute("did", did_doc.id))
+}
+
+fn update_did_document(
+    _deps: DepsMut,
+    _env: Env,
+    _info: MessageInfo,
+    _id: String,
+) -> Result<Response, ContractError> {
+    unimplemented!()
+}
+
+fn delete_did_document(
+    _deps: DepsMut,
+    _env: Env,
+    _info: MessageInfo,
+    _id: String,
+) -> Result<Response, ContractError> {
+    unimplemented!()
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
