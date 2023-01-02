@@ -117,7 +117,7 @@ impl Default for VerificationMethod {
 /// This models a associative data structure defined in the spec
 /// where a DID is followed by a verification method
 /// so they're sort of pairs for some reason but in JSON
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug, Default)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub enum DidToVerificationMapping {
     String,
     VerificationMethod,
@@ -158,7 +158,7 @@ pub struct DidDocument {
     pub capability_delegation: Option<Vec<DidToVerificationMapping>>,
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug, Default)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub enum DidExecuteMsg {
     /// DID Method: Create
     Create { id: String },
@@ -170,7 +170,7 @@ pub enum DidExecuteMsg {
     Delete { id: String },
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug, Default)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub enum DidQueryMsg {
     /// Resolve takes a DID identifier and returns the DID
     Resolve { id: String },
