@@ -177,7 +177,7 @@ pub enum DidQueryMsg {
 
     /// DID Method: Read
     /// returns only the DID document, not the NFT
-    Read { id: String },
+    Read { did: String },
 }
 
 /// This is the same as a DID document but the authentication field
