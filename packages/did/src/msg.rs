@@ -183,4 +183,6 @@ pub enum DidQueryMsg {
 /// This is the same as a DID document but the authentication field
 /// potentially contains duplicate data of the verification methods
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
-pub struct DidDocumentResponse {}
+pub struct DidDocumentResponse {
+    pub did_document: Option<DidDocument>,
+}
