@@ -2,7 +2,7 @@
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult};
 // use cw2::set_contract_version;
-use whoami_did::msg::{DidDocument, DidDocumentResponse, DidExecuteMsg, DidQueryMsg};
+use whoami_did::msg::{DidDocument, DidDocumentResponse, DidExecuteMsg, DidQueryMsg, Service};
 
 use crate::error::ContractError;
 use crate::msg::InstantiateMsg;
@@ -41,6 +41,12 @@ pub fn execute(
     match msg {
         DidExecuteMsg::Create { id } => create_did_document(deps, env, info, id),
         DidExecuteMsg::Update { id } => update_did_document(deps, env, info, id),
+        DidExecuteMsg::AddService { id, service } => {
+            add_service_to_did_doc(deps, env, info, id, service)
+        }
+        DidExecuteMsg::DeleteService { id, service_id } => {
+            delete_service_to_did_doc(deps, env, info, id, service_id)
+        }
         DidExecuteMsg::Delete { id } => delete_did_document(deps, env, info, id),
     }
 }
@@ -54,7 +60,9 @@ fn create_did_document(
     let config = CONFIG.load(deps.storage)?;
     let did = format!("did:{}:{}", config.did_method, id);
     // todo: check if DID already exists
+    // todo: check if the given id is in correct format. should not have a did prefix
     // todo: add info.sender address as controller
+    // todo: get public key details and populate BlockchainAccountId struct
 
     let did_doc = DidDocument {
         context: DID_CONTEXT.to_string(),
@@ -73,12 +81,43 @@ fn create_did_document(
         .add_attribute("did", did_doc.id))
 }
 
+fn add_service_to_did_doc(
+    _deps: DepsMut,
+    _env: Env,
+    _info: MessageInfo,
+    _id: String,
+    _service: Service,
+) -> Result<Response, ContractError> {
+    // todo : check if DID exists
+    // todo : check if info.sender is a controller of did
+    // todo : check if service with that id already exists
+    // todo : push the service into the did document
+    unimplemented!()
+}
+
+fn delete_service_to_did_doc(
+    _deps: DepsMut,
+    _env: Env,
+    _info: MessageInfo,
+    _id: String,
+    _service_id: String,
+) -> Result<Response, ContractError> {
+    // todo : check if DID exists
+    // todo : check if info.sender is a controller of did
+    // todo : check if service with that id exists
+    // todo : delete the service from the did document
+    unimplemented!()
+}
+
 fn update_did_document(
     _deps: DepsMut,
     _env: Env,
     _info: MessageInfo,
     _id: String,
 ) -> Result<Response, ContractError> {
+    // todo : check if DID exists
+    // todo : check if info.sender is a controller of did
+    // perform validity check on all did fields
     unimplemented!()
 }
 
@@ -88,6 +127,10 @@ fn delete_did_document(
     _info: MessageInfo,
     _id: String,
 ) -> Result<Response, ContractError> {
+    // todo : check if DID exists
+    // todo : check if info.sender is a controller of did
+    // todo : preserve the did.id and purge everything else
+    // todo : add the did to revokation list? we dont have a revokation list yet.
     unimplemented!()
 }
 

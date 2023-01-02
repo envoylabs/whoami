@@ -166,6 +166,10 @@ pub enum DidExecuteMsg {
     /// DID Method: Update
     Update { id: String },
 
+    /// adding service
+    AddService { id: String, service: Service },
+    DeleteService{ id: String, service_id: String },
+
     /// DID Method: Deactivate
     Delete { id: String },
 }
