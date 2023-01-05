@@ -17,6 +17,7 @@ pub struct Service {
     /// or the smart contract itself
     /// so in this case, the DID contract address would be the service_endpoint
     /// and the address of the calling contract creating DIDs would be the ID
+    #[serde(rename = "serviceEndpoint")]
     pub service_endpoint: String,
 }
 
@@ -31,6 +32,7 @@ pub struct Ed25519Key {
     /// The controlling did "did:example:123"
     pub controller: String,
     /// Base 58 pubkey, e.g. "H3C2AVvLMv6gmMNam3uVAjZpfkcJCwDwnZn6z3wXmqPV"
+    #[serde(rename = "publicKeyBase58")]
     pub public_key_base_58: String,
 }
 
@@ -44,6 +46,7 @@ pub struct PgpKey {
     /// The controlling did "did:example:123"
     pub controller: String,
     /// The PGP key, e.g. "-----BEGIN PGP PUBLIC KEY BLOCK-----\r\nVersion: OpenPGP.js v4.9.0\r\nComment: https://openpgpjs.org\r\n\r\nxjMEXkm5LRYJKwYBBAHaRw8BAQdASmfrjYr7vrjwHNiBsdcImK397Vc3t4BL\r\nE8rnN......v6\r\nDw==\r\n=wSoi\r\n-----END PGP PUBLIC KEY BLOCK-----\r\n"
+    #[serde(rename = "publicKeyPgp")]
     pub public_key_pgp: String,
 }
 
@@ -58,6 +61,7 @@ pub struct BlockchainAccountId {
     /// The blockchain account id
     /// note this needs to be replaced if the key is
     /// transferred in any way
+    #[serde(rename = "blockchainAccountId")]
     pub blockchain_account_id: String,
 }
 
@@ -152,9 +156,13 @@ pub struct DidDocument {
     /// so it is optional in name only
     /// purely cos spec says so YOLO
     pub service: Option<Vec<Service>>,
+    #[serde(rename = "assertionMethod")]
     pub assertion_method: Option<Vec<DidToVerificationMapping>>,
+    #[serde(rename = "keyAgreement")]
     pub key_agreement: Option<Vec<DidToVerificationMapping>>,
+    #[serde(rename = "capabilityInvocation")]
     pub capability_invocation: Option<Vec<DidToVerificationMapping>>,
+    #[serde(rename = "capabilityDelegation")]
     pub capability_delegation: Option<Vec<DidToVerificationMapping>>,
 }
 
