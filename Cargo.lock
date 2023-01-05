@@ -1453,6 +1453,7 @@ dependencies = [
  "schemars",
  "serde",
  "thiserror",
+ "whoami-did",
 ]
 
 [[package]]

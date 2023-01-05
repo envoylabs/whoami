@@ -81,14 +81,13 @@ pub struct InstantiateMsg {
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug, Default)]
 pub struct Metadata {
     // Original meta fields
-
     /// This is actually an image url
     pub image: Option<String>,
     /// Raw image data for storing on-chain
     pub image_data: Option<Logo>,
     pub external_url: Option<String>,
 
-    /// Danger zone! 
+    /// Danger zone!
     pub email: Option<String>,
 
     // these fields are undesirable and have been removed
@@ -425,6 +424,7 @@ pub struct ContractInfoResponse {
     pub base_mint_fee: Option<Uint128>,
     pub burn_percentage: Option<u64>,
     pub short_name_surcharge: Option<SurchargeInfo>,
+    pub did_contract_address: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]

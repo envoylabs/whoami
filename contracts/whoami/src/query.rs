@@ -300,6 +300,7 @@ pub fn get_path(
     Ok(GetPathResponse { path })
 }
 
+// we query the DID contract for the associated record
 pub fn resolve_did(
     contract: Cw721MetadataContract,
     deps: Deps,
