@@ -117,7 +117,7 @@ impl Default for VerificationMethod {
 /// This models a associative data structure defined in the spec
 /// where a DID is followed by a verification method
 /// so they're sort of pairs for some reason but in JSON
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug, Default)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub enum DidToVerificationMapping {
     String,
     VerificationMethod,
@@ -158,7 +158,7 @@ pub struct DidDocument {
     pub capability_delegation: Option<Vec<DidToVerificationMapping>>,
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug, Default)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub enum DidExecuteMsg {
     /// DID Method: Create
     Create { id: String },
@@ -166,21 +166,27 @@ pub enum DidExecuteMsg {
     /// DID Method: Update
     Update { id: String },
 
+    /// adding service
+    AddService { id: String, service: Service },
+    DeleteService{ id: String, service_id: String },
+
     /// DID Method: Deactivate
     Delete { id: String },
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug, Default)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub enum DidQueryMsg {
     /// Resolve takes a DID identifier and returns the DID
     Resolve { id: String },
 
     /// DID Method: Read
     /// returns only the DID document, not the NFT
-    Read { id: String },
+    Read { did: String },
 }
 
 /// This is the same as a DID document but the authentication field
 /// potentially contains duplicate data of the verification methods
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
-pub struct DidDocumentResponse {}
+pub struct DidDocumentResponse {
+    pub did_document: Option<DidDocument>,
+}
