@@ -31,7 +31,7 @@ pub fn instantiate(
 
     let config = match msg.controller_contract {
         Some(cc) => {
-            let validated_cc = deps.api.addr_validate(cc)?;
+            let validated_cc = deps.api.addr_validate(&cc)?;
             Config {
                 did_method: msg.did_method,
                 controller_contract: Some(validated_cc),
@@ -45,10 +45,6 @@ pub fn instantiate(
         }
     };
 
-    let config = Config {
-        did_method: msg.did_method, // "minerva"
-        controller_contract: msg.controller_contract,
-    };
     CONFIG.save(deps.storage, &config)?;
     Ok(Response::new()
         .add_attribute("action", "instantiate")
