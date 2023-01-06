@@ -11,8 +11,8 @@ use cosmwasm_std::{ensure_eq, to_binary, Empty};
 use cw2::set_contract_version;
 use execute::{
     burn, execute_instantiate, mint, mint_path, send_nft, set_admin_address,
-    set_username_length_cap, transfer_nft, update_metadata, update_minting_fees,
-    update_primary_alias, CONTRACT_NAME, CONTRACT_VERSION,
+    set_username_length_cap, transfer_nft, update_did_contract_address, update_metadata,
+    update_minting_fees, update_primary_alias, CONTRACT_NAME, CONTRACT_VERSION,
 };
 use query::{
     address_of, contract_info, get_base_tokens_for_owner, get_parent_id, get_parent_nft_info,
@@ -54,6 +54,9 @@ pub mod entry {
     ) -> Result<Response, ContractError> {
         let tract = Cw721MetadataContract::default();
         match msg {
+            UpdateDidContractAddress {
+                did_contract_address,
+            } => update_did_contract_address(tract, deps, env, did_contract_address),
             ExecuteMsg::UpdateMintingFees(msg) => update_minting_fees(tract, deps, env, info, msg),
             ExecuteMsg::UpdateUsernameLengthCap { new_length } => {
                 set_username_length_cap(tract, deps, env, info, new_length)

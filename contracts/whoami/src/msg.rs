@@ -128,8 +128,6 @@ pub struct UpdateMetadataMsg {
     pub metadata: Metadata,
 }
 
-pub struct Update
-
 /// This can only be done by the contract admin
 /// Note that these fields will forcibly update what is already set
 /// You must be declarative and specify exactly the new desired behaviour
@@ -146,6 +144,9 @@ pub struct UpdateMintingFeesMsg {
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum ExecuteMsg {
+    /// Updates the DID contract to use for creating associated DIDs
+    UpdateDidContractAddress { did_contract_address: String },
+
     /// Updates the minting fees configured at contract instantiation
     UpdateMintingFees(UpdateMintingFeesMsg),
 
