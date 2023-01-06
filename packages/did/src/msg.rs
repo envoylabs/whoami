@@ -137,7 +137,7 @@ pub struct DidDocument {
     /// it is auto-generated
     pub id: String,
     /// Controller
-    /// Note that for our case in this first implementation 
+    /// Note that for our case in this first implementation
     /// we always insist that the controller
     /// is the same thing as the subject
     /// another way of approaching this would be to make the controller
@@ -150,7 +150,7 @@ pub struct DidDocument {
     /// this does however mean it can be updated & removed
     #[serde(rename = "verificationMethod")]
     pub verification_method: Option<Vec<VerificationMethod>>,
-    /// Services. 
+    /// Services.
     /// at least one should be set
     /// when the contract is instantiated
     /// so it is optional in name only
@@ -169,17 +169,36 @@ pub struct DidDocument {
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub enum DidExecuteMsg {
     /// DID Method: Create
-    Create { id: String },
+    Create {
+        id: String,
+    },
 
     /// DID Method: Update
-    Update { id: String },
+    Update {
+        id: String,
+    },
 
     /// adding service
-    AddService { id: String, service: Service },
-    DeleteService{ id: String, service_id: String },
+    AddService {
+        id: String,
+        service: Service,
+    },
+    DeleteService {
+        id: String,
+        service_id: String,
+    },
 
     /// DID Method: Deactivate
-    Delete { id: String },
+    Delete {
+        id: String,
+    },
+
+    /// DID Method: Create, executed by a permitted proxy.
+    /// it is assumed that this will be a contract
+    ProxyCreate {
+        /// this is the wrapped message
+        pub create_msg: ,
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
@@ -198,3 +217,8 @@ pub enum DidQueryMsg {
 pub struct DidDocumentResponse {
     pub did_document: Option<DidDocument>,
 }
+
+// #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+// pub enum DidArgs {
+
+// }

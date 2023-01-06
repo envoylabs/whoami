@@ -1,18 +1,19 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult};
-// use cw2::set_contract_version;
-use whoami_did::msg::{DidDocument, DidDocumentResponse, DidExecuteMsg, DidQueryMsg, Service};
+use cw2::set_contract_version;
+use whoami_did::msg::{
+    DidArgs, DidDocument, DidDocumentResponse, DidExecuteMsg, DidQueryMsg, Service,
+};
 
 use crate::error::ContractError;
 use crate::msg::InstantiateMsg;
 use crate::state::{Config, CONFIG, DID_DOCUMENTS};
 
-/*
 // version info for migration info
-const CONTRACT_NAME: &str = "crates.io:did";
+const CONTRACT_NAME: &str = "crates.io:whoami-did";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
-*/
+
 const DID_CONTEXT: &str = "https://www.w3.org/ns/did/v1";
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -22,8 +23,31 @@ pub fn instantiate(
     _info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
+    set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
+
+    if let Some(cc) = msg.controller_contract {
+    } else {
+    }
+
+    let config = match msg.controller_contract {
+        Some(cc) => {
+            let validated_cc = deps.api.addr_validate(cc)?;
+            Config {
+                did_method: msg.did_method,
+                controller_contract: Some(validated_cc),
+            };
+        }
+        None => {
+            Config {
+                did_method: msg.did_method,
+                controller_contract: None,
+            };
+        }
+    };
+
     let config = Config {
-        did_method: msg.did_method, //"minerva"
+        did_method: msg.did_method, // "minerva"
+        controller_contract: msg.controller_contract,
     };
     CONFIG.save(deps.storage, &config)?;
     Ok(Response::new()
@@ -39,15 +63,35 @@ pub fn execute(
     msg: DidExecuteMsg,
 ) -> Result<Response, ContractError> {
     match msg {
-        DidExecuteMsg::Create { id } => create_did_document(deps, env, info, id),
+        DidExecuteMsg::ProxyCreate { create_msg } => {
+            execute_proxy_create(deps, env, info, create_msg)
+        }
+        DidExecuteMsg::Create { id } => create_did_document(deps, env, info, id, creator_address),
         DidExecuteMsg::Update { id } => update_did_document(deps, env, info, id),
         DidExecuteMsg::AddService { id, service } => {
             add_service_to_did_doc(deps, env, info, id, service)
         }
         DidExecuteMsg::DeleteService { id, service_id } => {
-            delete_service_to_did_doc(deps, env, info, id, service_id)
+            delete_service_from_did_doc(deps, env, info, id, service_id)
         }
         DidExecuteMsg::Delete { id } => delete_did_document(deps, env, info, id),
+    }
+}
+
+// unpack a wrapped create call
+// this will error if no creator contract is set
+fn execute_proxy_create(
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    wrapped: CreateDidMsg,
+) -> Result<Response, ContractError> {
+    let config = CONFIG.load(deps.storage)?;
+    let controller_contract = config.controller_contract;
+
+    if let Some(cc) = controller_contract {
+    } else {
+        return Err(ContractError::Unauthorized {});
     }
 }
 
@@ -56,6 +100,8 @@ fn create_did_document(
     _env: Env,
     _info: MessageInfo,
     id: String,
+    creator_address: String,
+    did_meta: Option<DidArgs>,
 ) -> Result<Response, ContractError> {
     let config = CONFIG.load(deps.storage)?;
     let did = format!("did:{}:{}", config.did_method, id);
@@ -64,10 +110,12 @@ fn create_did_document(
     // todo: add info.sender address as controller
     // todo: get public key details and populate BlockchainAccountId struct
 
+    // todo: validate and generate https://github.com/decentralized-identity/did-key.rs
+
     let did_doc = DidDocument {
         context: DID_CONTEXT.to_string(),
         id: did.clone(),
-        controller: vec![],
+        controller: vec![creator_address],
         verification_method: None,
         service: None,
         assertion_method: None,
@@ -95,7 +143,7 @@ fn add_service_to_did_doc(
     unimplemented!()
 }
 
-fn delete_service_to_did_doc(
+fn delete_service_from_did_doc(
     _deps: DepsMut,
     _env: Env,
     _info: MessageInfo,
@@ -130,7 +178,7 @@ fn delete_did_document(
     // todo : check if DID exists
     // todo : check if info.sender is a controller of did
     // todo : preserve the did.id and purge everything else
-    // todo : add the did to revokation list? we dont have a revokation list yet.
+    // todo : add the did to revocation list? we don't have a revocation list yet.
     unimplemented!()
 }
 
