@@ -90,16 +90,21 @@ pub struct Metadata {
     /// Danger zone!
     pub email: Option<String>,
 
-    // these fields are undesirable and have been removed
-    // pub public_name: Option<String>,
-    // pub public_bio: Option<String>,
-    // pub twitter_id: Option<String>,
-    // pub discord_id: Option<String>,
-    // pub telegram_id: Option<String>,
-    // pub keybase_id: Option<String>,
+    // these fields are undesirable 
+    // we will no longer write them in v2
+    // but they are kept for purely hysterical raisins
+    pub public_name: Option<String>,
+    pub public_bio: Option<String>,
+    pub twitter_id: Option<String>,
+    pub discord_id: Option<String>,
+    pub telegram_id: Option<String>,
+    pub keybase_id: Option<String>,
+    
+    // this is questionably useful
+    // since we now insist on a pubkey
     pub validator_operator_address: Option<String>,
 
-    // this is questionably useful
+    // this is even more questionably useful
     // since we now insist on a pubkey
     pub contract_address: Option<String>,
 
