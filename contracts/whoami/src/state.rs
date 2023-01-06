@@ -23,5 +23,8 @@ pub const MINTING_FEES_INFO: Item<MintingFeesResponse> = Item::new("minting_fees
 // the did method (namespace)
 pub const DID_METHOD: Item<String> = Item::new("did_method");
 
+// the did contract address (optional)
+pub const DID_CONTRACT_ADDRESS: Item<Option<Addr>> = Item::new("did_contract_address");
+
 // the default service endpoint
 pub const DEFAULT_SERVICE: Item<Service> = Item::new("default_service");

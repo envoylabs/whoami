@@ -14,7 +14,8 @@ use crate::msg::{
 
 use crate::query::get_paths_for_owner_and_token;
 use crate::state::{
-    CONTRACT_INFO, DID_METHOD, MINTING_FEES_INFO, PRIMARY_ALIASES, USERNAME_LENGTH_CAP,
+    CONTRACT_INFO, DID_CONTRACT_ADDRESS, DID_METHOD, MINTING_FEES_INFO, PRIMARY_ALIASES,
+    USERNAME_LENGTH_CAP,
 };
 use crate::utils::{
     get_mint_fee, get_mint_response, get_number_of_owned_tokens, get_username_length, is_path,
@@ -49,6 +50,9 @@ pub fn execute_instantiate(
     validate_did_method(msg.did_method.clone())?;
     DID_METHOD.save(deps.storage, &msg.did_method)?;
 
+    // set to None initially
+    DID_CONTRACT_ADDRESS.save(deps.storage, None)?;
+
     let minting_fees = MintingFeesResponse {
         native_denom: msg.native_denom,
         native_decimals: msg.native_decimals,
@@ -61,6 +65,22 @@ pub fn execute_instantiate(
     let admin_address = deps.api.addr_validate(&msg.admin_address)?;
     contract.minter.save(deps.storage, &admin_address)?;
     Ok(Response::default())
+}
+
+pub fn update_did_contract_address(
+    contract: Cw721MetadataContract,
+    deps: DepsMut,
+    env: Env,
+    did_contract_address: String,
+) -> Result<Response, ContractError> {
+    let validated_address = deps.api.addr_validate(&did_contract_address)?;
+
+    DID_CONTRACT_ADDRESS.save(deps.storage, validated_address.clone())?;
+
+    let res = Response::new()
+        .add_attribute("action", "update_did_contract_address")
+        .add_attribute("new_did_contract_address", validated_address);
+    Ok(res)
 }
 
 // update minting fees

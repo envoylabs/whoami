@@ -72,10 +72,6 @@ pub struct InstantiateMsg {
     /// The DID namespace
     /// this should be set to 'dens' but hey, you do you
     pub did_method: String,
-
-    /// The DID contract
-    /// this is required to create the DID document
-    pub did_contract_address: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug, Default)]
@@ -90,7 +86,7 @@ pub struct Metadata {
     /// Danger zone!
     pub email: Option<String>,
 
-    // these fields are undesirable 
+    // these fields are undesirable
     // we will no longer write them in v2
     // but they are kept for purely hysterical raisins
     pub public_name: Option<String>,
@@ -99,7 +95,7 @@ pub struct Metadata {
     pub discord_id: Option<String>,
     pub telegram_id: Option<String>,
     pub keybase_id: Option<String>,
-    
+
     // this is questionably useful
     // since we now insist on a pubkey
     pub validator_operator_address: Option<String>,
@@ -131,6 +127,8 @@ pub struct UpdateMetadataMsg {
     pub token_id: String,
     pub metadata: Metadata,
 }
+
+pub struct Update
 
 /// This can only be done by the contract admin
 /// Note that these fields will forcibly update what is already set
@@ -429,7 +427,7 @@ pub struct ContractInfoResponse {
     pub base_mint_fee: Option<Uint128>,
     pub burn_percentage: Option<u64>,
     pub short_name_surcharge: Option<SurchargeInfo>,
-    pub did_contract_address: String,
+    pub did_contract_address: Option<Addr>,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
