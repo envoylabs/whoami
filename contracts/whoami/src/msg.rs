@@ -1,4 +1,4 @@
-use cosmwasm_std::{Binary, Uint128};
+use cosmwasm_std::{Binary, Uint128, Addr};
 use cw20::Logo;
 use cw721::{Expiration, NftInfoResponse};
 use cw721_base::{

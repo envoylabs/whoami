@@ -19,7 +19,7 @@ use crate::state::{
 };
 use crate::utils::{
     get_mint_fee, get_mint_response, get_number_of_owned_tokens, get_username_length, is_path,
-    path_is_valid, pgp_pubkey_format_is_valid, username_is_valid, validate_did_method,
+    path_is_valid, username_is_valid, validate_did_method,
     validate_subdomain, verify_logo,
 };
 use crate::Cw721MetadataContract;
@@ -51,7 +51,7 @@ pub fn execute_instantiate(
     DID_METHOD.save(deps.storage, &msg.did_method)?;
 
     // set to None initially
-    DID_CONTRACT_ADDRESS.save(deps.storage, None)?;
+    DID_CONTRACT_ADDRESS.save(deps.storage, &None)?;
 
     let minting_fees = MintingFeesResponse {
         native_denom: msg.native_denom,
@@ -68,14 +68,14 @@ pub fn execute_instantiate(
 }
 
 pub fn update_did_contract_address(
-    contract: Cw721MetadataContract,
+    _contract: Cw721MetadataContract,
     deps: DepsMut,
-    env: Env,
+    _env: Env,
     did_contract_address: String,
 ) -> Result<Response, ContractError> {
     let validated_address = deps.api.addr_validate(&did_contract_address)?;
 
-    DID_CONTRACT_ADDRESS.save(deps.storage, validated_address.clone())?;
+    DID_CONTRACT_ADDRESS.save(deps.storage, &Some(validated_address.clone()))?;
 
     let res = Response::new()
         .add_attribute("action", "update_did_contract_address")
@@ -227,16 +227,9 @@ pub fn mint(
         ContractError::Unauthorized {}
     );
 
-    // validate any embedded logo
+    // validate any embedded image data 
     if let Some(ref pfp_data) = msg.extension.image_data {
         verify_logo(pfp_data)?
-    }
-
-    // validate PGP pubkey format
-    if let Some(ref pgp_public_key) = msg.extension.pgp_public_key {
-        if !pgp_pubkey_format_is_valid(pgp_public_key) {
-            return Err(ContractError::InvalidPgpPublicKey {});
-        }
     }
 
     // get minting fees and minter (i.e. admin)
@@ -366,14 +359,6 @@ pub fn mint_path(
     // validate any embedded logo or image
     if let Some(ref pfp_data) = msg.extension.image_data {
         verify_logo(pfp_data)?
-    }
-
-    // validate PGP public key format
-    // or return an error
-    if let Some(ref pgp_public_key) = msg.extension.pgp_public_key {
-        if !pgp_pubkey_format_is_valid(pgp_public_key) {
-            return Err(ContractError::InvalidPgpPublicKey {});
-        }
     }
 
     // validate owner addr

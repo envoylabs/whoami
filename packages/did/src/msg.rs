@@ -197,8 +197,14 @@ pub enum DidExecuteMsg {
     /// it is assumed that this will be a contract
     ProxyCreate {
         /// this is the wrapped message
-        pub create_msg: ,
-    }
+        create_msg: ProxyCreateWrappedMsg,
+    },
+}
+
+/// Let's keep this simple for first impl
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+pub struct ProxyCreateWrappedMsg {
+    id: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]

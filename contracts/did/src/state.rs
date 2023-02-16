@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use whoami_did::msg::DidDocument;
 
 pub const CONFIG: Item<Config> = Item::new("config");
-pub const DID_DOCUMENTS: Map<String, DidDocument> = Map::new("dids");
+pub const DID_DOCUMENTS: Map<String, DidDocument> = Map::new("did_documents");
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct Config {

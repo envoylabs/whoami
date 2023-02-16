@@ -3,7 +3,7 @@ use crate::msg::{
     IsContractResponse, ListUserInfoResponse, PrimaryAliasResponse, UserInfo,
     WhoamiNftInfoResponse,
 };
-use crate::state::{CONTRACT_INFO, MINTING_FEES_INFO, PRIMARY_ALIASES};
+use crate::state::{CONTRACT_INFO, MINTING_FEES_INFO, PRIMARY_ALIASES, DID_CONTRACT_ADDRESS};
 use crate::utils::{is_path, namespace_in_path, remove_namespace_from_path};
 use crate::Cw721MetadataContract;
 use cosmwasm_std::{Deps, Env, Order, StdError, StdResult};
@@ -156,6 +156,7 @@ pub fn primary_alias(
 pub fn contract_info(deps: Deps) -> StdResult<ContractInfoResponse> {
     let contract_info = CONTRACT_INFO.load(deps.storage)?;
     let minting_fees = MINTING_FEES_INFO.load(deps.storage)?;
+    let did_contract_address = DID_CONTRACT_ADDRESS.load(deps.storage)?;
 
     let contract_info_response = ContractInfoResponse {
         name: contract_info.name,
@@ -166,6 +167,7 @@ pub fn contract_info(deps: Deps) -> StdResult<ContractInfoResponse> {
         base_mint_fee: minting_fees.base_mint_fee,
         burn_percentage: minting_fees.burn_percentage,
         short_name_surcharge: minting_fees.short_name_surcharge,
+        did_contract_address: did_contract_address,
     };
     Ok(contract_info_response)
 }
@@ -300,12 +302,3 @@ pub fn get_path(
     Ok(GetPathResponse { path })
 }
 
-// we query the DID contract for the associated record
-pub fn resolve_did(
-    contract: Cw721MetadataContract,
-    deps: Deps,
-    did_id: String,
-) -> StdResult<AddressOfResponse> {
-    let token = contract.tokens.load(deps.storage, &did_id)?;
-    Ok(DidDocumentResponse {})
-}

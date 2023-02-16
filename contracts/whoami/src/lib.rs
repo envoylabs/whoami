@@ -17,7 +17,7 @@ use execute::{
 use query::{
     address_of, contract_info, get_base_tokens_for_owner, get_parent_id, get_parent_nft_info,
     get_path, get_paths_for_owner, get_paths_for_owner_and_token, is_contract, list_info_by_alias,
-    primary_alias, resolve_did,
+    primary_alias,
 };
 
 pub use crate::msg::{ContractInfo, ExecuteMsg, Extension, InstantiateMsg, MigrateMsg, QueryMsg};
@@ -54,7 +54,7 @@ pub mod entry {
     ) -> Result<Response, ContractError> {
         let tract = Cw721MetadataContract::default();
         match msg {
-            UpdateDidContractAddress {
+            ExecuteMsg::UpdateDidContractAddress {
                 did_contract_address,
             } => update_did_contract_address(tract, deps, env, did_contract_address),
             ExecuteMsg::UpdateMintingFees(msg) => update_minting_fees(tract, deps, env, info, msg),
@@ -144,7 +144,6 @@ pub mod entry {
             QueryMsg::ListInfoByAlias { aliases } => {
                 to_binary(&list_info_by_alias(tract, deps, aliases)?)
             }
-            QueryMsg::Resolve { did_id } => to_binary(&resolve_did(tract, deps, did_id)),
             _ => tract.query(deps, env, msg.into()).map_err(|err| err),
         }
     }

@@ -29,20 +29,18 @@ pub fn instantiate(
     } else {
     }
 
-    let config = match msg.controller_contract {
+    let config: Config = match msg.controller_contract {
         Some(cc) => {
             let validated_cc = deps.api.addr_validate(&cc)?;
             Config {
                 did_method: msg.did_method,
-                controller_contract: Some(validated_cc),
-            };
+                controller_contract: Some(validated_cc.to_string()),
+            }
         }
-        None => {
-            Config {
-                did_method: msg.did_method,
-                controller_contract: None,
-            };
-        }
+        None => Config {
+            did_method: msg.did_method,
+            controller_contract: None,
+        },
     };
 
     CONFIG.save(deps.storage, &config)?;
@@ -100,17 +98,19 @@ fn create_did_document(
     did_meta: Option<DidArgs>,
 ) -> Result<Response, ContractError> {
     let config = CONFIG.load(deps.storage)?;
-    let did = format!("did:{}:{}", config.did_method, id);
-    // todo: check if DID already exists
+    let did_id = format!("did:{}:{}", config.did_method, id);
     // todo: check if the given id is in correct format. should not have a did prefix
     // todo: add info.sender address as controller
     // todo: get public key details and populate BlockchainAccountId struct
 
-    // todo: validate and generate https://github.com/decentralized-identity/did-key.rs
+    // todo: validate and generate https://github.com/decentralized-identity/did-key.rs/blob/main/src/secp256k1.rs#L25
+    // this can use a passed-in public key to generate a document
+
+    throw_error_if_did_exists(deps.as_ref(), did_id)?;
 
     let did_doc = DidDocument {
         context: DID_CONTEXT.to_string(),
-        id: did.clone(),
+        id: did_id.clone(),
         controller: vec![creator_address],
         verification_method: None,
         service: None,
@@ -119,24 +119,23 @@ fn create_did_document(
         capability_invocation: None,
         capability_delegation: None,
     };
-    DID_DOCUMENTS.save(deps.storage, did, &did_doc)?;
+    DID_DOCUMENTS.save(deps.storage, did_id, &did_doc)?;
     Ok(Response::new()
         .add_attribute("action", "create_did")
         .add_attribute("did", did_doc.id))
 }
 
 fn add_service_to_did_doc(
-    _deps: DepsMut,
+    deps: DepsMut,
     _env: Env,
     _info: MessageInfo,
-    _id: String,
+    id: String,
     _service: Service,
 ) -> Result<Response, ContractError> {
-    // todo : check if DID exists
     // todo : check if info.sender is a controller of did
     // todo : check if service with that id already exists
     // todo : push the service into the did document
-    unimplemented!()
+    throw_error_if_did_exists(deps.as_ref(), id)?;
 }
 
 fn delete_service_from_did_doc(
